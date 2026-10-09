@@ -148,6 +148,7 @@ struct CartItemSelection: Identifiable {
 }
 
 struct CartItemRow: View {
+    @Environment(\.modelContext) private var context
     let item: CartItem
     let currency: String
 
@@ -185,6 +186,13 @@ struct CartItemRow: View {
                 .monospacedDigit()
                 .lineLimit(1)
                 .foregroundStyle(.secondary)
+            if let trend = PriceTrend.lookup(code: item.code, store: item.session?.store, context: context) {
+                // Secondary ink, not red: red is reserved for the limit (DESIGN.md → Do not).
+                Text("\(trend.roundedPercent > 0 ? "↑" : "↓") \(abs(trend.roundedPercent))% since \(trend.since, format: .dateTime.month(.wide))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Price \(trend.roundedPercent > 0 ? "up" : "down") \(abs(trend.roundedPercent)) percent here since \(trend.since.formatted(.dateTime.month(.wide)))")
+            }
         }
     }
 

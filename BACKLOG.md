@@ -138,23 +138,12 @@ Turn feedback into items. Re-order P3 and later if testers ask for something els
 
 ## P3 — Enrichment and insights
 
-### INS-104 · Price-change badges · S
-**Needs:** INS-102.
-"+12 % since May" on cart rows and trip-detail rows (INS-06).
-
-**Done when:** a product whose price rose shows the badge, and one with no history does not.
-
 ### INS-105 · In-store price-embedded barcodes · M
 **Needs:** IOS-005.
 Per-country table for 20–29 prefix EANs (start with the owner's country). Price or weight is extracted, with source `embedded`.
 
 **Done when:** 5 real weighed-produce labels parse to the printed price.
 
-### INS-106 · Till gap and basket inflation · S
-**Needs:** INS-102.
-INS-09 and INS-10. Port the method from Norviq's `PersonalInflationCalculator.swift`.
-
-**Done when:** fixture tests pass, and the cards are hidden when there is no data.
 
 ---
 
@@ -581,3 +570,26 @@ Swift Charts, following the `dataviz` skill, with the 3-trip minimum placeholder
 - **Charts:** Swift Charts was dropped for these short ranked lists, because its axis labels collided. They are plain rows now.
 - **Demo data:** debug-only `DemoData` (`-ui-testing-demo-data`) seeds history for UI tests and screenshots.
 - **Analytics:** the `insights_viewed` event is sent.
+
+### INS-104 · Price-change badges · S
+**Needs:** INS-102.
+"+12 % since May" on cart rows and trip-detail rows (INS-06).
+
+**Done when:** a product whose price rose shows the badge, and one with no history does not.
+
+### INS-106 · Till gap and basket inflation · S
+**Needs:** INS-102.
+INS-09 and INS-10. Port the method from Norviq's `PersonalInflationCalculator.swift`.
+
+**Done when:** fixture tests pass, and the cards are hidden when there is no data.
+
+**Closed 2026-10-09 (INS-104, INS-106):**
+
+- **Badge:** `PriceTrend` puts "↑ 12% since May" on cart and history rows:
+  - per store, over 180 days
+  - only shown when the change rounds to at least 1%
+  - in secondary ink, not red
+- **INS-09 till gap and INS-10 basket inflation** live in `ScanItCore`:
+  - basket inflation is spend-weighted per product and store, after Norviq's `expense_weighted_cpi_v1`
+  - both have hand-computed fixture expectations
+  - both are shown under "Your prices" on Insights, hidden when there is no data

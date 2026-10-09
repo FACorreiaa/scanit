@@ -382,3 +382,27 @@ struct InsightsSourceTests {
         #expect(InsightsSource.categoryTitle("other") == "Other")
     }
 }
+
+// MARK: - INS-104: price-change badge
+
+@MainActor
+struct PriceTrendTests {
+    @Test func risingPriceShowsBadgeNoHistoryDoesNot() throws {
+        let context = try makeContext()
+        let lidl = Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        context.insert(lidl)
+        var clock = Date(timeIntervalSince1970: 1_790_000_000)
+        let store = SessionStore(context: context, analytics: RecordingAnalytics(), now: { clock })
+        store.startTrip(store: lidl, limitMinor: nil, currency: "EUR")
+        store.addItem(code: milk, unitPriceMinor: 90, priceSource: .manual)
+        #expect(PriceTrend.lookup(code: milk.value, store: lidl, context: context, now: clock) == nil, "one sighting is no trend")
+
+        clock += 60 * 86_400
+        store.addItem(code: milk, unitPriceMinor: 101, priceSource: .manual)
+        store.addItem(code: bread, unitPriceMinor: 150, priceSource: .manual)
+        let trend = try #require(PriceTrend.lookup(code: milk.value, store: lidl, context: context, now: clock))
+        #expect(trend.roundedPercent == 12)
+        #expect(PriceTrend.lookup(code: bread.value, store: lidl, context: context, now: clock) == nil)
+        #expect(PriceTrend.lookup(code: milk.value, store: nil, context: context, now: clock) == nil)
+    }
+}

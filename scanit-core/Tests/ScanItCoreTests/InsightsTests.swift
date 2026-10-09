@@ -12,6 +12,8 @@ private struct InsightsFixture: Decodable {
         struct Change: Decodable { let storeId, code: String; let firstMinor, latestMinor: Int; let percent: Double }
         struct Cheapest: Decodable { let code, cheapestStoreId: String; let cheapestMinor, savingMinor: Int }
         struct Category: Decodable { let category: String; let totalMinor: Int }
+        struct Till: Decodable { let meanMinor, trips: Int }
+        struct Basket: Decodable { let ratePercent, coveragePercent: Double; let components: Int }
 
         let ins01_week: Period
         let ins01_month: Period
@@ -22,6 +24,8 @@ private struct InsightsFixture: Decodable {
         let ins06: [Change]
         let ins07: [Cheapest]
         let ins08_month: [Category]
+        let ins09_tillGap: Till
+        let ins10_basketInflation: Basket
     }
 
     let now: Date
@@ -31,7 +35,7 @@ private struct InsightsFixture: Decodable {
     let expected: Expected
 }
 
-@Suite("Insights (INS-01…08)")
+@Suite("Insights (INS-01…10)")
 struct InsightsTests {
     private let fixture: InsightsFixture
     private let calculator: InsightsCalculator
@@ -107,6 +111,19 @@ struct InsightsTests {
         #expect(rows.map(\.total.amountMinor) == fixture.expected.ins08_month.map(\.totalMinor))
     }
 
+    @Test func ins09TillGap() throws {
+        let gap = try #require(calculator.tillGap())
+        #expect(gap.mean.amountMinor == fixture.expected.ins09_tillGap.meanMinor)
+        #expect(gap.trips == fixture.expected.ins09_tillGap.trips)
+    }
+
+    @Test func ins10BasketInflation() throws {
+        let basket = try #require(calculator.basketInflation())
+        #expect(abs(basket.ratePercent - fixture.expected.ins10_basketInflation.ratePercent) < 0.001)
+        #expect(abs(basket.coveragePercent - fixture.expected.ins10_basketInflation.coveragePercent) < 0.001)
+        #expect(basket.components.count == fixture.expected.ins10_basketInflation.components)
+    }
+
     @Test func currenciesNeverMix() {
         let usd = InsightsCalculator(trips: fixture.trips, prices: fixture.prices, currency: "usd", now: fixture.now)
         #expect(usd.averageTrip()?.amountMinor == 100)
@@ -121,5 +138,7 @@ struct InsightsTests {
         #expect(empty.spend(.month).deltaPercent == nil)
         #expect(empty.limitAdherence().rate == 0)
         #expect(empty.priceChanges().isEmpty)
+        #expect(empty.tillGap() == nil)
+        #expect(empty.basketInflation() == nil)
     }
 }

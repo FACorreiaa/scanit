@@ -97,11 +97,41 @@ struct InsightsView: View {
                 }
             }
 
+            if let basket = calculator.basketInflation() {
+                Section {
+                    LabeledContent {
+                        Text(signedPercent(basket.ratePercent)).monospacedDigit()
+                    } label: {
+                        Text("Your regular basket")
+                        Text("Over 90 days · \(Int(basket.coveragePercent.rounded()))% of spend")
+                    }
+                    if let gap = calculator.tillGap() {
+                        LabeledContent {
+                            Text(signedMoney(gap.mean)).monospacedDigit()
+                        } label: {
+                            Text("Till vs scanned")
+                            Text(gap.trips == 1 ? "On 1 trip" : "Average over \(gap.trips) trips")
+                        }
+                    }
+                } header: {
+                    Text("Your prices")
+                }
+            } else if let gap = calculator.tillGap() {
+                Section("Your prices") {
+                    LabeledContent {
+                        Text(signedMoney(gap.mean)).monospacedDigit()
+                    } label: {
+                        Text("Till vs scanned")
+                        Text(gap.trips == 1 ? "On 1 trip" : "Average over \(gap.trips) trips")
+                    }
+                }
+            }
+
             if !cheapest.isEmpty {
                 Section("Cheapest for things you buy often") {
                     ForEach(Array(cheapest), id: \.code) { row in
                         LabeledContent {
-                            Text("−\(row.saving.formatted())").monospacedDigit()
+                            Text("Save \(row.saving.formatted())").monospacedDigit()
                         } label: {
                             Text(row.name ?? ScannedCode(kind: .gtin, value: row.code).displayValue)
                             Text("\(row.cheapest.storeName ?? "One store") vs \(row.dearest.storeName ?? "another")")
@@ -110,6 +140,17 @@ struct InsightsView: View {
                 }
             }
         }
+    }
+
+    private func signedPercent(_ value: Double) -> String {
+        let rounded = (value * 10).rounded() / 10
+        if rounded == 0 { return "No change" }
+        return "\(rounded > 0 ? "+" : "−")\(abs(rounded).formatted(.number.precision(.fractionLength(1))))%"
+    }
+
+    private func signedMoney(_ money: Money) -> String {
+        let amount = Money(amountMinor: abs(money.amountMinor), currency: money.currency).formatted()
+        return money.amountMinor == 0 ? "Matches" : "\(money.amountMinor > 0 ? "+" : "−")\(amount)"
     }
 
     private func productName(_ code: String) -> String {

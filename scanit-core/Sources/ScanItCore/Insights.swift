@@ -132,6 +132,28 @@ public struct CategorySpend: Hashable, Sendable {
     public let total: Money
 }
 
+public struct TillGap: Hashable, Sendable {
+    /// Positive when the till charged more than was scanned (missed items, wrong prices).
+    public let mean: Money
+    public let trips: Int
+}
+
+/// INS-10, after Norviq's `PersonalInflationCalculator` ("expense_weighted_cpi_v1"): each
+/// product-and-store price change weighs by the user's spend on it.
+public struct BasketInflation: Hashable, Sendable {
+    public struct Component: Hashable, Sendable {
+        public let code: String
+        public let storeId: String
+        public let spendMinor: Int
+        public let changePercent: Double
+    }
+
+    public let ratePercent: Double
+    /// Share of the window's spend that the measured products cover.
+    public let coveragePercent: Double
+    public let components: [Component]
+}
+
 // MARK: - Calculator
 
 public struct InsightsCalculator: Sendable {
@@ -260,6 +282,55 @@ public struct InsightsCalculator: Sendable {
         return totals
             .map { CategorySpend(category: $0.key, total: money($0.value)) }
             .sorted { ($0.total.amountMinor, $1.category) > ($1.total.amountMinor, $0.category) }
+    }
+
+    /// INS-09: mean (actual till total − scanned total) over trips where the till total was entered.
+    public func tillGap() -> TillGap? {
+        let withTill = trips.filter { $0.tillTotalMinor != nil }
+        guard !withTill.isEmpty else { return nil }
+        let sum = withTill.reduce(0) { $0 + ($1.tillTotalMinor! - $1.totalMinor) }
+        let count = withTill.count
+        // Round half away from zero so a −0.5 gap does not become 0 differently from +0.5.
+        let mean = sum >= 0 ? (sum + count / 2) / count : -((-sum + count / 2) / count)
+        return TillGap(mean: money(mean), trips: count)
+    }
+
+    /// INS-10: spend-weighted price change of the regular basket over the window.
+    public func basketInflation(windowDays: Int = 90, minimumPurchases: Int = 3) -> BasketInflation? {
+        let since = now.addingTimeInterval(-Double(windowDays) * 86_400)
+        var purchases: [String: Int] = [:]
+        for line in trips.flatMap(\.lines) where line.isTrackableProduct { purchases[line.code, default: 0] += 1 }
+        let regulars = Set(purchases.filter { $0.value >= minimumPurchases }.keys)
+
+        let windowTrips = trips(inLast: windowDays)
+        var spend: [String: Int] = [:] // "store|code"
+        for trip in windowTrips {
+            for line in trip.lines where regulars.contains(line.code) {
+                spend["\(trip.storeId ?? "")|\(line.code)", default: 0] += line.lineTotalMinor
+            }
+        }
+        let observations = Dictionary(grouping: prices.filter {
+            regulars.contains($0.code) && $0.observedAt >= since && $0.observedAt <= now
+        }) { "\($0.storeId)|\($0.code)" }
+
+        let components = observations.compactMap { key, rows -> BasketInflation.Component? in
+            let sorted = rows.sorted { $0.observedAt < $1.observedAt }
+            guard sorted.count >= 2, let first = sorted.first, let latest = sorted.last, first.priceMinor > 0,
+                  let spendMinor = spend[key], spendMinor > 0 else { return nil }
+            return BasketInflation.Component(
+                code: first.code, storeId: first.storeId, spendMinor: spendMinor,
+                changePercent: Double(latest.priceMinor - first.priceMinor) / Double(first.priceMinor) * 100
+            )
+        }
+        let mappedSpend = components.reduce(0) { $0 + $1.spendMinor }
+        let totalSpend = windowTrips.reduce(0) { $0 + $1.totalMinor }
+        guard mappedSpend > 0, totalSpend > 0 else { return nil }
+        let rate = components.reduce(0.0) { $0 + Double($1.spendMinor) / Double(mappedSpend) * $1.changePercent }
+        return BasketInflation(
+            ratePercent: rate,
+            coveragePercent: Double(mappedSpend) / Double(totalSpend) * 100,
+            components: components.sorted { ($0.spendMinor, $1.code) > ($1.spendMinor, $0.code) }
+        )
     }
 
     // MARK: - Helpers

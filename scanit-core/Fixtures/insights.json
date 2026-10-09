@@ -1,5 +1,5 @@
 {
-  "_comment": "Hand-computed expectations for INS-01..08 (DESIGN.md → Insights catalogue). Shared with Android. Week starts Monday, UTC.",
+  "_comment": "Hand-computed expectations for INS-01..10 (DESIGN.md → Insights catalogue). Shared with Android. Week starts Monday, UTC.",
   "now": "2026-10-09T12:00:00Z",
   "currency": "EUR",
   "trips": [
@@ -60,6 +60,8 @@
     "ins07": [
       { "code": "03017620422003", "cheapestStoreId": "L", "cheapestMinor": 399, "savingMinor": 30 },
       { "code": "05601234567892", "cheapestStoreId": "L", "cheapestMinor": 105, "savingMinor": 4 } ],
+    "ins09_tillGap": { "meanMinor": 53, "trips": 1 },
+    "ins10_basketInflation": { "ratePercent": 1.5407, "coveragePercent": 64.535, "components": 3 },
     "ins08_month": [
       { "category": "en:spreads", "totalMinor": 858 },
       { "category": "en:milks", "totalMinor": 424 },

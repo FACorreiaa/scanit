@@ -142,6 +142,10 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Prices that went up"].waitForExistence(timeout: 5)
                       || app.staticTexts["PRICES THAT WENT UP"].exists)
         snapshot("10-insights-lists")
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Your regular basket"].waitForExistence(timeout: 5), "INS-10 shown")
+        snapshot("11-insights-your-prices")
     }
 
     func testInsightsPlaceholderBeforeThreeTrips() throws {
