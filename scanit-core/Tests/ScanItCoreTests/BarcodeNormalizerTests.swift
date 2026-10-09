@@ -40,6 +40,14 @@ struct BarcodeNormalizerTests {
         #expect(!GTIN.isValid(""))
     }
 
+    @Test func displayValueMatchesThePack() {
+        #expect(BarcodeNormalizer.normalize(payload: "4006381333931", symbology: .ean13).displayValue == "4006381333931")
+        #expect(BarcodeNormalizer.normalize(payload: "96385074", symbology: .ean8).displayValue == "96385074")
+        #expect(BarcodeNormalizer.normalize(payload: "036000291452", symbology: .upca).displayValue == "0036000291452")
+        #expect(ScannedCode(kind: .gtin, value: "14006381333938").displayValue == "14006381333938")
+        #expect(ScannedCode(kind: .opaque, value: "ABC-123").displayValue == "ABC-123")
+    }
+
     @Test func sameProductMatchesAcrossSymbologies() {
         let ean = BarcodeNormalizer.normalize(payload: "4006381333931", symbology: .ean13)
         let link = BarcodeNormalizer.normalize(payload: "https://id.gs1.org/01/04006381333931", symbology: .qr)

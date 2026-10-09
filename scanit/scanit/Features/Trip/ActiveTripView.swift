@@ -1,21 +1,31 @@
 import ScanItCore
 import SwiftUI
 
-/// The trip in progress. Interim version: total, limit and cart rows. Swipe-to-delete, edit,
-/// Scan and Finish arrive with BACKLOG IOS-004, IOS-005 and IOS-010.
+/// The trip in progress (`DESIGN.md` §3, BACKLOG IOS-004): hero total and limit bar, cart
+/// newest first (swipe to delete, tap to edit), big Scan button bottom-centre, Finish beside it.
 struct ActiveTripView: View {
     @Environment(SessionStore.self) private var sessions
     let session: ShoppingSession
+    let onFinish: (ShoppingSession) -> Void
 
+    @State private var isScanning = false
+    @State private var editing: CartItemSelection?
     @State private var isConfirmingCancel = false
 
     var body: some View {
         List {
             Section {
-                TripTotalHeader(total: session.total, limit: session.limit, status: session.limitStatus)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .listRowBackground(Color.clear)
+                VStack(spacing: 8) {
+                    Text(itemCountText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    TripTotalHeader(
+                        total: session.total, limit: session.limit, status: session.limitStatus, announcesChanges: true
+                    )
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .listRowBackground(Color.clear)
             }
 
             Section {
@@ -23,11 +33,21 @@ struct ActiveTripView: View {
                     ContentUnavailableView(
                         "Cart is empty",
                         systemImage: "barcode.viewfinder",
-                        description: Text("Products you scan appear here.")
+                        description: Text("Tap Scan and point at a barcode.")
                     )
                 } else {
                     ForEach(session.liveItems.sorted { $0.scannedAt > $1.scannedAt }, id: \.id) { item in
-                        CartItemRow(item: item, currency: session.currency)
+                        Button {
+                            editing = CartItemSelection(item: item)
+                        } label: {
+                            CartItemRow(item: item, currency: session.currency)
+                        }
+                        .foregroundStyle(.primary)
+                        .swipeActions {
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                sessions.remove(item)
+                            }
+                        }
                     }
                 }
             }
@@ -45,11 +65,19 @@ struct ActiveTripView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .bottom) { actions }
         .confirmationDialog("Cancel this trip?", isPresented: $isConfirmingCancel, titleVisibility: .visible) {
             Button("Cancel trip", role: .destructive) { sessions.cancelTrip() }
             Button("Keep shopping", role: .cancel) {}
         } message: {
             Text("It won't count in your history.")
+        }
+        .fullScreenCover(isPresented: $isScanning) {
+            ScannerScreen(session: session)
+        }
+        .sheet(item: $editing) { selection in
+            EditItemSheet(item: selection.item, currency: session.currency)
+                .presentationDetents([.medium])
         }
         .sensoryFeedback(trigger: sessions.feedback) { _, event in
             switch event?.kind {
@@ -59,26 +87,117 @@ struct ActiveTripView: View {
             }
         }
     }
+
+    /// Scan and Finish side by side; stacked when large text would wrap "Scan".
+    private var actions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                scanButton
+                finishButton
+            }
+            VStack(spacing: 8) {
+                scanButton
+                finishButton
+            }
+        }
+        .controlSize(.large)
+        // The bar must not swallow the cart at the largest sizes.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+
+    private var scanButton: some View {
+        Button {
+            isScanning = true
+        } label: {
+            Label("Scan", systemImage: "barcode.viewfinder")
+                .lineLimit(1)
+                .fixedSize()
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .accessibilityIdentifier("scan")
+    }
+
+    private var finishButton: some View {
+        Button {
+            if let finished = sessions.finishTrip() { onFinish(finished) }
+        } label: {
+            Text("Finish")
+                .lineLimit(1)
+                .fixedSize()
+        }
+        .buttonStyle(.bordered)
+        .disabled(session.liveItems.isEmpty)
+        .accessibilityIdentifier("finishTrip")
+    }
+
+    private var itemCountText: String {
+        let count = session.liveItems.reduce(0) { $0 + $1.quantity }
+        return count == 1 ? "1 item" : "\(count) items"
+    }
 }
 
-private struct CartItemRow: View {
+/// `sheet(item:)` payload. SwiftData models are not reliably `Identifiable` for SwiftUI across
+/// Xcode versions (see ARCHITECTURE.md), so wrap them.
+struct CartItemSelection: Identifiable {
+    let item: CartItem
+    var id: UUID { item.id }
+}
+
+struct CartItemRow: View {
     let item: CartItem
     let currency: String
 
     var body: some View {
-        HStack {
-            Text(item.productName ?? item.code)
-                .lineLimit(1)
-            Spacer()
-            Group {
-                if item.quantity > 1 {
-                    Text("\(item.quantity) × \(Money(amountMinor: item.unitPriceMinor, currency: currency).formatted())")
-                } else {
-                    Text(Money(amountMinor: item.unitPriceMinor, currency: currency).formatted())
-                }
+        // Side by side when it fits; at large text sizes the price drops under the name
+        // instead of wrapping mid-number.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                details
+                Spacer()
+                price
             }
-            .monospacedDigit()
-            .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                details
+                price
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.productName ?? "Product")
+                .lineLimit(2)
+            Text(item.scannedCode.displayValue)
+                .font(.caption)
+                .monospacedDigit()
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var price: some View {
+        HStack(spacing: 4) {
+            if item.priceSource == .remembered {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Remembered price")
+            }
+            Text(priceText)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
+
+    private var priceText: String {
+        let unit = Money(amountMinor: item.unitPriceMinor, currency: currency)
+        return item.quantity > 1 ? "\(item.quantity) × \(unit.formatted())" : unit.formatted()
     }
 }

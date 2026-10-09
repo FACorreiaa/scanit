@@ -58,33 +58,77 @@ final class SessionStore {
         limitState = .noLimit
     }
 
+    /// Ends the active trip and returns it for the summary. `nil` when there is nothing to finish.
+    @discardableResult
+    func finishTrip() -> ShoppingSession? {
+        guard let active, !active.liveItems.isEmpty else { return nil }
+        close(active, as: .finished)
+        save()
+        self.active = nil
+        limitState = .noLimit
+        let status = active.limitStatus
+        analytics.track(.tripFinished(
+            items: active.liveItems.reduce(0) { $0 + $1.quantity },
+            underLimit: status.limitMinor == nil ? nil : status.state != .over
+        ))
+        return active
+    }
+
+    /// "Undo finish" on the summary: the trip becomes the active one again.
+    func undoFinish(_ session: ShoppingSession) {
+        guard session.status == .finished, active == nil else { return }
+        session.status = .active
+        session.endedAt = nil
+        session.touch(now())
+        save()
+        active = session
+        limitState = session.limitStatus.state
+        feedback = nil
+    }
+
+    /// What the till actually charged (`DESIGN.md` §6); the gap is insight INS-09.
+    func setTillTotal(_ session: ShoppingSession, minor: Int?) {
+        session.tillTotalMinor = minor
+        session.touch(now())
+        save()
+    }
+
     // MARK: - Cart
 
+    /// Adds a confirmed item to the active trip and records its price for this store, so the
+    /// next scan of the same product here is prefilled (BACKLOG IOS-008, IOS-009).
     @discardableResult
     func addItem(
         code: ScannedCode, productName: String? = nil, quantity: Int = 1,
-        unitPriceMinor: Int, priceSource: PriceSource
+        unitPriceMinor: Int, priceSource: PriceSource, symbology: Symbology? = nil
     ) -> CartItem? {
         guard let active else { return nil }
         let item = CartItem(
-            code: code, productName: productName, quantity: quantity,
+            code: code, productName: productName, quantity: max(1, quantity),
             unitPriceMinor: unitPriceMinor, priceSource: priceSource, now: now()
         )
         context.insert(item)
         item.session = active
         active.touch(now())
+        recordPrice(code: code.value, unitPriceMinor: unitPriceMinor, source: priceSource, in: active)
         save()
         refreshLimitState()
+        analytics.track(.itemScanned(priceSource: priceSource, symbology: symbology))
         return item
     }
 
+    /// Works for items in the active trip and in past trips (History edits).
     func update(_ item: CartItem, quantity: Int? = nil, unitPriceMinor: Int? = nil) {
         if let quantity { item.quantity = max(1, quantity) }
-        if let unitPriceMinor {
+        if let unitPriceMinor, unitPriceMinor != item.unitPriceMinor {
             item.unitPriceMinor = unitPriceMinor
             item.priceSource = .manual
+            if let session = item.session {
+                recordPrice(code: item.code, unitPriceMinor: unitPriceMinor, source: .manual, in: session)
+            }
         }
         item.touch(now())
+        item.session?.touch(now())
         save()
         refreshLimitState()
     }
@@ -114,6 +158,18 @@ final class SessionStore {
             feedback = FeedbackEvent(kind: kind)
         }
         limitState = new
+    }
+
+    /// Every confirmed price is a sighting, including a remembered price confirmed again: that
+    /// refreshes "seen N days ago" and feeds price history (INS-06).
+    private func recordPrice(code: String, unitPriceMinor: Int, source: PriceSource, in session: ShoppingSession) {
+        guard let store = session.store else { return }
+        let observation = PriceObservation(
+            store: store, code: code,
+            price: Money(amountMinor: unitPriceMinor, currency: session.currency),
+            source: source, now: now()
+        )
+        context.insert(observation)
     }
 
     private func close(_ session: ShoppingSession, as status: SessionStatus) {

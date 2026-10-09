@@ -77,18 +77,17 @@ gitignored `Config.*.xcconfig` with a committed `.sample` (LuminaVaultClient pat
 
 ## P1 — Local MVP (offline, no account)
 
-### IOS-004 · Active trip screen · M
-**Needs:** IOS-003.
-Hero total, limit bar, cart list (swipe delete, tap to edit quantity and price), Scan and Finish buttons, layout as in `DESIGN.md` §3.
-
-**Done when:** adding, editing and deleting items updates the total live. VoiceOver reads the total after a change. Dynamic Type XXL does not clip the total.
-
 ### IOS-005 · Scanner: barcode · M
 **Needs:** IOS-004.
 `DataScannerViewController` wrapper started from Norviq's `ReceiptScannerView.swift`, with the symbologies from
 `ARCHITECTURE.md`, `isSupported` / `isAvailable` handling, camera primer, and an AVFoundation fallback.
 
 **Done when:** on a physical device, EAN-13 and EAN-8 products and a GS1 Digital Link QR each produce the right GTIN in the confirm sheet. A denied camera permission shows a recovery path to Settings.
+
+**Status 2026-10-09:**
+
+- **Built:** VisionKit scanner, AVFoundation fallback, camera primer, denied-camera recovery to Settings, and a simulated scanner for UI tests.
+- **Not yet verified on a physical device.** Building to the paired iPhone timed out waiting for the device; it is probably locked or connected over the network rather than by cable.
 
 ### IOS-006 · Spike: currency text recognition · S
 **Needs:** IOS-005.
@@ -101,30 +100,6 @@ Check the iOS 18+ SDK for a currency `textContentType` in DataScanner. Compare i
 Candidate boxes, the top candidate prefilled, the **Type it** keypad always available, and the 3-second fallback prompt.
 
 **Done when:** on the 20-label set, the correct price is the prefilled one on at least 70 % of labels (OCR accuracy target, confirmed by the owner 2026-10-09). A wrong prefill can be corrected in one tap.
-
-### IOS-008 · Confirm sheet and add · S
-**Needs:** IOS-007.
-Price, quantity stepper, **Add**. The scanner stays open afterwards. Writes a `CartItem` and a `PriceObservation`.
-
-**Done when:** scanning 5 items in a row without closing the scanner works, and the HUD total is right after each one.
-
-### IOS-009 · Price memory · S
-**Needs:** IOS-008.
-Prefill from the newest `(store, gtin)` observation, with an "N days ago" label and source `remembered`.
-
-**Done when:** scanning the same product twice in the same store adds it the second time in 2 taps. A different store does not prefill.
-
-### IOS-010 · Finish trip and summary · S
-**Needs:** IOS-008.
-Summary as in `DESIGN.md` §6, the optional "actual till total" field, and Undo finish.
-
-**Done when:** a finished trip shows in History, and Undo restores it to active.
-
-### IOS-011 · History and trip detail · S
-**Needs:** IOS-010.
-Grouped by month with the month total. Trip detail is editable.
-
-**Done when:** editing a price in a past trip changes that trip's total and the month total.
 
 ### IOS-012 · Analytics events · S
 **Needs:** IOS-010.
@@ -521,3 +496,46 @@ Store chips and new store, optional limit with history chips, currency.
 - **Interim active-trip screen:** total, limit bar and cart rows. IOS-004 replaces it.
 
 Real haptics need a device; their logic is unit-tested.
+
+### IOS-004 · Active trip screen · M
+**Needs:** IOS-003.
+Hero total, limit bar, cart list (swipe delete, tap to edit quantity and price), Scan and Finish buttons, layout as in `DESIGN.md` §3.
+
+**Done when:** adding, editing and deleting items updates the total live. VoiceOver reads the total after a change. Dynamic Type XXL does not clip the total.
+
+### IOS-008 · Confirm sheet and add · S
+**Needs:** IOS-007.
+Price, quantity stepper, **Add**. The scanner stays open afterwards. Writes a `CartItem` and a `PriceObservation`.
+
+**Done when:** scanning 5 items in a row without closing the scanner works, and the HUD total is right after each one.
+
+### IOS-009 · Price memory · S
+**Needs:** IOS-008.
+Prefill from the newest `(store, gtin)` observation, with an "N days ago" label and source `remembered`.
+
+**Done when:** scanning the same product twice in the same store adds it the second time in 2 taps. A different store does not prefill.
+
+### IOS-010 · Finish trip and summary · S
+**Needs:** IOS-008.
+Summary as in `DESIGN.md` §6, the optional "actual till total" field, and Undo finish.
+
+**Done when:** a finished trip shows in History, and Undo restores it to active.
+
+### IOS-011 · History and trip detail · S
+**Needs:** IOS-010.
+Grouped by month with the month total. Trip detail is editable.
+
+**Done when:** editing a price in a past trip changes that trip's total and the month total.
+
+**Closed 2026-10-09 (IOS-004, 008–011):**
+
+- **Trip screen:** swipe to delete, tap to edit, Scan and Finish buttons. VoiceOver announces the total after every change.
+- **Large text:** at Accessibility XXL the total never truncates (it shrinks instead), and the limit row, action bar and cart rows stack.
+- **Confirm sheet:** quantity stepper and typed price.
+- **Price memory:**
+  - every confirmed price is recorded per store
+  - a remembered price is prefilled, with "Seen here …"
+  - other stores never prefill
+- **Finish:** summary showing the delta vs the last trip at the same store, the 3 biggest lines and the till total, plus Undo finish.
+- **History:** trips grouped by month with per-currency totals; past trips can still be edited.
+- **UI tests:** `testScanFinishAndRememberedPrice` covers the full loop, including over-limit, delete, finish, History and a remembered price as two taps. `testLargestTextSizeKeepsTotalReadable` covers Dynamic Type; its screenshots were reviewed.

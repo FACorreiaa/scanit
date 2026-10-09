@@ -203,3 +203,152 @@ struct TripStartOptionsTests {
         #expect(TripStartOptions(context: context, now: now).limitSuggestions(currency: "USD").isEmpty)
     }
 }
+
+// MARK: - IOS-008 / IOS-009: recording and remembering prices
+
+@MainActor
+struct PriceMemoryTests {
+    @Test func secondScanInSameStoreIsPrefilledOtherStoreIsNot() throws {
+        let context = try makeContext()
+        let lidl = Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        let aldi = Store(name: "Aldi", countryCode: "PT", currency: "EUR")
+        context.insert(lidl); context.insert(aldi)
+        var clock = Date(timeIntervalSince1970: 1_790_000_000)
+        let store = SessionStore(context: context, analytics: RecordingAnalytics(), now: { clock })
+
+        store.startTrip(store: lidl, limitMinor: nil, currency: "EUR")
+        #expect(PriceMemory.lookup(code: milk.value, store: lidl, context: context) == nil)
+        store.addItem(code: milk, unitPriceMinor: 99, priceSource: .manual)
+
+        clock += 12 * 86_400
+        let remembered = try #require(PriceMemory.lookup(code: milk.value, store: lidl, context: context))
+        #expect(remembered.price == Money(amountMinor: 99, currency: "EUR"))
+        #expect(remembered.observedAt == clock - 12 * 86_400)
+        #expect(PriceMemory.lookup(code: milk.value, store: aldi, context: context) == nil)
+    }
+
+    @Test func newestPriceWinsIncludingCorrections() throws {
+        let context = try makeContext()
+        let lidl = Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        context.insert(lidl)
+        var clock = Date(timeIntervalSince1970: 1_790_000_000)
+        let store = SessionStore(context: context, analytics: RecordingAnalytics(), now: { clock })
+        store.startTrip(store: lidl, limitMinor: nil, currency: "EUR")
+        let item = try #require(store.addItem(code: milk, unitPriceMinor: 99, priceSource: .ocr))
+        clock += 60
+        store.update(item, unitPriceMinor: 109)
+        #expect(PriceMemory.lookup(code: milk.value, store: lidl, context: context)?.price.amountMinor == 109)
+
+        clock += 60
+        store.update(item, quantity: 2) // no price change → no new observation
+        let all = try context.fetch(FetchDescriptor<PriceObservation>())
+        #expect(all.count == 2)
+    }
+
+    @Test func tripWithoutStoreRemembersNothing() throws {
+        let context = try makeContext()
+        let store = SessionStore(context: context, analytics: RecordingAnalytics())
+        store.startTrip(store: nil, limitMinor: nil, currency: "EUR")
+        store.addItem(code: milk, unitPriceMinor: 99, priceSource: .manual)
+        #expect(try context.fetch(FetchDescriptor<PriceObservation>()).isEmpty)
+    }
+}
+
+// MARK: - IOS-010: finish, summary, undo
+
+@MainActor
+struct FinishTripTests {
+    @Test func finishProducesSummaryAndUndoRestores() throws {
+        let context = try makeContext()
+        let analytics = RecordingAnalytics()
+        let lidl = Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        context.insert(lidl)
+        var clock = Date(timeIntervalSince1970: 1_790_000_000)
+        let store = SessionStore(context: context, analytics: analytics, now: { clock })
+
+        // A previous trip at Lidl: €30.00.
+        store.startTrip(store: lidl, limitMinor: nil, currency: "EUR")
+        store.addItem(code: bread, unitPriceMinor: 3000, priceSource: .manual)
+        store.finishTrip()
+
+        clock += 86_400
+        store.startTrip(store: lidl, limitMinor: 5000, currency: "EUR")
+        #expect(store.finishTrip() == nil, "an empty trip cannot be finished")
+        store.addItem(code: milk, quantity: 2, unitPriceMinor: 99, priceSource: .manual)
+        store.addItem(code: bread, unitPriceMinor: 3500, priceSource: .manual)
+        store.addItem(code: ScannedCode(kind: .gtin, value: "00000096385074"), unitPriceMinor: 450, priceSource: .manual)
+        store.addItem(code: ScannedCode(kind: .opaque, value: "promo"), unitPriceMinor: 10, priceSource: .manual)
+
+        let trip = try #require(store.finishTrip())
+        #expect(store.active == nil)
+        #expect(trip.status == .finished)
+        #expect(analytics.events.last == .tripFinished(items: 5, underLimit: true))
+
+        let summary = TripSummary(session: trip, context: context)
+        #expect(summary.total.amountMinor == 4158)
+        #expect(summary.itemCount == 5)
+        #expect(summary.biggestLines.map(\.unitPriceMinor) == [3500, 450, 99])
+        #expect(summary.previousTotalAtStore?.amountMinor == 3000)
+        #expect(summary.deltaVsPrevious?.amountMinor == 1158)
+
+        store.setTillTotal(trip, minor: 4200)
+        #expect(trip.tillTotalMinor == 4200)
+
+        store.undoFinish(trip)
+        #expect(store.active === trip)
+        #expect(trip.status == .active)
+        #expect(trip.endedAt == nil)
+    }
+}
+
+// MARK: - Typed amounts
+
+struct MoneyInputTests {
+    @Test(arguments: [
+        ("60", 6000), ("60,5", 6050), ("60.50", 6050), (" 1,99 ", 199), ("0,999", 100),
+    ])
+    func parses(text: String, minor: Int) {
+        #expect(MoneyInput.parse(text, currency: "EUR") == Money(amountMinor: minor, currency: "EUR"))
+    }
+
+    @Test(arguments: ["", "abc", "1,2,3", "€5", "-3"])
+    func rejects(text: String) {
+        #expect(MoneyInput.parse(text, currency: "EUR") == nil)
+    }
+
+    @Test func editingTextRoundTrips() {
+        let money = Money(amountMinor: 199, currency: "EUR")
+        #expect(MoneyInput.editingText(money, locale: Locale(identifier: "pt_PT")) == "1,99")
+        #expect(MoneyInput.parse(MoneyInput.editingText(money, locale: Locale(identifier: "pt_PT")), currency: "EUR") == money)
+    }
+}
+
+// MARK: - IOS-011: history grouping
+
+@MainActor
+struct HistoryGroupingTests {
+    @Test func groupsByMonthNewestFirstWithPerCurrencyTotals() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Lisbon")!
+        func trip(_ day: String, _ minor: Int, _ currency: String = "EUR") -> ShoppingSession {
+            let date = try! Date("\(day)T10:00:00Z", strategy: .iso8601)
+            let session = ShoppingSession(store: nil, limitMinor: nil, currency: currency, now: date)
+            let item = CartItem(code: milk, unitPriceMinor: minor, priceSource: .manual)
+            item.session = session
+            session.items = [item]
+            return session
+        }
+        let groups = MonthGroup.group([
+            trip("2026-09-28", 3000),
+            trip("2026-10-02", 4250),
+            trip("2026-10-08", 1000),
+            trip("2026-10-05", 500, "USD"),
+        ], calendar: calendar)
+
+        #expect(groups.count == 2)
+        #expect(groups[0].trips.count == 3)
+        #expect(groups[0].trips.first?.totalMinor == 1000, "newest trip first")
+        #expect(groups[0].totals == [Money(amountMinor: 5250, currency: "EUR"), Money(amountMinor: 500, currency: "USD")])
+        #expect(groups[1].totals == [Money(amountMinor: 3000, currency: "EUR")])
+    }
+}

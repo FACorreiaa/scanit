@@ -7,26 +7,42 @@ struct TripTotalHeader: View {
     let total: Money
     let limit: Money?
     let status: LimitStatus
+    /// Smaller total for the scanner HUD, where the camera needs the room.
+    var compact = false
+    /// Speak the new total to VoiceOver after every change. Only one header on screen should do
+    /// this: the trip screen stays alive under the scanner, so it is the one that announces.
+    var announcesChanges = false
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroSize: CGFloat = 48
+    @ScaledMetric(relativeTo: .title) private var compactSize: CGFloat = 28
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: compact ? 8 : 12) {
             Text(total.formatted())
-                .font(.system(size: heroSize, weight: .light))
+                .font(.system(size: compact ? compactSize : heroSize, weight: .light))
                 .monospacedDigit()
+                // A truncated amount is a wrong amount ("€1 234,…"). Shrinking is the lesser evil
+                // for one line of money at the largest text sizes; it never truncates.
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .contentTransition(.numericText(value: Double(total.amountMinor)))
 
             if let limit, let progress = status.progress {
                 VStack(spacing: 8) {
                     ProgressView(value: min(progress, 1))
                         .tint(status.state.tint)
-                    HStack {
-                        Text(remainingText)
-                            .foregroundStyle(status.state == .over ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
-                        Spacer()
-                        Text("of \(limit.formatted())")
-                            .foregroundStyle(.secondary)
+                    // Side by side when it fits, stacked at large text sizes.
+                    ViewThatFits(in: .horizontal) {
+                        HStack {
+                            remainingLabel
+                            Spacer()
+                            limitLabel(limit)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            remainingLabel
+                            limitLabel(limit)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .font(.subheadline)
                     .monospacedDigit()
@@ -36,6 +52,22 @@ struct TripTotalHeader: View {
         .animation(.snappy, value: total)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
+        .onChange(of: total) { _, _ in
+            guard announcesChanges else { return }
+            AccessibilityNotification.Announcement(accessibilityText).post()
+        }
+    }
+
+    private var remainingLabel: some View {
+        Text(remainingText)
+            .lineLimit(1)
+            .foregroundStyle(status.state == .over ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+    }
+
+    private func limitLabel(_ limit: Money) -> some View {
+        Text("of \(limit.formatted())")
+            .lineLimit(1)
+            .foregroundStyle(.secondary)
     }
 
     private var remainingText: String {

@@ -97,7 +97,7 @@ struct StartTripSheet: View {
                 HStack(spacing: 8) {
                     ForEach(suggestions) { suggestion in
                         Chip(title: chipTitle(suggestion), isSelected: parsedLimit == suggestion.amount) {
-                            limitText = suggestion.amount.decimalValue.formatted(.number.grouping(.never))
+                            limitText = MoneyInput.editingText(suggestion.amount)
                         }
                     }
                 }
@@ -121,20 +121,12 @@ struct StartTripSheet: View {
         newStoreName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Accepts "60", "60,50" and "60.50" whatever the locale.
     private var parsedLimit: Money? {
-        let cleaned = limitText.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
-        guard !cleaned.isEmpty, let value = Decimal(string: cleaned, locale: Locale(identifier: "en_US_POSIX")) else {
-            return nil
-        }
-        return Money(decimal: value, currency: currency)
+        MoneyInput.parse(limitText, currency: currency)
     }
 
     private var currencySymbol: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currency
-        return formatter.currencySymbol
+        Money.symbol(for: currency)
     }
 
     private var currencyChoices: [String] {

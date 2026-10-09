@@ -22,6 +22,14 @@ public struct ScannedCode: Hashable, Codable, Sendable {
         self.value = value
     }
 
+    /// What the pack prints: EAN-13 (13 digits) or EAN-8 (8 digits) rather than the padded GTIN-14
+    /// used as the key. A real GTIN-14 (non-zero indicator digit) stays as is.
+    public var displayValue: String {
+        guard kind == .gtin, value.count == 14, value.hasPrefix("0") else { return value }
+        if value.hasPrefix("000000") { return String(value.suffix(8)) }
+        return String(value.dropFirst())
+    }
+
     /// GS1 restricted-circulation numbers: GTIN-13 prefixes 020–029 and 200–299 (which covers
     /// UPC-A number system 2), and EAN-8 prefixes 0 and 2. These are weighed produce, deli and
     /// store-own labels: the same code can mean a different product in another shop, and the
