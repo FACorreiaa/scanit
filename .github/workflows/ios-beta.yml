@@ -69,7 +69,7 @@ jobs:
             [ -n "${!name}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
-            echo "::warning::TestFlight upload skipped: repo secrets missing:$missing (docs/release.md, step 1.5)"
+            echo "::warning::TestFlight upload skipped: repo secrets missing:$missing (docs/release.md, step 1.6)"
             echo "SKIP=1" >> "$GITHUB_ENV"
           fi
         env:
