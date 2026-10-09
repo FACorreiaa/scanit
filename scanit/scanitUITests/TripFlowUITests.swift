@@ -154,6 +154,27 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Insights after 3 trips"].waitForExistence(timeout: 5))
     }
 
+    /// REL-003: past the free trips, Start shows the paywall; History locks older trips.
+    func testPaywallAtStartAndLockedHistory() throws {
+        launch(extraArguments: [
+            "-ui-testing-demo-data", "-paywall-enabled", "-paywall-free-trips", "0", "-paywall-visible-history", "3",
+        ])
+        app.buttons["openStartTrip"].tap()
+        XCTAssertTrue(app.buttons["unlock"].waitForExistence(timeout: 5), "paywall instead of the start sheet")
+        XCTAssertTrue(text(containing: "this month").exists)
+        snapshot("12-paywall")
+        app.buttons["notNow"].tap()
+        XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5), "dismissable at no cost")
+        XCTAssertFalse(app.textFields["storeName"].exists)
+
+        app.tabBars.buttons["History"].tap()
+        let locked = app.buttons["lockedTrips"]
+        XCTAssertTrue(locked.waitForExistence(timeout: 5))
+        XCTAssertTrue(locked.label.contains("2 older trips"))
+        locked.tap()
+        XCTAssertTrue(app.buttons["unlock"].waitForExistence(timeout: 5))
+    }
+
     // MARK: - Helpers
 
     private func startTrip(newStore: String, limit: String) {

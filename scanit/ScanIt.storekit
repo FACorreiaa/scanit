@@ -1,0 +1,33 @@
+{
+  "identifier" : "4F1C2A9E-6B3D-4E5F-8A7B-9C0D1E2F3A4B",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : true,
+      "internalID" : "6740000001",
+      "localizations" : [
+        {
+          "description" : "Unlimited trips every month and your full history.",
+          "displayName" : "ScanIt Unlimited",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fernandocorreia.scanit.unlimited",
+      "referenceName" : "ScanIt Unlimited",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

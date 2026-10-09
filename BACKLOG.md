@@ -299,6 +299,26 @@ Decided 2026-10-09: free, plus a one-time non-consumable that unlocks unlimited 
 - **Restore** works on a second device.
 - Hidden trips come back after unlocking.
 
+**Status 2026-10-09: built, switched off** (`PaywallPolicy.launch.isEnabled = false`).
+
+- **What's built:**
+  - `PurchaseStore` (StoreKit 2: purchase, restore, `Transaction.updates`, revocation)
+  - `PaywallPolicy` rules
+  - the paywall sheet, gating only at Start trip
+  - a locked "N older trips" row in History
+  - local `ScanIt.storekit`, wired into the Run scheme
+- **Verified:**
+  - **5th trip:** shows the paywall (unit test plus UI test); "Not now" costs nothing.
+  - **Purchase:** the sandbox purchase unlocks, and a fresh store reads the entitlement from the device, which is the offline case (StoreKit test session).
+  - **Refund:** locks it again.
+  - **History:** hidden trips come back.
+  - **A bug found and fixed:** a trip at exactly 00:00 on the 1st counted against the previous month.
+- **Still open:**
+  - Restore on a second device needs a real sandbox account and App Store Connect.
+  - Create the in-app product `com.fernandocorreia.scanit.unlimited` in App Store Connect.
+  - **Owner decisions:** the price (placeholder €4,99), the free limits (4 trips per month, last 10 visible), and whether Insights should cover hidden trips.
+  - Switch the flag on for the App Store build only.
+
 ### REL-004 · Submit and ship · S
 **Needs:** REL-001…003, WEB-002.
 **Done when:** the app is live on the App Store.

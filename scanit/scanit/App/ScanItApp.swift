@@ -9,6 +9,8 @@ struct ScanItApp: App {
     @State private var sessions: SessionStore
     @State private var enricher: ProductEnricher
     @State private var connectivity = ConnectivityMonitor()
+    @State private var purchases = PurchaseStore()
+    private let paywallPolicy: PaywallPolicy
 
     private let container: ModelContainer
     private let analytics: any AnalyticsClient = LogAnalytics()
@@ -31,6 +33,20 @@ struct ScanItApp: App {
             ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo", "4006381333931": "Pão de forma"])
             : OpenFoodFactsClient()
         _enricher = State(initialValue: ProductEnricher(context: container.mainContext, lookup: lookup))
+
+        // Off until launch (REL-003). UI tests switch it on: `-paywall-enabled -paywall-free-trips N`.
+        var policy = PaywallPolicy.launch
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-paywall-enabled") { policy.isEnabled = true }
+        if let index = arguments.firstIndex(of: "-paywall-free-trips"), arguments.indices.contains(index + 1),
+           let trips = Int(arguments[index + 1]) {
+            policy.freeTripsPerMonth = trips
+        }
+        if let index = arguments.firstIndex(of: "-paywall-visible-history"), arguments.indices.contains(index + 1),
+           let count = Int(arguments[index + 1]) {
+            policy.visibleHistory = count
+        }
+        paywallPolicy = policy
     }
 
     var body: some Scene {
@@ -39,7 +55,10 @@ struct ScanItApp: App {
                 .environment(sessions)
                 .environment(enricher)
                 .environment(connectivity)
+                .environment(purchases)
+                .environment(\.paywallPolicy, paywallPolicy)
                 .environment(\.analytics, analytics)
+                .task { await purchases.start() }
                 .task {
                     guard !hasStartedConnectivity else { return }
                     hasStartedConnectivity = true

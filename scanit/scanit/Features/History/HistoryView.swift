@@ -11,6 +11,10 @@ struct HistoryView: View {
     )
     private var trips: [ShoppingSession]
 
+    @Environment(PurchaseStore.self) private var purchases
+    @Environment(\.paywallPolicy) private var paywall
+    @State private var paywallReason: PaywallReasonItem?
+
     var body: some View {
         NavigationStack {
             Group {
@@ -21,8 +25,9 @@ struct HistoryView: View {
                         Text("Finished trips show up here, grouped by month.")
                     }
                 } else {
+                    let split = paywall.visibleTrips(trips, isUnlimited: purchases.isUnlimited)
                     List {
-                        ForEach(MonthGroup.group(trips)) { month in
+                        ForEach(MonthGroup.group(split.visible)) { month in
                             Section {
                                 ForEach(month.trips, id: \.id) { trip in
                                     NavigationLink(value: TripRoute(id: trip.id)) {
@@ -39,10 +44,29 @@ struct HistoryView: View {
                                 }
                             }
                         }
+                        if split.hiddenCount > 0 {
+                            Section {
+                                Button {
+                                    paywallReason = PaywallReasonItem(reason: .hiddenHistory(count: split.hiddenCount))
+                                } label: {
+                                    Label(
+                                        split.hiddenCount == 1 ? "1 older trip" : "\(split.hiddenCount) older trips",
+                                        systemImage: "lock"
+                                    )
+                                }
+                                .accessibilityIdentifier("lockedTrips")
+                            } footer: {
+                                Text("Kept safely. Unlock to see them again.")
+                            }
+                        }
                     }
                 }
             }
             .navigationTitle("History")
+            .sheet(item: $paywallReason) { item in
+                PaywallSheet(reason: item.reason)
+                    .presentationDetents([.medium, .large])
+            }
             .navigationDestination(for: TripRoute.self) { route in
                 if let trip = trips.first(where: { $0.id == route.id }) {
                     TripDetailView(trip: trip)

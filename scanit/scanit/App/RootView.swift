@@ -31,5 +31,6 @@ struct RootView: View {
         .environment(SessionStore(context: container.mainContext))
         .environment(ProductEnricher(context: container.mainContext, lookup: FixedProductLookup(names: [:])))
         .environment(ConnectivityMonitor())
+        .environment(PurchaseStore())
         .modelContainer(container)
 }
