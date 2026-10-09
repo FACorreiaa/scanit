@@ -72,6 +72,9 @@ final class TripFlowUITests: XCTestCase {
         snapshot("4-scanner-over-limit")
         app.buttons["closeScanner"].tap()
 
+        // Open Food Facts (stubbed in UI tests) named the milk after it was added.
+        XCTAssertTrue(app.staticTexts["Leite meio gordo"].waitForExistence(timeout: 5), "product name filled in")
+
         // Cart: delete the bread, back under the limit.
         let breadRow = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", bread)).firstMatch
         XCTAssertTrue(breadRow.waitForExistence(timeout: 5))

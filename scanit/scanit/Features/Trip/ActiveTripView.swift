@@ -170,6 +170,13 @@ struct CartItemRow: View {
     }
 
     private var details: some View {
+        HStack(spacing: 12) {
+            ProductThumbnail(url: item.imageURL)
+            text
+        }
+    }
+
+    private var text: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(item.productName ?? "Product")
                 .lineLimit(2)
@@ -199,5 +206,26 @@ struct CartItemRow: View {
     private var priceText: String {
         let unit = Money(amountMinor: item.unitPriceMinor, currency: currency)
         return item.quantity > 1 ? "\(item.quantity) × \(unit.formatted())" : unit.formatted()
+    }
+}
+
+/// Open Food Facts photo, or a quiet placeholder (no photo, or offline).
+struct ProductThumbnail: View {
+    let url: URL?
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 40
+
+    var body: some View {
+        AsyncImage(url: url) { phase in
+            if let image = phase.image {
+                image.resizable().scaledToFit()
+            } else {
+                Image(systemName: "shippingbox")
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .frame(width: size, height: size)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(.rect(cornerRadius: 8))
+        .accessibilityHidden(true)
     }
 }

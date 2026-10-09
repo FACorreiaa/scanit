@@ -29,5 +29,7 @@ struct RootView: View {
     let container = try! ScanItSchema.container(inMemory: true)
     RootView()
         .environment(SessionStore(context: container.mainContext))
+        .environment(ProductEnricher(context: container.mainContext, lookup: FixedProductLookup(names: [:])))
+        .environment(ConnectivityMonitor())
         .modelContainer(container)
 }

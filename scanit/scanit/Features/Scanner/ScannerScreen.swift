@@ -7,6 +7,7 @@ import SwiftUI
 /// open after an add so the next product can be scanned straight away.
 struct ScannerScreen: View {
     @Environment(SessionStore.self) private var sessions
+    @Environment(ProductEnricher.self) private var enricher
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -28,12 +29,16 @@ struct ScannerScreen: View {
             ConfirmItemSheet(
                 detected: detected,
                 currency: session.currency,
-                remembered: PriceMemory.lookup(code: detected.code.value, store: session.store, context: context)
+                remembered: PriceMemory.lookup(code: detected.code.value, store: session.store, context: context),
+                product: enricher.cached(detected.code)
             ) { quantity, price, priceSource in
-                sessions.addItem(
+                guard let item = sessions.addItem(
                     code: detected.code, quantity: quantity, unitPriceMinor: price.amountMinor,
                     priceSource: priceSource, symbology: detected.symbology
-                )
+                ) else { return }
+                // Name and photo arrive later, or when the network is back; the scan never waits.
+                enricher.enqueue(item)
+                Task { await enricher.flush() }
             }
             .presentationDetents([.medium, .large])
         }

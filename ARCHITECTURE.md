@@ -165,6 +165,9 @@ into `Product`. A miss is cached too, as a negative entry with a TTL. The lookup
 item is added and fills in the name and photo when it returns. It never blocks the scan.
 Offline, the lookup goes into a pending queue (`Product.offFetchedAt == nil`) and is retried when the
 network returns (see Offline below).
+Implemented in `Domain/ProductEnricher.swift` and `Services/OpenFoodFacts.swift`. The lookup uses the pack's 13-digit
+code (`ScannedCode.displayValue`). Weighed-produce/deli codes (`isInStore`) and opaque codes are never looked up.
+UI tests swap in `FixedProductLookup`, so no test touches the network except the opt-in live test.
 
 ### Insights
 

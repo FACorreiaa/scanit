@@ -117,6 +117,8 @@ nonisolated final class CartItem: SyncedRecord {
     var code: String
     var codeKindRaw: String
     var productName: String?
+    /// Open Food Facts thumbnail; display only, not synced (each device refills it).
+    var imageURL: URL?
     var quantity: Int
     var weightGrams: Int?
     var unitPriceMinor: Int

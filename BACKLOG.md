@@ -135,14 +135,6 @@ Turn feedback into items. Re-order P3 and later if testers ask for something els
 
 ## P3 — Enrichment and insights
 
-### INS-101 · Open Food Facts client · S
-**Needs:** IOS-008.
-Async lookup after add, with the `User-Agent` from `ARCHITECTURE.md`, a negative cache with TTL, and name and photo filled into the row.
-
-Offline, lookups are queued (`offFetchedAt == nil`) and retried when `ConnectivityMonitor` reports the network is back.
-
-**Done when:** a known EAN gets its name and photo within 2 s on a good network. Airplane mode does not slow down adding. Five items scanned in airplane mode get their names within 10 s of the network returning.
-
 ### INS-102 · InsightsCalculator · M
 **Needs:** IOS-011.
 Pure implementation of INS-01…08 from `DESIGN.md`, with fixtures shared in `scanit-core/Fixtures/`.
@@ -539,3 +531,31 @@ Grouped by month with the month total. Trip detail is editable.
 - **Finish:** summary showing the delta vs the last trip at the same store, the 3 biggest lines and the till total, plus Undo finish.
 - **History:** trips grouped by month with per-currency totals; past trips can still be edited.
 - **UI tests:** `testScanFinishAndRememberedPrice` covers the full loop, including over-limit, delete, finish, History and a remembered price as two taps. `testLargestTextSizeKeepsTotalReadable` covers Dynamic Type; its screenshots were reviewed.
+
+### INS-101 · Open Food Facts client · S
+**Needs:** IOS-008.
+Async lookup after add, with the `User-Agent` from `ARCHITECTURE.md`, a negative cache with TTL, and name and photo filled into the row.
+
+Offline, lookups are queued (`offFetchedAt == nil`) and retried when `ConnectivityMonitor` reports the network is back.
+
+**Done when:** a known EAN gets its name and photo within 2 s on a good network. Airplane mode does not slow down adding. Five items scanned in airplane mode get their names within 10 s of the network returning.
+
+**Closed 2026-10-09:**
+
+- **Code:** `ProductEnricher` + `OpenFoodFactsClient` + `ConnectivityMonitor` (`NWPathMonitor`).
+- **Behaviour:**
+  - looks up the 13-digit code printed on the pack
+  - "not found" is cached for 7 days
+  - in-store and opaque codes are never looked up
+  - a name the user typed is never overwritten
+- **Flush triggers:** after each add, on foreground, and on network reconnect.
+- **Tests** (stubbed, no network) cover:
+  - name and photo filled after an add
+  - offline: queued, stops at the first network error, filled once back online
+  - a known product named instantly offline
+  - miss retry
+  - skipped codes
+- A live opt-in test (`TEST_RUNNER_SCANIT_LIVE_OFF=1`) got Nutella from the real API in < 2 s.
+- The UI test asserts the name appears in the cart.
+
+**OPEN:** OFF asks for a contact in the User-Agent. Today it is `ScanIt/<version> (iOS)`; add a contact address (owner's choice) before the App Store release.

@@ -8,6 +8,8 @@ struct ConfirmItemSheet: View {
     let detected: DetectedCode
     let currency: String
     let remembered: RememberedPrice?
+    /// Open Food Facts details, when this product has been seen before.
+    var product: Product? = nil
     let onAdd: (_ quantity: Int, _ price: Money, _ source: PriceSource) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -19,13 +21,16 @@ struct ConfirmItemSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(detected.code.kind == .gtin ? "Product" : "Item")
-                            .font(.headline)
-                        Text(detected.code.displayValue)
-                            .font(.footnote)
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        ProductThumbnail(url: product?.imageURL)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(product?.displayName ?? (detected.code.kind == .gtin ? "Product" : "Item"))
+                                .font(.headline)
+                            Text(detected.code.displayValue)
+                                .font(.footnote)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
