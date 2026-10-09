@@ -134,12 +134,22 @@ Derived, never stored: session total, items count, limit progress, all insights.
 
 ### Live total and limit
 
-`@Observable final class SessionStore` holds the active session and exposes:
+The maths is `LimitStatus` in `ScanItCore`, so Android uses identical thresholds. It works in integers only and provides:
 
 - `totalMinor`
 - `remainingMinor?`
 - `progress` (0…1+)
 - `state`: `.noLimit`, `.ok`, `.near` (≥ 80 %), `.over` (> 100 %)
+
+`LimitState.feedback(from:to:)` decides the haptic: one per upward crossing.
+
+`@Observable final class SessionStore` (`scanit/scanit/Domain/SessionStore.swift`) owns the active trip.
+Every cart change goes through it, and it publishes `limitState` plus a `feedback` event that views play with
+`.sensoryFeedback`.
+
+**SwiftData and Swift 6.2:** the target uses `MainActor` default isolation. That makes `@Model` key paths
+non-`Sendable` inside `#Predicate`, so the model classes, the `SyncedRecord` protocol and `SyncState` are
+declared `nonisolated`. Keep that on any new model.
 
 When `state` changes, the app plays a haptic (`.warning` at near, `.error` at over) and the HUD changes colour. Thresholds are constants for now. Making them a setting is P3, if testers ask for it.
 

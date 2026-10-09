@@ -77,26 +77,6 @@ gitignored `Config.*.xcconfig` with a committed `.sample` (LuminaVaultClient pat
 
 ## P1 — Local MVP (offline, no account)
 
-### IOS-001 · SwiftData models · M
-**Needs:** FND-004.
-`Store`, `ShoppingSession`, `CartItem`, `Product`, `PriceObservation` exactly as in
-`ARCHITECTURE.md`, including `updatedAt`, `deletedAt` and `syncState`, so P4 needs no migration of shape.
-
-**Done when:** unit tests create a session with items in an in-memory container, compute the total
-in minor units, and soft-delete an item, which is excluded from the total.
-
-### IOS-002 · SessionStore and limit states · S
-**Needs:** IOS-001.
-`@Observable SessionStore`, with `totalMinor`, `remainingMinor`, `progress` and `state` (`noLimit` / `ok` / `near` / `over`).
-
-**Done when:** tests cover every state boundary (79.99 %, 80 %, 100 %, 100.01 %), and a state change fires the haptic exactly once per crossing.
-
-### IOS-003 · Start trip sheet · S
-**Needs:** IOS-002.
-Store chips and new store, optional limit with history chips, currency.
-
-**Done when:** a trip starts with and without a limit, and the last store is preselected next time.
-
 ### IOS-004 · Active trip screen · M
 **Needs:** IOS-003.
 Hero total, limit bar, cart list (swipe delete, tap to edit quantity and price), Scan and Finish buttons, layout as in `DESIGN.md` §3.
@@ -503,3 +483,41 @@ PostHog and Sentry are split out to FND-004.
 **Closed 2026-10-09:** the first push to `main` ran green: core on Linux 1 min, iOS ~6 min. A throwaway branch with a
 broken check-digit assertion went red on exactly that expectation (run 37935622183). The branch was deleted.
 CI skips Markdown-only and `docs/` changes.
+
+### IOS-001 · SwiftData models · M
+**Needs:** FND-004.
+`Store`, `ShoppingSession`, `CartItem`, `Product`, `PriceObservation` exactly as in
+`ARCHITECTURE.md`, including `updatedAt`, `deletedAt` and `syncState`, so P4 needs no migration of shape.
+
+**Done when:** unit tests create a session with items in an in-memory container, compute the total
+in minor units, and soft-delete an item, which is excluded from the total.
+
+### IOS-002 · SessionStore and limit states · S
+**Needs:** IOS-001.
+`@Observable SessionStore`, with `totalMinor`, `remainingMinor`, `progress` and `state` (`noLimit` / `ok` / `near` / `over`).
+
+**Done when:** tests cover every state boundary (79.99 %, 80 %, 100 %, 100.01 %), and a state change fires the haptic exactly once per crossing.
+
+### IOS-003 · Start trip sheet · S
+**Needs:** IOS-002.
+Store chips and new store, optional limit with history chips, currency.
+
+**Done when:** a trip starts with and without a limit, and the last store is preselected next time.
+
+**Closed 2026-10-09 (IOS-001…003):**
+
+- **Models:** in `scanit/scanit/Domain/Models.swift`. A test covers the total in minor units, and that a soft-deleted item is excluded from the total but its row is kept for sync.
+- **Limit maths:** `LimitStatus` lives in `ScanItCore`, so it is shared with Android. Tests cover the 79.99 / 80 / 100 / 100.01 % boundaries.
+- **SessionStore:**
+  - one haptic per upward crossing, none when going back under, and it fires again on re-crossing
+  - an active trip survives a relaunch
+  - editing a price marks it `manual`
+- **Start-trip sheet:**
+  - recent stores as chips, the last one preselected
+  - "New store" as an inline field
+  - optional limit, with "Last" and "Usual" chips from the user's history
+  - currency picker
+- **UI test** `TripFlowUITests`: a trip starts with a limit, gets cancelled, then a trip starts without a limit with the store preselected and the last-limit chip offered. Screenshots are attached to the result bundle.
+- **Interim active-trip screen:** total, limit bar and cart rows. IOS-004 replaces it.
+
+Real haptics need a device; their logic is unit-tested.

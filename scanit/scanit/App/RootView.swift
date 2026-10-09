@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Three tabs (`DESIGN.md` → Information architecture). Settings live behind the avatar in
@@ -25,5 +26,8 @@ struct RootView: View {
 }
 
 #Preview {
+    let container = try! ScanItSchema.container(inMemory: true)
     RootView()
+        .environment(SessionStore(context: container.mainContext))
+        .modelContainer(container)
 }

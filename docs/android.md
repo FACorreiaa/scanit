@@ -34,6 +34,7 @@ fixtures in `scanit-core/Fixtures/`, so both platforms run the same cases:
 
 - barcode normaliser: GTIN-14, GS1 Digital Link, in-store 2x prefixes
 - price parser: locale money patterns, largest-glyph ranking, unit-price rejection
+- limit maths: `LimitStatus` / `LimitState.feedback` (80 % near, > 100 % over, haptic only on upward crossings)
 - insights calculator: INS-01 … INS-10
 
 ## Auth

@@ -4,16 +4,19 @@ import SwiftUI
 /// Product events (`ARCHITECTURE.md` → Analytics). Never carries amounts or product names.
 enum AnalyticsEvent: Equatable, Sendable {
     case appOpened
+    case tripStarted(hasLimit: Bool)
 
     var name: String {
         switch self {
         case .appOpened: "app_opened"
+        case .tripStarted: "trip_started"
         }
     }
 
     var properties: [String: String] {
         switch self {
         case .appOpened: [:]
+        case .tripStarted(let hasLimit): ["has_limit": String(hasLimit)]
         }
     }
 }

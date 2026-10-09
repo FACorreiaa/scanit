@@ -157,8 +157,8 @@ A chart is shown only when its data is meaningful. The minimum is 3 finished tri
 
 ## Visual direction (proposal)
 
-- **Native first:** SwiftUI system components, SF Pro, Dynamic Type everywhere, and SF Pro Rounded for the hero total with `.monospacedDigit()`.
-- **Colour:** one accent (a fresh green, the colour of "on track"), plus amber and red reserved strictly for the limit states. Neutral greys otherwise. Full dark mode.
+- **Native first:** SwiftUI system components, SF Pro (one font design everywhere, including widgets), Dynamic Type everywhere. The hero total is SF Pro **light** at 48 pt scaled with Dynamic Type (`@ScaledMetric`), with `.monospacedDigit()`. Changed from SF Pro Rounded on 2026-10-09 so the app uses a single font design.
+- **Colour:** one accent, green `#248A3D` in both modes (Apple's accessible green; white button text on it passes contrast), plus amber and red reserved strictly for the limit states. Neutral greys otherwise. Full dark mode.
 - **Materials:** the scanner HUD uses `.ultraThinMaterial` over the camera, so the total stays legible on any background.
 - **Motion:**
   - The total rolls up with `.contentTransition(.numericText())`.
