@@ -28,7 +28,7 @@ struct ScanItApp: App {
         #endif
         _sessions = State(initialValue: SessionStore(context: container.mainContext, analytics: analytics))
         let lookup: any ProductLookup = inMemory
-            ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo"])
+            ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo", "4006381333931": "Pão de forma"])
             : OpenFoodFactsClient()
         _enricher = State(initialValue: ProductEnricher(context: container.mainContext, lookup: lookup))
     }

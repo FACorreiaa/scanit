@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+/* One accent, the app's green. Contrast (computed, not eyeballed):
+   - buttons: #FDFDFD on #23843B = 4.65:1 (AA)
+   - links:   #218039 on the light surface = 4.65:1, #3CC565 on the dark surface = 8.4:1
+   System font: the same SF Pro the app uses, no web-font download. */
+@theme {
+	--font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
+	--color-accent: #23843b;
+	--color-accent-ink: #fdfdfd;
+	--radius-card: 20px;
+}
+
+:root {
+	--surface: #f7f7f5;
+	--surface-raised: #ffffff;
+	--ink: #1c1c1e;
+	--ink-muted: #5b5b60;
+	--hairline: rgb(28 28 30 / 0.12);
+	--link: #218039;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--surface: #111113;
+		--surface-raised: #1c1c1e;
+		--ink: #f2f2f7;
+		--ink-muted: #a1a1a8;
+		--hairline: rgb(242 242 247 / 0.14);
+		--link: #3cc565;
+	}
+}
+
+html {
+	background: var(--surface);
+	color: var(--ink);
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	font-family: var(--font-sans);
+	line-height: 1.5;
+}
+
+a {
+	text-underline-offset: 3px;
+}
+
+:focus-visible {
+	outline: 2px solid var(--link);
+	outline-offset: 3px;
+	border-radius: 6px;
+}

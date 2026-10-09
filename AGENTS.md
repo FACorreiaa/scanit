@@ -34,9 +34,11 @@ the website will most be to check stats
 scanit/          iOS app (scanit.xcodeproj, scheme `scanit`; folders are synchronised groups)
 scanit-core/     shared Swift package ScanItCore (iOS now, server in P4)
 scanit-core/Fixtures/   JSON test vectors, also for the Android port
+scanit-web/      landing + legal pages (SvelteKit on Cloudflare, prerendered)
 docs/            api.md, android.md
 ```
 
 - Core tests: `cd scanit-core && swift test`
+- Web: `cd scanit-web && npm ci && npm run check && npm run build` (deploy: `npm run deploy`, needs Cloudflare login)
 - App unit tests: `xcodebuild test -project scanit/scanit.xcodeproj -scheme scanit -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:scanitTests`
 - CI: `.github/workflows/ci.yml` (core on Linux, iOS on macOS). Repo: `FACorreiaa/scanit`.

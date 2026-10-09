@@ -236,11 +236,38 @@ SvelteKit 5 on Cloudflare (aaru-client pattern). One page plus `/privacy`, `/ter
 
 **Done when:** it is live on `{{domain}}`, Lighthouse scores ≥ 95 on every category, and the App Store badge links to the TestFlight or App Store URL.
 
+**Status 2026-10-09:**
+
+- **Built, not deployed.**
+  - **Stack:** SvelteKit 2.70 with adapter-cloudflare and Tailwind 4. Fully prerendered: home, privacy, terms, delete-your-data.
+  - **Look:** system font, light and dark themes, and real app screenshots taken by the UI tests.
+  - **Lighthouse** (local): 98–99 Performance, 100 Accessibility, 100 Best Practices, 100 SEO on every page.
+- **Download button:** reads "Coming soon for iPhone" until `downloadUrl` is set (TestFlight link, then the App Store).
+- **Still open:**
+  - the domain (FND-001)
+  - a Cloudflare account and `wrangler deploy` (owner)
+  - the contact address
+
 ### WEB-002 · Privacy policy and terms content · S
 **Needs:** WEB-001.
 **OPEN:** the owner reviews the legal text. It must match the App Privacy labels (REL-001) and, later, the Play Data safety form.
 
 **Done when:** the owner signs off.
+
+**Status 2026-10-09:**
+
+- **Drafted:** `/privacy`, `/terms` and `/delete-account` in `scanit-web`.
+- **What they say:**
+  - trips stay on the phone
+  - only the barcode goes to Open Food Facts
+  - anonymous usage events without amounts or products
+  - crash reports, no location, no ad tracking
+- **Before release:**
+  - The analytics and crash wording assumes FND-004 (PostHog/Sentry) ships. Re-check it if that changes.
+  - The terms mention the one-time unlock (REL-003).
+- **Open:**
+  - The contact address (`src/lib/config.ts → contactEmail`). Until it is set, the pages point to the App Store listing.
+  - Owner sign-off on the wording. This is AI-drafted text, not legal advice.
 
 ---
 

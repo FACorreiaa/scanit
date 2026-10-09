@@ -158,7 +158,7 @@ A chart is shown only when its data is meaningful. The minimum is 3 finished tri
 ## Visual direction (proposal)
 
 - **Native first:** SwiftUI system components, SF Pro (one font design everywhere, including widgets), Dynamic Type everywhere. The hero total is SF Pro **light** at 48 pt scaled with Dynamic Type (`@ScaledMetric`), with `.monospacedDigit()`. Changed from SF Pro Rounded on 2026-10-09 so the app uses a single font design.
-- **Colour:** one accent, green `#248A3D` in both modes (Apple's accessible green; white button text on it passes contrast), plus amber and red reserved strictly for the limit states. Neutral greys otherwise. Full dark mode.
+- **Colour:** one accent, green `#23843B` in both modes. White button text on it is 4.65:1 (WCAG AA). It was `#248A3D` until 2026-10-09; that measured 4.32:1, which fails, and the earlier claim that it passed was wrong. **OPEN (owner):** green *text* tints on dark backgrounds ("New store", "Finish") measure 3.6:1. That passes the 3:1 bar for controls but not 4.5:1 for small text, and no single green can serve both white button text and small text on dark. The options are a lighter dark-mode tint (which breaks white text on prominent buttons) or accepting 3.6:1. The web uses separate link shades (`#218039` light, `#3CC565` dark). plus amber and red reserved strictly for the limit states. Neutral greys otherwise. Full dark mode.
 - **Materials:** the scanner HUD uses `.ultraThinMaterial` over the camera, so the total stays legible on any background.
 - **Motion:**
   - The total rolls up with `.contentTransition(.numericText())`.
