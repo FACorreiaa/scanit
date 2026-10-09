@@ -1,0 +1,12 @@
+# Same match repo and MATCH_PASSWORD as Norviq: one Apple Distribution certificate per team
+# (84X9WYBF36), with each app's App Store profiles stored next to each other. CI reads it over
+# HTTPS with MATCH_GIT_BASIC_AUTHORIZATION (base64 "x-access-token:<PAT>").
+git_url("https://github.com/FinancePlanner/norviq-certificates.git")
+storage_mode("git")
+type("appstore")
+# Prod App Store app + side-by-side TestFlight beta app (separate App Store Connect apps).
+app_identifier([
+  "com.fernandocorreia.scanit",
+  "com.fernandocorreia.scanit.beta"
+])
+team_id("84X9WYBF36")

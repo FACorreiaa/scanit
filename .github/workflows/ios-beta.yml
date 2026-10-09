@@ -1,0 +1,99 @@
+# iOS delivery (docs/release.md). Mirrors Norviq's Release workflow.
+#
+#   "CI" green on main  -> TestFlight build of the "ScanIt Beta" app (fastlane beta)
+#   manual dispatch     -> same, on demand (e.g. after the secrets are first added)
+#   "Seed signing" job  -> manual only: adds ScanIt's profiles to the shared match repo
+#
+# workflow_run makes the upload sequential and gated on green tests, not a sibling that ships
+# whatever CI says. GitHub reads this trigger from the default branch, and the event's sha is the
+# default-branch tip, so the build checks out workflow_run.head_sha explicitly.
+#
+# Required repo secrets (same values as Norviq's, team 84X9WYBF36):
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (base64 of the .p8)  App Store Connect API key
+#   MATCH_PASSWORD                                             match repo encryption password
+#   MATCH_GIT_BASIC_AUTHORIZATION                              base64 "x-access-token:<PAT>", PAT with
+#                                                              Contents read (write for seeding) on
+#                                                              FinancePlanner/norviq-certificates
+name: iOS beta
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: Lane to run
+        required: true
+        type: choice
+        options: [beta, seed_signing]
+        default: beta
+
+concurrency:
+  group: ios-delivery
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch'
+    name: fastlane ${{ inputs.lane || 'beta' }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: scanit
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # workflow_run defaults to the default-branch tip; build what CI tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # Same pin as CI's iOS job.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.4"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: scanit
+
+      - name: Check secrets are configured
+        run: |
+          missing=""
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 MATCH_PASSWORD MATCH_GIT_BASIC_AUTHORIZATION; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::TestFlight upload skipped: repo secrets missing:$missing (docs/release.md, step 1.5)"
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
+      - name: fastlane ${{ inputs.lane || 'beta' }}
+        if: env.SKIP != '1'
+        run: bundle exec fastlane ${{ inputs.lane || 'beta' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
+      - name: Keep the build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-logs
+          path: ~/Library/Logs/gym
+          if-no-files-found: ignore
+          retention-days: 7

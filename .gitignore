@@ -34,3 +34,11 @@ node_modules/
 
 # Shelf-label photos for tools/label-bench stay local
 tools/label-bench/labels/
+
+# fastlane outputs
+scanit/fastlane/build/
+scanit/fastlane/report.xml
+scanit/fastlane/README.md
+scanit/fastlane/test_output/
+scanit/vendor/bundle/
+scanit/.bundle/
