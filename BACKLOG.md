@@ -135,12 +135,6 @@ Turn feedback into items. Re-order P3 and later if testers ask for something els
 
 ## P3 — Enrichment and insights
 
-### INS-102 · InsightsCalculator · M
-**Needs:** IOS-011.
-Pure implementation of INS-01…08 from `DESIGN.md`, with fixtures shared in `scanit-core/Fixtures/`.
-
-**Done when:** every INS ID has a fixture test with a hand-computed expected value.
-
 ### INS-103 · Insights tab · M
 **Needs:** INS-102.
 Swift Charts, following the `dataviz` skill, with the 3-trip minimum placeholder.
@@ -559,3 +553,15 @@ Offline, lookups are queued (`offFetchedAt == nil`) and retried when `Connectivi
 - The UI test asserts the name appears in the cart.
 
 **OPEN:** OFF asks for a contact in the User-Agent. Today it is `ScanIt/<version> (iOS)`; add a contact address (owner's choice) before the App Store release.
+
+### INS-102 · InsightsCalculator · M
+**Needs:** IOS-011.
+Pure implementation of INS-01…08 from `DESIGN.md`, with fixtures shared in `scanit-core/Fixtures/`.
+
+**Done when:** every INS ID has a fixture test with a hand-computed expected value.
+
+**Closed 2026-10-09:**
+
+- **Code:** `InsightsCalculator` in `ScanItCore/Insights.swift`, working over `TripSnapshot` / `PriceSnapshot` values, so the server can reuse the same definitions in P9.
+- **Fixture:** `Fixtures/insights.json` holds 6 trips over 2 stores, including a USD trip to prove currencies never mix, an in-store code and an opaque code. Every expected value for INS-01…08 was worked out by hand.
+- **Checked:** two deliberately wrong expectations both failed.

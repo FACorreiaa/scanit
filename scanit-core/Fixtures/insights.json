@@ -1,0 +1,69 @@
+{
+  "_comment": "Hand-computed expectations for INS-01..08 (DESIGN.md → Insights catalogue). Shared with Android. Week starts Monday, UTC.",
+  "now": "2026-10-09T12:00:00Z",
+  "currency": "EUR",
+  "trips": [
+    { "id": "T1", "storeId": "L", "storeName": "Lidl", "currency": "EUR",
+      "startedAt": "2026-06-01T10:00:00Z", "endedAt": "2026-06-01T10:30:00Z", "limitMinor": null, "tillTotalMinor": null,
+      "lines": [ { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 1, "unitPriceMinor": 90, "category": "en:milks" } ] },
+    { "id": "T2", "storeId": "L", "storeName": "Lidl", "currency": "EUR",
+      "startedAt": "2026-09-15T10:00:00Z", "endedAt": "2026-09-15T10:30:00Z", "limitMinor": 3000, "tillTotalMinor": 800,
+      "lines": [
+        { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 2, "unitPriceMinor": 99, "category": "en:milks" },
+        { "code": "04006381333931", "codeKind": "gtin", "name": "Pão", "quantity": 1, "unitPriceMinor": 150, "category": "en:breads" },
+        { "code": "03017620422003", "codeKind": "gtin", "name": "Nutella", "quantity": 1, "unitPriceMinor": 399, "category": "en:spreads" } ] },
+    { "id": "T3", "storeId": "C", "storeName": "Continente", "currency": "EUR",
+      "startedAt": "2026-09-30T10:00:00Z", "endedAt": "2026-09-30T10:30:00Z", "limitMinor": 500, "tillTotalMinor": null,
+      "lines": [
+        { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 1, "unitPriceMinor": 109, "category": "en:milks" },
+        { "code": "03017620422003", "codeKind": "gtin", "name": "Nutella", "quantity": 1, "unitPriceMinor": 429, "category": "en:spreads" } ] },
+    { "id": "T4", "storeId": "L", "storeName": "Lidl", "currency": "EUR",
+      "startedAt": "2026-10-06T10:00:00Z", "endedAt": "2026-10-06T10:30:00Z", "limitMinor": null, "tillTotalMinor": null,
+      "lines": [
+        { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 3, "unitPriceMinor": 105, "category": "en:milks" },
+        { "code": "04006381333931", "codeKind": "gtin", "name": "Pão", "quantity": 2, "unitPriceMinor": 150, "category": "en:breads" },
+        { "code": "02040123001506", "codeKind": "gtin", "name": "Maçãs", "quantity": 1, "unitPriceMinor": 250, "category": null } ] },
+    { "id": "T5", "storeId": "C", "storeName": "Continente", "currency": "EUR",
+      "startedAt": "2026-10-08T10:00:00Z", "endedAt": "2026-10-08T10:30:00Z", "limitMinor": 2000, "tillTotalMinor": null,
+      "lines": [
+        { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 1, "unitPriceMinor": 109, "category": "en:milks" },
+        { "code": "promo-42", "codeKind": "opaque", "name": null, "quantity": 1, "unitPriceMinor": 10, "category": null },
+        { "code": "03017620422003", "codeKind": "gtin", "name": "Nutella", "quantity": 2, "unitPriceMinor": 429, "category": "en:spreads" } ] },
+    { "id": "T6", "storeId": "L", "storeName": "Lidl", "currency": "USD",
+      "startedAt": "2026-10-07T10:00:00Z", "endedAt": "2026-10-07T10:30:00Z", "limitMinor": 100, "tillTotalMinor": null,
+      "lines": [ { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 1, "unitPriceMinor": 100, "category": "en:milks" } ] }
+  ],
+  "prices": [
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 90, "currency": "EUR", "observedAt": "2026-06-01T10:05:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 99, "currency": "EUR", "observedAt": "2026-09-15T10:05:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 105, "currency": "EUR", "observedAt": "2026-10-06T10:05:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "04006381333931", "priceMinor": 150, "currency": "EUR", "observedAt": "2026-09-15T10:06:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "04006381333931", "priceMinor": 150, "currency": "EUR", "observedAt": "2026-10-06T10:06:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "03017620422003", "priceMinor": 399, "currency": "EUR", "observedAt": "2026-09-15T10:07:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 109, "currency": "EUR", "observedAt": "2026-09-30T10:05:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 109, "currency": "EUR", "observedAt": "2026-10-08T10:05:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "03017620422003", "priceMinor": 429, "currency": "EUR", "observedAt": "2026-09-30T10:06:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "03017620422003", "priceMinor": 429, "currency": "EUR", "observedAt": "2026-10-08T10:06:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 100, "currency": "USD", "observedAt": "2026-10-07T10:05:00Z" }
+  ],
+  "expected": {
+    "ins01_week":  { "currentMinor": 1842, "previousMinor": 538,  "deltaMinor": 1304, "deltaPercent": 242.379 },
+    "ins01_month": { "currentMinor": 1842, "previousMinor": 1285, "deltaMinor": 557,  "deltaPercent": 43.346 },
+    "ins02_averageTripMinor": 782,
+    "ins03": { "under": 2, "withLimit": 3 },
+    "ins04_month": [ { "storeId": "C", "totalMinor": 977 }, { "storeId": "L", "totalMinor": 865 } ],
+    "ins05_month": [
+      { "code": "03017620422003", "totalMinor": 858, "quantity": 2 },
+      { "code": "05601234567892", "totalMinor": 424, "quantity": 4 },
+      { "code": "04006381333931", "totalMinor": 300, "quantity": 2 } ],
+    "ins06": [ { "storeId": "L", "code": "05601234567892", "firstMinor": 90, "latestMinor": 105, "percent": 16.667 } ],
+    "ins07": [
+      { "code": "03017620422003", "cheapestStoreId": "L", "cheapestMinor": 399, "savingMinor": 30 },
+      { "code": "05601234567892", "cheapestStoreId": "L", "cheapestMinor": 105, "savingMinor": 4 } ],
+    "ins08_month": [
+      { "category": "en:spreads", "totalMinor": 858 },
+      { "category": "en:milks", "totalMinor": 424 },
+      { "category": "en:breads", "totalMinor": 300 },
+      { "category": "other", "totalMinor": 260 } ]
+  }
+}
