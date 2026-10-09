@@ -114,6 +114,8 @@ Swift 6 language mode, `MainActor` default isolation (Xcode 26 template default)
     2. Discard tokens next to `/kg`, `/l`, `per 100 g` and the like (unit price).
     3. Keep a second candidate when the label shows a loyalty-card price.
   - The output is the best candidate plus a confidence. The user always confirms; the parser never adds an item by itself.
+- **Name clash:** iOS 18 / macOS 15 `Vision` ships its own `RecognizedText`. Any file that imports both Vision and ScanItCore must write `ScanItCore.RecognizedText`.
+- **Accuracy harness:** `tools/label-bench` (see its README) measures prefill accuracy on real label photos.
 
 ### Data model (SwiftData)
 
