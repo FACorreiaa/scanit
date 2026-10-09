@@ -15,6 +15,7 @@ the website will most be to check stats
 - `DESIGN.md`: flows, screens, limit states, and the **Insights catalogue** (INS-xx definitions, which are the contract for iOS and the server).
 - `docs/api.md`: the `/v1` contract shared by iOS, Android and web.
 - `docs/android.md`: the Android port spec (phase P8).
+- `docs/release.md`: step-by-step runbook from TestFlight to App Store and the backend, split into owner and Claude steps.
 - `BACKLOG.md`: ordered work with stable IDs. Start at the first open item whose `Needs` are done.
 
 ## Hard rules
