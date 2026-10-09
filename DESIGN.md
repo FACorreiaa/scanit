@@ -15,13 +15,19 @@ The user is standing in an aisle, often with one hand on a trolley. So:
 4. **The limit speaks in colour and haptics, not in modals.** Never block a scan to warn about the limit.
 5. **Calm, not gamified.** No streaks, no confetti for spending less. Numbers, plainly.
 
+## Wording
+
+- **The action is a verb:** "Start shopping".
+- **The thing is a trip:** "Trip finished", "Average trip", "4 trips this month".
+- **Never "session"** in the UI. That is the code's name (`ShoppingSession`). Owner decision, 2026-10-09.
+
 ## Information architecture
 
 Tab bar with 3 tabs. Settings live behind the avatar in the History and Insights headers.
 
 | Tab | Purpose |
 | --- | --- |
-| **Trip** | Start a trip. The active trip becomes the whole tab. |
+| **Trip** | Start shopping. The active trip becomes the whole tab. |
 | **History** | Past trips, newest first, grouped by month with the month's total. |
 | **Insights** | Numbers and charts (catalogue below). |
 
@@ -31,11 +37,11 @@ Tab bar with 3 tabs. Settings live behind the avatar in the History and Insights
 
 1. One welcome screen: "See what your trolley costs before the till". Single **Start** button.
 2. **Camera primer** screen explaining why, shown before the system prompt (we get one chance at the system prompt).
-3. Land on the Trip tab, empty state with a large **Start a trip** button.
+3. Land on the Trip tab, empty state with a large **Start shopping** button.
 
 There is no sign-in on first launch. Sign-in is offered later, in Settings and once on the first trip summary ("Back up your trips").
 
-### 2. Start a trip (sheet, medium detent)
+### 2. Start shopping (sheet, medium detent)
 
 | Field | Behaviour |
 | --- | --- |

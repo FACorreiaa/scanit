@@ -24,7 +24,7 @@ struct TripView: View {
                 } description: {
                     Text("Scan products as you shop and watch your total against your limit.")
                 } actions: {
-                    Button("Start a trip", action: requestStart)
+                    Button("Start shopping", action: requestStart)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                         .accessibilityIdentifier("openStartTrip")
