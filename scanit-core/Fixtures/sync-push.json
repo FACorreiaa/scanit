@@ -1,0 +1,55 @@
+{
+  "changes": [
+    {
+      "entity": "store",
+      "id": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d01",
+      "updatedAt": "2026-10-09T10:00:00Z",
+      "deletedAt": null,
+      "data": { "name": "Pingo Doce Alvalade", "chain": "Pingo Doce", "countryCode": "PT", "currency": "EUR" }
+    },
+    {
+      "entity": "session",
+      "id": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d02",
+      "updatedAt": "2026-10-09T10:45:12.250Z",
+      "deletedAt": null,
+      "data": {
+        "storeId": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d01",
+        "limit": { "amountMinor": 6000, "currency": "EUR" },
+        "currency": "EUR",
+        "startedAt": "2026-10-09T10:01:00Z",
+        "endedAt": "2026-10-09T10:45:00Z",
+        "status": "finished",
+        "tillTotal": { "amountMinor": 4312, "currency": "EUR" }
+      }
+    },
+    {
+      "entity": "cart_item",
+      "id": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d03",
+      "updatedAt": "2026-10-09T10:05:00Z",
+      "deletedAt": null,
+      "data": {
+        "sessionId": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d02",
+        "code": "05601234567892",
+        "codeKind": "gtin",
+        "productName": "Leite meio gordo 1L",
+        "quantity": 2,
+        "unitPrice": { "amountMinor": 99, "currency": "EUR" },
+        "priceSource": "ocr",
+        "scannedAt": "2026-10-09T10:05:00Z"
+      }
+    },
+    {
+      "entity": "price_observation",
+      "id": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d04",
+      "updatedAt": "2026-10-09T10:05:00Z",
+      "deletedAt": "2026-10-09T11:00:00Z",
+      "data": {
+        "storeId": "5b1f2c4e-0d7a-4a43-9c1e-2f3b4a5c6d01",
+        "code": "05601234567892",
+        "price": { "amountMinor": 99, "currency": "EUR" },
+        "observedAt": "2026-10-09T10:05:00Z",
+        "source": "ocr"
+      }
+    }
+  ]
+}

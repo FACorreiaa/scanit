@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The server (P4) will run on Linux and share these types, so the core package is tested
+  # there, not only on macOS.
+  core:
+    name: scanit-core (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        working-directory: scanit-core
+        run: swift test
+
+  ios:
+    name: iOS app
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned, not latest-stable: LuminaVaultClient hit an XCTest crash on 26.3 that 26.4 fixed.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.4"
+
+      - name: Ensure an iOS simulator runtime is installed
+        run: |
+          set -euo pipefail
+          if ! xcrun simctl list runtimes | grep -q "^iOS"; then
+            sudo xcodebuild -downloadPlatform iOS
+          fi
+
+      # No snapshot tests yet, so any available iPhone will do. Pin device and runtime the day
+      # snapshot baselines arrive (see LuminaVaultClient's ci.yml for why).
+      - name: Pick a simulator
+        run: |
+          set -euo pipefail
+          UDID=$(xcrun simctl list devices available \
+            | sed -nE 's/^ +iPhone[^(]* \(([0-9A-Fa-f-]{36})\).*/\1/p' \
+            | head -1 || true)
+          if [ -z "$UDID" ]; then
+            echo "::error::no available iPhone simulator on this runner"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "SIM_DESTINATION=platform=iOS Simulator,id=$UDID" >> "$GITHUB_ENV"
+
+      - name: Unit tests
+        run: |
+          set -euo pipefail
+          xcodebuild test \
+            -project scanit/scanit.xcodeproj \
+            -scheme scanit \
+            -configuration Debug \
+            -destination "$SIM_DESTINATION" \
+            -only-testing:scanitTests \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-xcresult
+          path: TestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

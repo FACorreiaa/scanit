@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcresult
+build/
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved.bak
+
+# Secrets / local config (committed as *.sample)
+*.xcconfig
+!*.xcconfig.sample
+.env
+.env.*
+
+# Gradle / Android (P8)
+.gradle/
+local.properties
+*.keystore
+
+# Node / web (P5)
+node_modules/
+.svelte-kit/
+.wrangler/
+
+# Claude local settings
+.claude/settings.local.json
