@@ -25,7 +25,7 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 | Area | State |
 | --- | --- |
 | Docs | `ARCHITECTURE.md`, `DESIGN.md`, `docs/api.md`, `docs/android.md`, this file |
-| Code | None. `apps/maat` is not a git repo yet. |
+| Code | Repo `FACorreiaa/scanit` (private). `scanit-core` done (Money, barcodes, price parser, sync DTOs, fixtures). iOS shell: 3 tabs, iPhone-only, iOS 18, Swift 6. CI: core on Linux, iOS unit tests on macOS. |
 | Name | **ScanIt** / `scanit` (2026-10-09). Domain **OPEN** (`{{domain}}`). Store-name availability unchecked. |
 | Monetisation | Free plus a one-time "ScanIt Unlimited" unlock (2026-10-09). See REL-003. |
 | Strangers count | 0 |
@@ -65,34 +65,13 @@ Name chosen: **ScanIt**, slug `scanit`, bundle ID `com.<owner>.scanit`. Still to
 **Done when:** the App Store Connect app record exists with its final name, the domain is bought,
 and `rg '\{\{domain\}\}' apps/maat` returns nothing after one find-and-replace.
 
-### FND-002 · Repo · S
-**Needs:** FND-001.
-`git init` in `apps/maat`, then create the GitHub repo under the same owner as the other apps. Add `.gitignore` for Xcode, SPM, Gradle and Node.
+### FND-004 · PostHog and Sentry · S
+**Needs:** owner creates a ScanIt PostHog project and a Sentry project (**OPEN**). Events must not go into another app's project.
+The rest of the skeleton is done (see **Done**). Replace `LogAnalytics` in `scanit/scanit/Services/Analytics.swift`
+with a PostHog-backed `AnalyticsClient`, init Sentry as in `LuminaVaultClientApp.swift`, and keep the keys in a
+gitignored `Config.*.xcconfig` with a committed `.sample` (LuminaVaultClient pattern).
 
-**Done when:** the docs are committed and pushed, and the default branch is `main`.
-
-### FND-003 · `scanit-core` SPM package · S
-**Needs:** FND-002.
-Money type (minor units and currency), entity DTOs from `docs/api.md`, the barcode normaliser
-and the price parser as pure functions, and a `Fixtures/` folder of JSON test vectors (also used by Android later).
-
-**Done when:** `swift test` passes, with these vectors at minimum:
-
-- barcodes: EAN-13, EAN-8, UPC-E to GTIN-14; GS1 Digital Link URL to GTIN; opaque QR
-- prices: `1,99`, `€ 1,99`, `1,99 €`, `$1.99`, `2 x 0,99`, and a label with both a unit price and a price
-
-### FND-004 · iOS project skeleton · S
-**Needs:** FND-003.
-Plain `.xcodeproj`, SPM dependency on `scanit-core`, iOS 17 target, Swift 6 language mode, 3-tab
-shell (Trip, History, Insights), PostHog and Sentry wired as in `LuminaVaultClientApp.swift`, and camera usage string.
-
-**Done when:** it builds and launches in the simulator, and PostHog receives an `app_opened` event from a debug build.
-
-### FND-005 · CI build · S
-**Needs:** FND-004.
-GitHub Actions on macOS: build and test the iOS app and `scanit-core` on every PR.
-
-**Done when:** a PR shows a green check, and a deliberately broken test makes it red.
+**Done when:** PostHog receives `app_opened` from a debug build, and a forced test crash shows in Sentry.
 
 ---
 
@@ -485,4 +464,42 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 
 ## Done
 
-_(empty)_
+### FND-001a · Name · 2026-10-09
+ScanIt / `scanit`, bundle ID `com.fernandocorreia.scanit`. Store availability and domain remain in FND-001.
+
+### FND-002 · Repo · S
+**Needs:** FND-001.
+`git init` in `apps/maat`, then create the GitHub repo under the same owner as the other apps. Add `.gitignore` for Xcode, SPM, Gradle and Node.
+
+**Done when:** the docs are committed and pushed, and the default branch is `main`.
+
+**Closed 2026-10-09:** one repo at `apps/maat` (Xcode's nested `.git` with its template commit was removed),
+pushed to `FACorreiaa/scanit` (private), default branch `main`.
+
+### FND-003 · `scanit-core` SPM package · S
+**Needs:** FND-002.
+Money type (minor units and currency), entity DTOs from `docs/api.md`, the barcode normaliser
+and the price parser as pure functions, and a `Fixtures/` folder of JSON test vectors (also used by Android later).
+
+**Done when:** `swift test` passes, with these vectors at minimum:
+
+- barcodes: EAN-13, EAN-8, UPC-E to GTIN-14; GS1 Digital Link URL to GTIN; opaque QR
+- prices: `1,99`, `€ 1,99`, `1,99 €`, `$1.99`, `2 x 0,99`, and a label with both a unit price and a price
+
+**Closed 2026-10-09:** `swift test` passes, 17 tests over 16 barcode and 19 price vectors plus the sync fixture.
+A deliberately wrong vector fails.
+
+### FND-004a · iOS skeleton · 2026-10-09
+`scanit/scanit.xcodeproj`: iPhone only, iOS 18.0, Swift 6, local package `../scanit-core`, shared scheme,
+camera usage string, display name ScanIt. 3-tab shell (Trip, History, Insights) with empty states. `Money.formatted`
+and the analytics seam are tested. It builds and launches in the simulator, and `app_opened` is logged.
+PostHog and Sentry are split out to FND-004.
+
+### FND-005 · CI build · S
+`.github/workflows/ci.yml`: `scanit-core` tests on Linux (`swift:6.2`), iOS unit tests on macOS (Xcode 26.4).
+
+**Done when:** a PR shows a green check, and a deliberately broken test makes it red.
+
+**Closed 2026-10-09:** the first push to `main` ran green: core on Linux 1 min, iOS ~6 min. A throwaway branch with a
+broken check-digit assertion went red on exactly that expectation (run 37935622183). The branch was deleted.
+CI skips Markdown-only and `docs/` changes.

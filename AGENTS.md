@@ -27,3 +27,16 @@ the website will most be to check stats
 - **Strangers gate:** do not start backend, auth, web stats or Android (P4, P8, P9) before BACKLOG GATE-002 passes.
 - **Infra changes go only in `~/Work/production/platform/infra`** (namespace `horus`). Never create a local `*-infra/` copy.
 - **Tests never use real API keys or real ID tokens.** Use stub JWKS and stub HTTP servers.
+
+## Layout and commands
+
+```
+scanit/          iOS app (scanit.xcodeproj, scheme `scanit`; folders are synchronised groups)
+scanit-core/     shared Swift package ScanItCore (iOS now, server in P4)
+scanit-core/Fixtures/   JSON test vectors, also for the Android port
+docs/            api.md, android.md
+```
+
+- Core tests: `cd scanit-core && swift test`
+- App unit tests: `xcodebuild test -project scanit/scanit.xcodeproj -scheme scanit -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:scanitTests`
+- CI: `.github/workflows/ci.yml` (core on Linux, iOS on macOS). Repo: `FACorreiaa/scanit`.
