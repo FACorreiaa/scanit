@@ -9,6 +9,7 @@ enum AnalyticsEvent: Equatable, Sendable {
     case itemScanned(priceSource: PriceSource, symbology: Symbology?)
     /// `underLimit` is `nil` for trips without a limit.
     case tripFinished(items: Int, underLimit: Bool?)
+    case insightsViewed
 
     var name: String {
         switch self {
@@ -16,12 +17,13 @@ enum AnalyticsEvent: Equatable, Sendable {
         case .tripStarted: "trip_started"
         case .itemScanned: "item_scanned"
         case .tripFinished: "trip_finished"
+        case .insightsViewed: "insights_viewed"
         }
     }
 
     var properties: [String: String] {
         switch self {
-        case .appOpened:
+        case .appOpened, .insightsViewed:
             [:]
         case .tripStarted(let hasLimit):
             ["has_limit": String(hasLimit)]

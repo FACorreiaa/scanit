@@ -130,6 +130,26 @@ final class TripFlowUITests: XCTestCase {
         snapshot("8-accessibility-xxl")
     }
 
+    /// INS-103: with history, the Insights tab shows tiles, bars and lists.
+    func testInsightsWithHistory() throws {
+        launch(extraArguments: ["-ui-testing-demo-data"])
+        app.tabBars.buttons["Insights"].tap()
+        XCTAssertTrue(app.staticTexts["This month"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Average trip"].exists)
+        XCTAssertTrue(app.staticTexts["5 of 5"].exists, "all demo trips stayed under their limit")
+        snapshot("9-insights-top")
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Prices that went up"].waitForExistence(timeout: 5)
+                      || app.staticTexts["PRICES THAT WENT UP"].exists)
+        snapshot("10-insights-lists")
+    }
+
+    func testInsightsPlaceholderBeforeThreeTrips() throws {
+        launch()
+        app.tabBars.buttons["Insights"].tap()
+        XCTAssertTrue(app.staticTexts["Insights after 3 trips"].waitForExistence(timeout: 5))
+    }
+
     // MARK: - Helpers
 
     private func startTrip(newStore: String, limit: String) {

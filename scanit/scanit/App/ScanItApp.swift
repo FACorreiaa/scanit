@@ -21,6 +21,11 @@ struct ScanItApp: App {
         } catch {
             fatalError("Could not open the ScanIt store: \(error)")
         }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-data") {
+            DemoData.seed(container.mainContext)
+        }
+        #endif
         _sessions = State(initialValue: SessionStore(context: container.mainContext, analytics: analytics))
         let lookup: any ProductLookup = inMemory
             ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo"])

@@ -352,3 +352,33 @@ struct HistoryGroupingTests {
         #expect(groups[1].totals == [Money(amountMinor: 3000, currency: "EUR")])
     }
 }
+
+// MARK: - INS-103: SwiftData → insight snapshots
+
+@MainActor
+struct InsightsSourceTests {
+    @Test func mapsFinishedTripsPricesAndCategories() throws {
+        let context = try makeContext()
+        let now = Date()
+        DemoData.seed(context, now: now)
+        // An unfinished trip must not count.
+        let store = SessionStore(context: context)
+        store.startTrip(store: nil, limitMinor: nil, currency: "EUR")
+        store.addItem(code: milk, unitPriceMinor: 9_999, priceSource: .manual)
+
+        let calculator = InsightsSource.calculator(context: context, now: now)
+        #expect(calculator.hasEnoughData)
+        #expect(calculator.currency == "EUR")
+        // Trip totals in DemoData: 1154, 1570, 1407, 1952, 1955 → mean 1607.6 → 1608.
+        #expect(calculator.averageTrip()?.amountMinor == 1608)
+        #expect(calculator.limitAdherence().under == 5)
+        #expect(calculator.categorySplit(in: DateInterval(start: now.addingTimeInterval(-30 * 86_400), end: now))
+            .contains { $0.category == "en:sweet-spreads" })
+        #expect(!calculator.priceChanges().isEmpty, "milk went from 0,89 to 0,99 at Lidl")
+    }
+
+    @Test func categoryTitles() {
+        #expect(InsightsSource.categoryTitle("en:sweet-spreads") == "Sweet spreads")
+        #expect(InsightsSource.categoryTitle("other") == "Other")
+    }
+}

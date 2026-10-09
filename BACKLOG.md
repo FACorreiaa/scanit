@@ -107,6 +107,9 @@ The events in `ARCHITECTURE.md` → Analytics. No amounts or product names.
 
 **Done when:** one test trip produces every event in the PostHog debug view, and none of them carries an amount.
 
+**Status 2026-10-09:** `app_opened`, `trip_started`, `item_scanned`, `trip_finished`, `insights_viewed` are sent (to the
+local log until FND-004). `price_ocr_result` comes with IOS-007, `signed_in` with P4.
+
 ### IOS-013 · TestFlight internal build · S
 **Needs:** IOS-001…012.
 **Done when:** the owner does one real supermarket trip **in airplane mode**, start to finish, with nothing failing. The friction found is logged here as new items.
@@ -134,12 +137,6 @@ Turn feedback into items. Re-order P3 and later if testers ask for something els
 ---
 
 ## P3 — Enrichment and insights
-
-### INS-103 · Insights tab · M
-**Needs:** INS-102.
-Swift Charts, following the `dataviz` skill, with the 3-trip minimum placeholder.
-
-**Done when:** with fixture data loaded, every INS card renders in light and dark mode. With 2 trips, only the placeholder shows.
 
 ### INS-104 · Price-change badges · S
 **Needs:** INS-102.
@@ -565,3 +562,22 @@ Pure implementation of INS-01…08 from `DESIGN.md`, with fixtures shared in `sc
 - **Code:** `InsightsCalculator` in `ScanItCore/Insights.swift`, working over `TripSnapshot` / `PriceSnapshot` values, so the server can reuse the same definitions in P9.
 - **Fixture:** `Fixtures/insights.json` holds 6 trips over 2 stores, including a USD trip to prove currencies never mix, an in-store code and an opaque code. Every expected value for INS-01…08 was worked out by hand.
 - **Checked:** two deliberately wrong expectations both failed.
+
+### INS-103 · Insights tab · M
+**Needs:** INS-102.
+Swift Charts, following the `dataviz` skill, with the 3-trip minimum placeholder.
+
+**Done when:** with fixture data loaded, every INS card renders in light and dark mode. With 2 trips, only the placeholder shows.
+
+**Closed 2026-10-09:**
+
+- **Layout:**
+  - headline tiles: this month and this week vs the previous period, average trip, trips under the limit
+  - week/month filter in one row above the bars
+  - spend by store and by category as single-colour bars, with name and value printed on each row
+  - lists: top products, prices that went up, cheapest store for regulars
+- **Placeholder:** shown below 3 finished trips.
+- **Colour:** the accent passes the dataviz validator in both modes.
+- **Charts:** Swift Charts was dropped for these short ranked lists, because its axis labels collided. They are plain rows now.
+- **Demo data:** debug-only `DemoData` (`-ui-testing-demo-data`) seeds history for UI tests and screenshots.
+- **Analytics:** the `insights_viewed` event is sent.
