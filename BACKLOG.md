@@ -95,6 +95,12 @@ Check the iOS 18+ SDK for a currency `textContentType` in DataScanner. Compare i
 
 **Done when:** the result is written in `ARCHITECTURE.md` (which approach, and its hit rate on the 20 labels).
 
+**Status 2026-10-09:**
+
+- **Ready:** the harness `tools/label-bench` runs Vision's accurate text recogniser plus the real `PriceParser` over a folder of photos and prints the hit rate. It got 4 of 4 synthetic labels right, which is a pipeline smoke test only.
+- **Needs from the owner:** about 20 real label photos and `expected.json` (see the README).
+- **Still to do:** decide on DataScanner's currency content type on device.
+
 ### IOS-007 · Scanner: shelf price · M
 **Needs:** IOS-006.
 Candidate boxes, the top candidate prefilled, the **Type it** keypad always available, and the 3-second fallback prompt.

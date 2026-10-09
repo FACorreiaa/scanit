@@ -41,4 +41,5 @@ docs/            api.md, android.md
 - Core tests: `cd scanit-core && swift test`
 - Web: `cd scanit-web && npm ci && npm run check && npm run build` (deploy: `npm run deploy`, needs Cloudflare login)
 - App unit tests: `xcodebuild test -project scanit/scanit.xcodeproj -scheme scanit -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:scanitTests`
+- Shelf-price accuracy: `cd tools/label-bench && swift run -c release label-bench labels` (README)
 - CI: `.github/workflows/ci.yml` (core on Linux, iOS on macOS). Repo: `FACorreiaa/scanit`.

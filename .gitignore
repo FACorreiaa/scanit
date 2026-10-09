@@ -31,3 +31,6 @@ node_modules/
 
 # Claude local settings
 .claude/settings.local.json
+
+# Shelf-label photos for tools/label-bench stay local
+tools/label-bench/labels/
