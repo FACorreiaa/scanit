@@ -59,7 +59,7 @@ struct StartTripSheet: View {
             if let stores = options?.recentStores, !stores.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(stores) { store in
+                        ForEach(stores, id: \.id) { store in
                             Chip(title: store.name, isSelected: !isAddingStore && selectedStoreID == store.id) {
                                 isAddingStore = false
                                 selectedStoreID = store.id

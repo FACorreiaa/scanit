@@ -26,7 +26,7 @@ struct ActiveTripView: View {
                         description: Text("Products you scan appear here.")
                     )
                 } else {
-                    ForEach(session.liveItems.sorted { $0.scannedAt > $1.scannedAt }) { item in
+                    ForEach(session.liveItems.sorted { $0.scannedAt > $1.scannedAt }, id: \.id) { item in
                         CartItemRow(item: item, currency: session.currency)
                     }
                 }

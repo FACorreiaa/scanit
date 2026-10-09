@@ -150,6 +150,8 @@ Every cart change goes through it, and it publishes `limitState` plus a `feedbac
 **SwiftData and Swift 6.2:** the target uses `MainActor` default isolation. That makes `@Model` key paths
 non-`Sendable` inside `#Predicate`, so the model classes, the `SyncedRecord` protocol and `SyncState` are
 declared `nonisolated`. Keep that on any new model.
+On Xcode 26.4 (CI) a `nonisolated` model no longer satisfies `Identifiable` for `ForEach`, so pass `id: \.id`
+explicitly when iterating models. Local Xcode 26.2 does not catch this; CI does.
 
 When `state` changes, the app plays a haptic (`.warning` at near, `.error` at over) and the HUD changes colour. Thresholds are constants for now. Making them a setting is P3, if testers ask for it.
 
