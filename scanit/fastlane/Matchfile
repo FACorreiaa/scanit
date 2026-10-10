@@ -1,7 +1,15 @@
-# Same match repo and MATCH_PASSWORD as Norviq: one Apple Distribution certificate per team
-# (84X9WYBF36), with each app's App Store profiles stored next to each other. CI reads it over
-# HTTPS with MATCH_GIT_BASIC_AUTHORIZATION (base64 "x-access-token:<PAT>").
-git_url("https://github.com/FinancePlanner/norviq-certificates.git")
+# Signing reuses Khepri's match storage: NorthAIProject/north-ios-certificates.
+#
+# The team (84X9WYBF36) is at Apple's limit of three distribution certificates, so ScanIt does
+# not mint one. That repo holds the existing certificate BC73LRR48W (imported by Khepri with
+# `fastlane match import`); ScanIt only adds its own App Store profiles next to Khepri's.
+#
+#   - MATCH_PASSWORD is Khepri's match password.
+#   - MATCH_GIT_BASIC_AUTHORIZATION = base64 "x-access-token:<PAT>", PAT able to read
+#     NorthAIProject/north-ios-certificates (read and write for `seed_signing`).
+#   - BC73LRR48W expires 2027-09-23; when Khepri renews it, ScanIt re-runs `seed_signing`.
+git_url("https://github.com/NorthAIProject/north-ios-certificates.git")
+git_branch("main")
 storage_mode("git")
 type("appstore")
 # Prod App Store app + side-by-side TestFlight beta app (separate App Store Connect apps).

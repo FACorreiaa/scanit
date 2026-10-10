@@ -8,12 +8,12 @@
 # whatever CI says. GitHub reads this trigger from the default branch, and the event's sha is the
 # default-branch tip, so the build checks out workflow_run.head_sha explicitly.
 #
-# Required repo secrets (same values as Norviq's, team 84X9WYBF36):
-#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (base64 of the .p8)  App Store Connect API key
-#   MATCH_PASSWORD                                             match repo encryption password
+# Required repo secrets (team 84X9WYBF36; signing is shared with Khepri, see fastlane/Matchfile):
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (base64 of the .p8)  team-wide App Store Connect key 46PLPRZ868
+#   MATCH_PASSWORD                                             Khepri's match password
 #   MATCH_GIT_BASIC_AUTHORIZATION                              base64 "x-access-token:<PAT>", PAT with
 #                                                              Contents read (write for seeding) on
-#                                                              FinancePlanner/norviq-certificates
+#                                                              NorthAIProject/north-ios-certificates
 name: iOS beta
 
 on:
