@@ -27,6 +27,9 @@ struct ScanItApp: App {
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-data") {
             DemoData.seed(container.mainContext)
         }
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-trip") {
+            DemoData.seedActiveTrip(container.mainContext)
+        }
         #endif
         _sessions = State(initialValue: SessionStore(context: container.mainContext, analytics: analytics))
         let lookup: any ProductLookup = inMemory
@@ -58,7 +61,8 @@ struct ScanItApp: App {
                 .environment(purchases)
                 .environment(\.paywallPolicy, paywallPolicy)
                 .environment(\.analytics, analytics)
-                .task { await purchases.start() }
+                // v1 ships free (docs/release.md): no StoreKit traffic until the paywall is switched on.
+                .task { if paywallPolicy.isEnabled { await purchases.start() } }
                 .task {
                     guard !hasStartedConnectivity else { return }
                     hasStartedConnectivity = true

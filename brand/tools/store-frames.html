@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- App Store frames, 1320×2868 (6.9" iPhone). One frame per ?n=1..4; raw shots from the
+     AppStoreScreenshots UI test in brand/store/raw. Render with brand/tools/render-store-frames.sh. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1320px; height: 2868px; overflow: hidden; }
+  body {
+    background: linear-gradient(180deg, #eef6f0 0%, #f7f7f5 55%);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    color: #1c1c1e; position: relative;
+  }
+  .lockup { position: absolute; top: 150px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 22px; }
+  .lockup .mark { width: 84px; height: 84px; }
+  .lockup .word { height: 66px; }
+  h1 { position: absolute; top: 300px; left: 100px; right: 100px; margin: 0; text-align: center;
+       font-size: 118px; line-height: 1.04; letter-spacing: -0.035em; font-weight: 700; }
+  h1 em { font-style: normal; color: #10aa51; }
+  .phone { position: absolute; left: 50%; top: 720px; width: 1010px; transform: translateX(-50%);
+           border-radius: 92px; overflow: hidden;
+           box-shadow: 0 0 0 14px #111318, 0 60px 120px -30px rgb(16 60 32 / 0.45); }
+  .phone img { display: block; width: 100%; }
+</style>
+</head>
+<body>
+  <div class="lockup">
+    <img class="mark" src="../logo-mark.svg" alt="">
+    <img class="word" src="../wordmark.svg" alt="">
+  </div>
+  <h1 id="title"></h1>
+  <div class="phone"><img id="shot" alt=""></div>
+  <script>
+    const frames = {
+      1: { title: 'Know your total <em>before the till.</em>', shot: 'store-1-trip' },
+      2: { title: 'See where your <em>money goes.</em>', shot: 'store-2-insights' },
+      3: { title: 'Every trip, <em>month by month.</em>', shot: 'store-3-history' },
+      4: { title: 'Works offline. <em>No account.</em>', shot: 'store-4-ready' },
+    };
+    const n = new URLSearchParams(location.search).get('n') || '1';
+    document.getElementById('title').innerHTML = frames[n].title;
+    document.getElementById('shot').src = '../store/raw/' + frames[n].shot + '.png';
+  </script>
+</body>
+</html>

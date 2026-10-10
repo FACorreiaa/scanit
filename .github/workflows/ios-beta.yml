@@ -1,7 +1,8 @@
 # iOS delivery (docs/release.md). Mirrors Norviq's Release workflow.
 #
 #   "CI" green on main  -> TestFlight build of the "ScanIt Beta" app (fastlane beta)
-#   manual dispatch     -> same, on demand (e.g. after the secrets are first added)
+#   manual dispatch     -> beta on demand, or `release`: Release build -> production ScanItNow app
+#                          (lands in its TestFlight; submit for review from App Store Connect)
 #   "Seed signing" job  -> manual only: adds ScanIt's profiles to the shared match repo
 #
 # workflow_run makes the upload sequential and gated on green tests, not a sibling that ships
@@ -27,7 +28,7 @@ on:
         description: Lane to run
         required: true
         type: choice
-        options: [beta, seed_signing]
+        options: [beta, release, seed_signing]
         default: beta
 
 concurrency:

@@ -57,5 +57,35 @@ enum DemoData {
         }
         try? context.save()
     }
+
+    /// A trip in progress for App Store screenshots: named products at Lidl, €60 limit, nearly reached.
+    static func seedActiveTrip(_ context: ModelContext, now: Date = .now) {
+        let lidl = (try? context.fetch(FetchDescriptor<Store>()))?.first { $0.name == "Lidl" }
+            ?? Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        if lidl.modelContext == nil { context.insert(lidl) }
+        let session = ShoppingSession(store: lidl, limitMinor: 6000, currency: "EUR", now: now.addingTimeInterval(-1500))
+        context.insert(session)
+        let lines: [(String, String, Int, Int)] = [
+            ("05601234567892", "Leite meio gordo", 6, 99),
+            ("03017620422003", "Nutella", 1, 409),
+            ("05601111111116", "Café moído", 2, 519),
+            ("05600000000007", "Iogurte natural", 6, 49),
+            ("04006381333931", "Pão de forma", 1, 139),
+            ("05602222222226", "Azeite virgem extra 750 ml", 1, 899),
+            ("05603333333336", "Queijo flamengo fatiado", 2, 249),
+            ("05604444444446", "Bananas da Madeira", 1, 312),
+            ("05605555555556", "Detergente líquido 1,5 l", 1, 699),
+        ]
+        for (index, (code, name, quantity, price)) in lines.enumerated() {
+            let item = CartItem(
+                code: ScannedCode(kind: .gtin, value: code), productName: name, quantity: quantity,
+                unitPriceMinor: price, priceSource: index % 3 == 0 ? .remembered : .manual,
+                now: now.addingTimeInterval(Double(index - lines.count) * 90)
+            )
+            context.insert(item)
+            item.session = session
+        }
+        try? context.save()
+    }
 }
 #endif

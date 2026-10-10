@@ -29,6 +29,7 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 | Name | Home-screen name **ScanIt**, slug `scanit`. **App Store name: ScanItNow** ("ScanIt" was taken). App Store Connect apps: ScanItNow (`com.fernandocorreia.scanit`, id 6821292069) and ScanItNow Beta (`.beta`, id 6821292246), created 2026-10-10. Domain **OPEN** (`{{domain}}`). |
 | Monetisation | Free plus a one-time "ScanIt Unlimited" unlock (2026-10-09). See REL-003. |
 | TestFlight | Build 1 uploaded by CI (2026-10-10), state VALID. Internal group has auto-distribute on and 1 tester. Every green `main` uploads a new build. |
+| Release plan | **Fast path (2026-10-10):** App Store v1.0 free, no IAP, no analytics SDKs, legal pages on facorreia.com. `scanit-web` is parked (built, not deployed). REL-003 and FND-004 move to v1.1. See `docs/release.md`. |
 | Strangers count | 0 |
 
 ---

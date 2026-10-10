@@ -24,6 +24,23 @@ owner rules it waits until 10 strangers have used the app (BACKLOG P2 → P4).
 
 ---
 
+## Fast path to App Store v1.0 (owner decision 2026-10-10)
+
+v1.0 ships **free**, with **no in-app purchase**, **no analytics or crash SDKs** ("Data Not Collected") and **no dedicated
+website**. Legal and support pages live on facorreia.com. The unlock, PostHog/Sentry and the backend come in later
+versions.
+
+| # | Who | Step | Status |
+| --- | --- | --- | --- |
+| A | You | One real shop with ScanItNow Beta from TestFlight (airplane mode, real barcodes). The camera path has never run on a device; a broken core feature is the main rejection risk. | open |
+| B | Claude ✅ | facorreia.com: `/privacy/scanitnow`, `/terms/scanitnow`, `/support/scanitnow`, `/projects/scanitnow` on branch `feat/scanitnow` of homepage-go (Forgejo). **You:** merge and deploy as usual. | ready |
+| C | Claude ✅ | App: the paywall stays off and StoreKit isn't started; Open Food Facts attribution shown on the confirm sheet. | done |
+| D | Claude ✅ | `fastlane release` plus the workflow option **release**: Actions → iOS beta → Run workflow → lane `release` uploads a Release build to the production **ScanItNow** app. | done |
+| E | Claude ✅ | Listing text, App Privacy answers and review notes: `docs/app-store-listing.md`. Screenshots: `brand/store/framed/01–04.png` (6.9", 1320×2868). | done |
+| F | You | App Store Connect → ScanItNow: paste `docs/app-store-listing.md` (URLs, category, age rating, price Free, App Privacy "Data Not Collected", description, keywords, screenshots, review notes). | open |
+| G | You | Run the `release` lane. When the build is processed, select it under **1.0**, click **Add for Review**, then **Submit**. Choose manual release. | open |
+| H | Apple | Review, usually 24–48 h. Then release when you choose. | |
+
 ## Stage 1: TestFlight, internal (automatic from `main`)
 
 The setup mirrors Norviq:

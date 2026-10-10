@@ -32,6 +32,11 @@ struct ConfirmItemSheet: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                } footer: {
+                    // Attribution required by Open Food Facts' licences (ODbL data, CC BY-SA images).
+                    if product?.displayName != nil || product?.imageURL != nil {
+                        Text("Product data: Open Food Facts")
+                    }
                 }
 
                 Section {
