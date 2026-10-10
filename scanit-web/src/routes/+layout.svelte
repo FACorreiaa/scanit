@@ -1,20 +1,33 @@
 <script lang="ts">
 	import '../app.css';
+	import Lockup from '$lib/Lockup.svelte';
 	import { site } from '$lib/config';
 
 	let { children } = $props();
 </script>
 
+<svelte:head>
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+	<meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)" />
+	<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)" />
+	<meta property="og:site_name" content={site.name} />
+	<meta property="og:image" content="/og.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
+
 <div class="flex min-h-[100dvh] flex-col">
 	<header class="mx-auto flex h-16 w-full max-w-6xl items-center px-4 md:px-8">
-		<a href="/" class="text-lg font-semibold tracking-tight no-underline" style="color: var(--ink)">{site.name}</a>
+		<a href="/" class="no-underline" aria-label="{site.name} home"><Lockup /></a>
 	</header>
 
 	<main class="flex-1">
 		{@render children()}
 	</main>
 
-	<footer class="mx-auto w-full max-w-6xl px-4 py-12 md:px-8" style="color: var(--ink-muted)">
+	<footer class="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-6 px-4 py-12 md:px-8" style="color: var(--ink-muted)">
+		<Lockup height={22} />
 		<nav class="flex flex-wrap gap-x-6 gap-y-2 text-sm" aria-label="Legal">
 			<a href="/privacy" style="color: var(--ink-muted)">Privacy</a>
 			<a href="/terms" style="color: var(--ink-muted)">Terms</a>

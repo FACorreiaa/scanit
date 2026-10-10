@@ -161,6 +161,16 @@ and never converted.
 
 A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show a plain "after 3 trips you'll see…" placeholder. Charts follow the `dataviz` skill.
 
+## Brand (2026-10-10)
+
+Product name **ScanItNow**, with a logo mark, a wordmark and a mascot supplied by the owner. Assets, colours and usage
+rules are in `brand/README.md`. Short version:
+
+- **App icon:** the logo mark.
+- **Launch screen:** the mark on an adaptive background.
+- **Mascot:** welcome moments only (empty Trip screen, paywall, web hero), always on its green disc in dark mode.
+- **Brand green `#10AA51`:** illustration only. UI stays on the accessible accent `#23843B`.
+
 ## Visual direction (proposal)
 
 - **Native first:** SwiftUI system components, SF Pro (one font design everywhere, including widgets), Dynamic Type everywhere. The hero total is SF Pro **light** at 48 pt scaled with Dynamic Type (`@ScaledMetric`), with `.monospacedDigit()`. Changed from SF Pro Rounded on 2026-10-09 so the app uses a single font design.
