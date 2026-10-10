@@ -1,0 +1,1 @@
+Scan each product as you shop and see your running total against your limit. Prices are remembered per store, and it all works offline.

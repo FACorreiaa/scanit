@@ -1,0 +1,5 @@
+ScanItNow has no login and no in-app purchases.
+
+To test: tap "Start shopping", type any store name (for example "Lidl"), optionally set a limit such as 20, and tap Start. Tap Scan and point the camera at any packaged product's barcode (EAN-13, EAN-8, UPC or a product QR code). Type the shelf price in the sheet and tap Add. The running total and the limit bar update. Scan the same product again: the price is remembered for that store. Tap Finish to see the summary; past trips are under History, and Insights appear after three finished trips.
+
+The camera is used only to read barcodes on the device. Barcode numbers are sent to Open Food Facts (openfoodfacts.org) to look up product names. No personal data is collected.

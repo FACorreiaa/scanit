@@ -1,0 +1,1 @@
+grocery,shopping,budget,barcode,scanner,price,supermarket,spending,limit,cart,food,checkout,expense

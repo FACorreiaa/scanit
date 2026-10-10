@@ -1,0 +1,22 @@
+Know your total before the till.
+
+ScanItNow adds up your shopping as you go. Scan a product's barcode, confirm the price, and watch your running total update. Set a limit for the trip and the bar turns amber as you get close and red when you go over, so the surprise happens in the aisle, not at the checkout.
+
+MADE FOR THE AISLE
+• Scan EAN and UPC barcodes and product QR codes
+• Set an optional limit per trip, with a gentle buzz at 80% and 100%
+• Prices are remembered per store: a product you bought before is two taps, scan and add
+• Works fully offline. Product names and photos fill in once you are back online
+
+SEE WHERE YOUR MONEY GOES
+• Spend this week and this month, compared with the last
+• Your average trip and how often you stay under your limit
+• Spending by store and by category
+• Which prices went up, and where the things you buy often cost less
+
+PRIVATE BY DESIGN
+• No account, no sign-up
+• Your trips stay on your iPhone
+• No ads and no tracking
+
+Product names and photos come from Open Food Facts, the free and open food database.
