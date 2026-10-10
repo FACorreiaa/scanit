@@ -30,12 +30,17 @@ api(:patch, "/v1/appStoreVersions/#{version_id}/relationships/build", { data: { 
 
 exit 0 if dry_run
 
-submission = api(:post, "/v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" },
+# Apple allows one open submission per platform: reuse it (a failed earlier run leaves one behind).
+submission = api(:get, "/v1/reviewSubmissions?filter[app]=#{app_id}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW")["data"].first
+submission ||= api(:post, "/v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" },
   relationships: { app: { data: { type: "apps", id: app_id } } } } })["data"]
-api(:post, "/v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: {
-  reviewSubmission: { data: { type: "reviewSubmissions", id: submission["id"] } },
-  appStoreVersion: { data: { type: "appStoreVersions", id: version_id } },
-} } })
+items = api(:get, "/v1/reviewSubmissions/#{submission['id']}/items?include=appStoreVersion")["data"]
+unless items.any? { |i| i.dig("relationships", "appStoreVersion", "data", "id") == version_id }
+  api(:post, "/v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: {
+    reviewSubmission: { data: { type: "reviewSubmissions", id: submission["id"] } },
+    appStoreVersion: { data: { type: "appStoreVersions", id: version_id } },
+  } } })
+end
 api(:patch, "/v1/reviewSubmissions/#{submission['id']}", { data: { type: "reviewSubmissions", id: submission["id"],
   attributes: { submitted: true } } })
 puts "Submitted #{version_string} (build #{build['attributes']['version']}) for App Review."
