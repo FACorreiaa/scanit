@@ -21,7 +21,7 @@ struct ScanItApp: App {
         do {
             container = try ScanItSchema.container(inMemory: inMemory)
         } catch {
-            fatalError("Could not open the ScanIt store: \(error)")
+            fatalError("Could not open the ScanItNow store: \(error)")
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-data") {

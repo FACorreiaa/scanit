@@ -23,6 +23,8 @@ final class TripFlowUITests: XCTestCase {
     /// IOS-003: a trip starts with and without a limit, and the last store is preselected.
     func testStartWithLimitThenWithoutAndStoreIsRemembered() throws {
         launch()
+        XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5))
+        snapshot("0-empty-trip")
         startTrip(newStore: "Lidl", limit: "60")
         XCTAssertTrue(app.staticTexts["Lidl"].waitForExistence(timeout: 5))
         XCTAssertTrue(text(containing: "left").exists, "a limited trip shows how much is left")

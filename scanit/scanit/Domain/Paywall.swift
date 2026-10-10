@@ -1,6 +1,6 @@
 import Foundation
 
-/// Free-tier rules for "ScanIt Unlimited" (`ARCHITECTURE.md` → Purchases, BACKLOG REL-003).
+/// Free-tier rules for "ScanItNow Unlimited" (`ARCHITECTURE.md` → Purchases, BACKLOG REL-003).
 /// Pure, so the rules are tested without StoreKit and the Android port can mirror them.
 nonisolated struct PaywallPolicy: Equatable, Sendable {
     /// Off until launch, so TestFlight testers in the strangers gate (P2) are never limited.

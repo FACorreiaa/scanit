@@ -3,9 +3,9 @@
 	import LegalPage from '$lib/LegalPage.svelte';
 </script>
 
-<LegalPage title="Privacy policy" description="What ScanIt keeps on your phone, the little it sends, and what it never does with your data.">
+<LegalPage title="Privacy policy" description="What ScanItNow keeps on your phone, the little it sends, and what it never does with your data.">
 	<p>
-		ScanIt helps you add up your shopping as you go. It is built to work on your phone without an account, and it
+		ScanItNow helps you add up your shopping as you go. It is built to work on your phone without an account, and it
 		collects as little as it can.
 	</p>
 
@@ -26,7 +26,7 @@
 			and photo. Only the barcode number is sent, never the price, the store or anything about you.
 		</li>
 		<li>
-			<strong>Usage statistics.</strong> ScanIt records simple events such as "trip started" or "item added" to learn
+			<strong>Usage statistics.</strong> ScanItNow records simple events such as "trip started" or "item added" to learn
 			which features help. They never include prices, product names, store names or your location, and they are not
 			used for advertising.
 		</li>
@@ -36,7 +36,7 @@
 		</li>
 	</ul>
 
-	<h2>What ScanIt never does</h2>
+	<h2>What ScanItNow never does</h2>
 	<ul>
 		<li>Sell or share your data with advertisers or data brokers.</li>
 		<li>Track you across other apps or websites.</li>
@@ -49,7 +49,7 @@
 	</p>
 
 	<h2>Children</h2>
-	<p>ScanIt is not directed at children under 13 and does not knowingly collect their data.</p>
+	<p>ScanItNow is not directed at children under 13 and does not knowingly collect their data.</p>
 
 	<h2>Changes and contact</h2>
 	<p>

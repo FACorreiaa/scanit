@@ -3,7 +3,7 @@
  * instead of linking nowhere.
  */
 export const site = {
-	name: 'ScanIt',
+	name: 'ScanItNow',
 	/** TestFlight public link now, App Store URL after REL-004. */
 	downloadUrl: '' as string,
 	/** Contact for privacy and deletion requests. OPEN: owner's choice. */

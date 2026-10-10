@@ -66,7 +66,7 @@ struct ScannerScreen: View {
             ContentUnavailableView {
                 Label("Camera is off", systemImage: "camera.badge.ellipsis")
             } description: {
-                Text("ScanIt needs the camera to read barcodes. Turn it on in Settings.")
+                Text("ScanItNow needs the camera to read barcodes. Turn it on in Settings.")
             } actions: {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
@@ -127,12 +127,15 @@ private struct CameraPrimer: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: "barcode.viewfinder")
-                .font(.system(size: 56, weight: .light))
+            Image("LogoMark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 88, height: 88)
+                .accessibilityHidden(true)
             VStack(spacing: 8) {
                 Text("Scan as you shop")
                     .font(.title2.weight(.semibold))
-                Text("ScanIt uses the camera to read barcodes and shelf prices. Nothing is recorded or uploaded.")
+                Text("ScanItNow uses the camera to read barcodes and shelf prices. Nothing is recorded or uploaded.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }

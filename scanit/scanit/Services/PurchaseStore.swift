@@ -3,7 +3,7 @@ import Observation
 import OSLog
 import StoreKit
 
-/// "ScanIt Unlimited", a one-time non-consumable (`ARCHITECTURE.md` → Purchases, BACKLOG REL-003).
+/// "ScanItNow Unlimited", a one-time non-consumable (`ARCHITECTURE.md` → Purchases, BACKLOG REL-003).
 ///
 /// StoreKit 2 keeps verified entitlements on the device, so `isUnlimited` is right offline. No
 /// receipt server in v1.

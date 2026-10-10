@@ -20,7 +20,10 @@ struct TripView: View {
                 ActiveTripView(session: active) { finished = FinishedTrip(session: $0) }
             } else {
                 ContentUnavailableView {
-                    Label("No trip in progress", systemImage: "cart")
+                    VStack(spacing: 16) {
+                        MascotView(height: 200)
+                        Text("Ready to shop?")
+                    }
                 } description: {
                     Text("Scan products as you shop and watch your total against your limit.")
                 } actions: {

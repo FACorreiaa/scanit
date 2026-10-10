@@ -6,7 +6,7 @@
 	<title>{site.name}: know your total before the till</title>
 	<meta
 		name="description"
-		content="Scan each product as you shop. ScanIt keeps a running total and tells you before you go over your limit."
+		content="Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit."
 	/>
 </svelte:head>
 
@@ -17,7 +17,7 @@
 			Know your total before the till.
 		</h1>
 		<p class="mt-6 max-w-[48ch] text-lg" style="color: var(--ink-muted)">
-			Scan each product as you shop. ScanIt keeps a running total and tells you before you go over your limit.
+			Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit.
 		</p>
 		<div class="mt-8">
 			{#if site.downloadUrl}
@@ -26,7 +26,7 @@
 					class="inline-flex h-12 items-center rounded-full px-6 font-medium whitespace-nowrap no-underline transition-transform active:scale-[0.97]"
 					style="background: var(--color-accent); color: var(--color-accent-ink)"
 				>
-					Get ScanIt for iPhone
+					Get ScanItNow for iPhone
 				</a>
 			{:else}
 				<p class="inline-flex h-12 items-center rounded-full border px-6 font-medium" style="border-color: var(--hairline)">
@@ -38,7 +38,7 @@
 
 	<img
 		src="/screens/trip.jpg"
-		alt="A trip at Lidl in ScanIt: three items, a total of €5,48 and a red bar showing €0,48 over the €5,00 limit."
+		alt="A trip at Lidl in ScanItNow: three items, a total of €5,48 and a red bar showing €0,48 over the €5,00 limit."
 		width="600"
 		height="1304"
 		fetchpriority="high"
@@ -50,7 +50,7 @@
 <section class="mx-auto mt-24 grid max-w-6xl grid-cols-1 items-center gap-12 px-4 md:mt-32 md:grid-cols-[0.85fr_1.15fr] md:px-8">
 	<img
 		src="/screens/insights.jpg"
-		alt="ScanIt insights: €39,07 this month, average trip €16,08, five of five trips under the limit, and spend by store and category."
+		alt="ScanItNow insights: €39,07 this month, average trip €16,08, five of five trips under the limit, and spend by store and category."
 		width="600"
 		height="1304"
 		loading="lazy"

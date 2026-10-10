@@ -20,11 +20,17 @@ struct PaywallSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(headline)
-                        .font(.title2.weight(.semibold))
-                    Text("ScanIt Unlimited gives you unlimited trips and your full history.")
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(headline)
+                            .font(.title2.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("ScanItNow Unlimited gives you unlimited trips and your full history.")
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    MascotView(height: 96)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -97,7 +103,7 @@ struct PaywallSheet: View {
         switch await purchases.purchase() {
         case .purchased: finish()
         case .cancelled: break
-        case .pending: message = "Waiting for approval. ScanIt unlocks as soon as it's approved."
+        case .pending: message = "Waiting for approval. ScanItNow unlocks as soon as it's approved."
         case .failed: message = "The purchase didn't go through. Nothing was charged. Try again in a moment."
         }
     }

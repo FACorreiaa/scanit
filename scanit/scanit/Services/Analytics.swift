@@ -39,7 +39,7 @@ protocol AnalyticsClient: Sendable {
     func track(_ event: AnalyticsEvent)
 }
 
-/// Logs events locally. Replaced by a PostHog-backed client once ScanIt has its own PostHog
+/// Logs events locally. Replaced by a PostHog-backed client once ScanItNow has its own PostHog
 /// project key and Sentry DSN (BACKLOG FND-004); events must not go into another app's project.
 struct LogAnalytics: AnalyticsClient {
     private static let logger = Logger(subsystem: "com.fernandocorreia.scanit", category: "analytics")

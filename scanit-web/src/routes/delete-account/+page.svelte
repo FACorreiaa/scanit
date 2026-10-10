@@ -3,11 +3,11 @@
 	import LegalPage from '$lib/LegalPage.svelte';
 </script>
 
-<LegalPage title="Delete your data" description="How to delete everything ScanIt stored. No account is needed, so deleting the app removes it all.">
-	<p>ScanIt does not need an account. Your trips, items and prices are stored only on your phone.</p>
+<LegalPage title="Delete your data" description="How to delete everything ScanItNow stored. No account is needed, so deleting the app removes it all.">
+	<p>ScanItNow does not need an account. Your trips, items and prices are stored only on your phone.</p>
 
 	<h2>To delete everything</h2>
-	<p>Delete the ScanIt app from your phone. This removes all the data it stored.</p>
+	<p>Delete the ScanItNow app from your phone. This removes all the data it stored.</p>
 
 	<h2>Usage statistics and crash reports</h2>
 	<p>

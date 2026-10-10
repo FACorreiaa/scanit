@@ -26,7 +26,7 @@ nonisolated struct OpenFoodFactsClient: ProductLookup {
     var baseURL = URL(string: "https://world.openfoodfacts.org/api/v2/product/")!
     var userAgent: String = {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-        return "ScanIt/\(version) (iOS)"
+        return "ScanItNow/\(version) (iOS)"
     }()
 
     func lookup(code: String) async throws -> ProductLookupResult {
