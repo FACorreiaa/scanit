@@ -37,8 +37,8 @@ versions.
 | C | Claude ✅ | App: the paywall stays off and StoreKit isn't started; Open Food Facts attribution shown on the confirm sheet. | done |
 | D | Claude ✅ | `fastlane release` plus the workflow option **release**: Actions → iOS beta → Run workflow → lane `release` uploads a Release build to the production **ScanItNow** app. | done |
 | E | Claude ✅ | Listing text, App Privacy answers and review notes: `docs/app-store-listing.md`. Screenshots: `brand/store/framed/01–04.png` (6.9", 1320×2868). | done |
-| F | You | App Store Connect → ScanItNow: paste `docs/app-store-listing.md` (URLs, category, age rating, price Free, App Privacy "Data Not Collected", description, keywords, screenshots, review notes). | open |
-| G | You | Run the `release` lane. When the build is processed, select it under **1.0**, click **Add for Review**, then **Submit**. Choose manual release. | open |
+| F | Claude ✅ + You ✅ | Done 2026-10-10…14: listing set through the API (`asc_setup.rb`), 5 screenshots uploaded, App Privacy published by the owner. App Store Connect → ScanItNow: paste `docs/app-store-listing.md` (URLs, category, age rating, price Free, App Privacy "Data Not Collected", description, keywords, screenshots, review notes). | open |
+| G | Claude ✅ | **Submitted 2026-10-14** (build 1, manual release) with `asc_submit.rb`; state Waiting for Review. Run the `release` lane. When the build is processed, select it under **1.0**, click **Add for Review**, then **Submit**. Choose manual release. | open |
 | H | Apple | Review, usually 24–48 h. Then release when you choose. | |
 
 ## Stage 1: TestFlight, internal (automatic from `main`)

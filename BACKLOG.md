@@ -30,6 +30,7 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 | Monetisation | Free plus a one-time "ScanIt Unlimited" unlock (2026-10-09). See REL-003. |
 | TestFlight | Build 1 uploaded by CI (2026-10-10), state VALID. Internal group has auto-distribute on and 1 tester. Every green `main` uploads a new build. |
 | Release plan | **Fast path (2026-10-10):** App Store v1.0 free, no IAP, no analytics SDKs, legal pages on facorreia.com. `scanit-web` is parked (built, not deployed). REL-003 and FND-004 move to v1.1. See `docs/release.md`. |
+| App Store | **1.0 (build 1) submitted for review 2026-10-14**, manual release. Free, Data Not Collected, 175 territories. |
 | Strangers count | 0 |
 
 ---
