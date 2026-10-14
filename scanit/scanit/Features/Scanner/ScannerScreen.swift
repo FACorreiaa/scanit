@@ -153,15 +153,31 @@ private struct SimulatedScanner: View {
     let codes: [String]
     let onDetect: (DetectedCode) -> Void
 
+    /// Screenshot mode (`UITEST_AUTOSCAN=<code>`): no test buttons, a dark camera-like backdrop,
+    /// and one automatic scan, so App Store captures show the real confirm sheet over the scanner.
+    private let autoScan = ProcessInfo.processInfo.environment["UITEST_AUTOSCAN"]
+    @State private var didAutoScan = false
+
     var body: some View {
-        VStack(spacing: 12) {
-            ForEach(codes, id: \.self) { code in
-                Button("Simulate scan \(code)") {
-                    onDetect(DetectedCode(payload: code, symbology: .ean13))
+        if let autoScan {
+            LinearGradient(colors: [Color(white: 0.16), Color(white: 0.05)], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+                .task {
+                    guard !didAutoScan else { return }
+                    didAutoScan = true
+                    try? await Task.sleep(for: .milliseconds(600))
+                    onDetect(DetectedCode(payload: autoScan, symbology: .ean13))
                 }
-                .buttonStyle(.bordered)
+        } else {
+            VStack(spacing: 12) {
+                ForEach(codes, id: \.self) { code in
+                    Button("Simulate scan \(code)") {
+                        onDetect(DetectedCode(payload: code, symbology: .ean13))
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
+            .environment(\.colorScheme, .dark)
         }
-        .environment(\.colorScheme, .dark)
     }
 }

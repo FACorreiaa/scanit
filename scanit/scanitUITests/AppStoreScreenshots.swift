@@ -25,11 +25,36 @@ final class AppStoreScreenshots: XCTestCase {
         sleep(1)
         shot("store-2-insights")
 
+        // 2b. Insights lists: prices that went up, cheapest store for regulars.
+        // Scroll until the "Prices that went up" header sits just under the navigation bar.
+        let header = app.staticTexts["Prices that went up"]
+        for _ in 0..<6 where !(header.exists && header.isHittable) {
+            app.swipeUp(velocity: .slow)
+        }
+        XCTAssertTrue(header.waitForExistence(timeout: 5))
+        let target = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
+        header.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1, thenDragTo: target, withVelocity: .slow, thenHoldForDuration: 0.5)
+        sleep(1)
+        shot("store-5-prices")
+
         // 3. History.
         app.tabBars.buttons["History"].tap()
         XCTAssertTrue(app.staticTexts["monthTotal"].waitForExistence(timeout: 5))
         sleep(1)
         shot("store-3-history")
+
+        // 6. A remembered price: scan milk at Lidl, where the demo history saw it before.
+        app.terminate()
+        app.launchArguments = ["-ui-testing", "-ui-testing-demo-data", "-ui-testing-demo-trip"]
+        app.launchEnvironment["UITEST_AUTOSCAN"] = "5601234567892"
+        app.launch()
+        XCTAssertTrue(app.buttons["scan"].waitForExistence(timeout: 10))
+        app.buttons["scan"].tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH 'Seen here'")).firstMatch.waitForExistence(timeout: 10))
+        sleep(1)
+        shot("store-6-remembered")
+        app.launchEnvironment["UITEST_AUTOSCAN"] = nil
 
         // 4. Ready to shop: the mascot, no trip in progress.
         app.terminate()
