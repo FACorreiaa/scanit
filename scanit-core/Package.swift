@@ -8,8 +8,14 @@ let package = Package(
     products: [
         .library(name: "ScanItCore", targets: ["ScanItCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0"),
+    ],
     targets: [
-        .target(name: "ScanItCore"),
+        .target(
+            name: "ScanItCore",
+            dependencies: [.product(name: "Algorithms", package: "swift-algorithms")]
+        ),
         .testTarget(name: "ScanItCoreTests", dependencies: ["ScanItCore"]),
     ]
 )

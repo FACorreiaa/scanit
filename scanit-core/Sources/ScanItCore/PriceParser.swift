@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 
 /// One piece of text the scanner recognised on a shelf label.
@@ -47,16 +48,14 @@ public struct PriceParser: Sendable {
     }
 
     public func parse(_ items: [RecognizedText]) -> PriceParseResult {
-        let found = items.flatMap(amounts(in:))
-        let prices = found.enumerated()
-            .filter { !$0.element.isUnitPrice }
+        let (shelfPrices, unitPrices) = items.flatMap(amounts(in:)).partitioned(by: \.isUnitPrice)
+        let prices = shelfPrices.enumerated()
             .sorted { lhs, rhs in
                 if lhs.element.height != rhs.element.height { return lhs.element.height > rhs.element.height }
                 if lhs.element.hasSymbol != rhs.element.hasSymbol { return lhs.element.hasSymbol }
                 return lhs.offset < rhs.offset
             }
             .map(\.element)
-        let unitPrices = found.filter(\.isUnitPrice)
 
         let confidence = bestConfidence(prices)
         let ranked = prices.enumerated().map { index, amount in

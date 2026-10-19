@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 
 // Insights catalogue (`DESIGN.md` → Insights catalogue). Pure functions over value snapshots so iOS,
@@ -229,9 +230,7 @@ public struct InsightsCalculator: Sendable {
         }
         return totals
             .map { ProductSpend(code: $0.key, name: $0.value.name, total: money($0.value.minor), quantity: $0.value.quantity) }
-            .sorted { ($0.total.amountMinor, $1.code) > ($1.total.amountMinor, $0.code) }
-            .prefix(limit)
-            .map { $0 }
+            .min(count: limit, sortedBy: { ($0.total.amountMinor, $1.code) > ($1.total.amountMinor, $0.code) })
     }
 
     /// INS-06: per product and store, latest observation vs the first in the window. Only real
@@ -243,8 +242,8 @@ public struct InsightsCalculator: Sendable {
         }
         return grouped.values
             .compactMap { observations -> PriceChange? in
-                let sorted = observations.sorted { $0.observedAt < $1.observedAt }
-                guard let first = sorted.first, let latest = sorted.last, first.priceMinor > 0,
+                let span = observations.minAndMax { $0.observedAt < $1.observedAt }
+                guard let first = span?.min, let latest = span?.max, first.priceMinor > 0,
                       first.priceMinor != latest.priceMinor else { return nil }
                 return PriceChange(storeId: first.storeId, storeName: first.storeName, code: first.code, first: first, latest: latest)
             }
@@ -259,10 +258,13 @@ public struct InsightsCalculator: Sendable {
             purchases[line.code, default: (0, line.name)].count += 1
         }
         let regulars = purchases.filter { $0.value.count >= minimumPurchases }
+        let pricesByCode = Dictionary(grouping: prices.filter { $0.observedAt <= now }) { $0.code }
         return regulars
             .compactMap { code, info -> CheapestStore? in
-                let latestPerStore = Dictionary(grouping: prices.filter { $0.code == code && $0.observedAt <= now }) { $0.storeId }
-                    .compactMap { $0.value.max { $0.observedAt < $1.observedAt } }
+                // Latest observation per store; on a tie the first one stays, as with `max(by:)`.
+                let latestPerStore = (pricesByCode[code] ?? []).keyed(by: \.storeId) { _, kept, next in
+                    next.observedAt > kept.observedAt ? next : kept
+                }.values
                 guard latestPerStore.count >= 2,
                       let cheapest = latestPerStore.min(by: { ($0.priceMinor, $0.storeId) < ($1.priceMinor, $1.storeId) }),
                       let dearest = latestPerStore.max(by: { $0.priceMinor < $1.priceMinor }),
@@ -314,8 +316,8 @@ public struct InsightsCalculator: Sendable {
         }) { "\($0.storeId)|\($0.code)" }
 
         let components = observations.compactMap { key, rows -> BasketInflation.Component? in
-            let sorted = rows.sorted { $0.observedAt < $1.observedAt }
-            guard sorted.count >= 2, let first = sorted.first, let latest = sorted.last, first.priceMinor > 0,
+            let span = rows.minAndMax { $0.observedAt < $1.observedAt }
+            guard rows.count >= 2, let first = span?.min, let latest = span?.max, first.priceMinor > 0,
                   let spendMinor = spend[key], spendMinor > 0 else { return nil }
             return BasketInflation.Component(
                 code: first.code, storeId: first.storeId, spendMinor: spendMinor,
