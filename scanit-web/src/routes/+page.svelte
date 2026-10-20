@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { site } from '$lib/config';
+	import StoreBadges from '$lib/StoreBadges.svelte';
+	import CardWall from '$lib/CardWall.svelte';
 </script>
 
 <svelte:head>
@@ -10,47 +12,27 @@
 	/>
 </svelte:head>
 
-<!-- Hero: copy left, the mascot right; stacks on phones. -->
-<section class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 pt-10 md:grid-cols-[1.1fr_0.9fr] md:px-8 md:pt-16">
-	<div class="max-w-2xl">
-		<h1 class="text-4xl leading-none font-semibold tracking-tighter text-balance md:text-6xl">
-			Know your total before the till.
+<!-- Hero: centred copy, official store badges, and a wall of shelf-label cards fanned along the bottom. -->
+<section class="hero relative">
+	<div class="hero-glow" aria-hidden="true"></div>
+	<div class="relative z-40 mx-auto flex max-w-3xl flex-col items-center px-4 pt-10 text-center md:pt-16">
+		<a href="#made-for-the-aisle" class="pill">
+			<span class="pill-dot" aria-hidden="true"></span>
+			Free on iPhone · no account needed
+			<span class="pill-arrow" aria-hidden="true">→</span>
+		</a>
+		<h1 class="mt-6 text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl md:text-6xl">
+			<span class="block text-balance">Know your total</span>
+			<span class="block text-balance" style="color: var(--ink-muted)">before the till.</span>
 		</h1>
-		<p class="mt-6 max-w-[48ch] text-lg" style="color: var(--ink-muted)">
+		<p class="mt-5 max-w-xl text-base sm:text-lg" style="color: var(--ink-muted)">
 			Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit.
 		</p>
 		<div class="mt-8">
-			{#if site.downloadUrl}
-				<a
-					href={site.downloadUrl}
-					class="inline-flex h-12 items-center rounded-full px-6 font-medium whitespace-nowrap no-underline transition-transform active:scale-[0.97]"
-					style="background: var(--color-accent); color: var(--color-accent-ink)"
-				>
-					Get ScanItNow for iPhone
-				</a>
-			{:else}
-				<p class="inline-flex h-12 items-center rounded-full border px-6 font-medium" style="border-color: var(--hairline)">
-					Coming soon for iPhone
-				</p>
-			{/if}
+			<StoreBadges />
 		</div>
 	</div>
-
-	<!-- The green disc keeps the mascot's dark body readable on the dark theme too. -->
-	<div class="relative mx-auto w-[min(86vw,440px)]">
-		<div class="mascot-disc absolute inset-[6%] rounded-full" aria-hidden="true"></div>
-		<picture>
-			<source srcset="/brand/mascot.avif" type="image/avif" />
-			<img
-				src="/brand/mascot.png"
-				alt="The ScanItNow mascot, a cheerful scanner holding a phone with a price tag and a full shopping basket."
-				width="720"
-				height="681"
-				fetchpriority="high"
-				class="relative h-auto w-full"
-			/>
-		</picture>
-	</div>
+	<CardWall />
 </section>
 
 <!-- Both real screens together: one section, not two alternating rows. -->
@@ -83,7 +65,7 @@
 </section>
 
 <!-- Text-only band: the facts that matter in a supermarket, no cards. -->
-<section class="mx-auto mt-24 max-w-6xl px-4 md:mt-32 md:px-8">
+<section id="made-for-the-aisle" class="mx-auto mt-24 max-w-6xl scroll-mt-8 px-4 md:mt-32 md:px-8">
 	<h2 class="text-3xl font-semibold tracking-tight md:text-4xl">Made for the aisle.</h2>
 	<dl class="mt-10 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2">
 		<div>
@@ -112,3 +94,70 @@
 		</div>
 	</dl>
 </section>
+
+<style>
+	.hero {
+		--card-h: clamp(11rem, 26vh, 18rem);
+		/* Clip sideways only, so the glow can bleed up behind the header. */
+		overflow-x: clip;
+		/* Room for the wall: the front-row centre card shows ~80% of its height. */
+		padding-bottom: max(12rem, calc(var(--card-h) * 0.8 + 1.5rem));
+	}
+	@media (min-width: 640px) {
+		.hero {
+			padding-bottom: max(16rem, calc(var(--card-h) + 3rem));
+		}
+	}
+	.hero-glow {
+		position: absolute;
+		top: -6rem;
+		left: 50%;
+		width: 42rem;
+		height: 24rem;
+		translate: -50% 0;
+		border-radius: 9999px;
+		background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+		filter: blur(64px);
+		pointer-events: none;
+	}
+	@media (prefers-color-scheme: dark) {
+		.hero-glow {
+			background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+		}
+	}
+
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.3rem 0.85rem;
+		border-radius: 9999px;
+		border: 1px solid var(--hairline);
+		background: color-mix(in srgb, var(--surface-raised) 70%, transparent);
+		color: var(--ink-muted);
+		font-size: 0.8125rem;
+		text-decoration: none;
+		transition: border-color 0.2s ease;
+	}
+	.pill:hover {
+		border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+	}
+	.pill-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 9999px;
+		background: var(--color-accent);
+	}
+	.pill-arrow {
+		opacity: 0.5;
+		transition: translate 0.2s ease;
+	}
+	.pill:hover .pill-arrow {
+		translate: 2px 0;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.pill-arrow {
+			transition: none;
+		}
+	}
+</style>

@@ -18,8 +18,17 @@
 </svelte:head>
 
 <div class="flex min-h-[100dvh] flex-col">
-	<header class="mx-auto flex h-16 w-full max-w-6xl items-center px-4 md:px-8">
+	<header class="relative z-20 mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 md:px-8">
 		<a href="/" class="no-underline" aria-label="{site.name} home"><Lockup /></a>
+		<nav class="flex items-center gap-6 text-sm" aria-label="Elsewhere">
+			<a
+				href={site.xUrl}
+				target="_blank"
+				rel="noopener noreferrer"
+				aria-label="Follow on X"
+				class="nav-link font-medium no-underline">X</a
+			>
+		</nav>
 	</header>
 
 	<main class="flex-1">
