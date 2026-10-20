@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 import ScanItCore
 import SwiftData
@@ -34,11 +35,9 @@ struct TripStartOptions {
         let stores = (try? context.fetch(storeDescriptor)) ?? []
 
         // Most recently visited first, then stores never visited, newest first.
-        var seen = Set<UUID>()
-        var ordered: [Store] = []
-        for store in sessions.compactMap(\.store) + stores where !store.isSoftDeleted && seen.insert(store.id).inserted {
-            ordered.append(store)
-        }
+        let ordered = (sessions.compactMap(\.store) + stores)
+            .filter { !$0.isSoftDeleted }
+            .uniqued(on: \.id)
 
         self.sessions = sessions
         self.now = now

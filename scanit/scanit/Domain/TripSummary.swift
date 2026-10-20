@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 import ScanItCore
 import SwiftData
@@ -26,7 +27,7 @@ struct TripSummary {
         limit = session.limit
         status = session.limitStatus
         itemCount = items.reduce(0) { $0 + $1.quantity }
-        biggestLines = Array(items.sorted { $0.lineTotalMinor > $1.lineTotalMinor }.prefix(3))
+        biggestLines = items.min(count: 3, sortedBy: { $0.lineTotalMinor > $1.lineTotalMinor })
 
         let finished = SessionStatus.finished.rawValue
         let startedAt = session.startedAt

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2749FAD7EC266F7EE63D8D29 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = B452E5CBF87BA482EA51F076 /* Algorithms */; };
 		0DAF0A0130791C50009259FA /* ScanItCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0DAF0A0230791C50009259FA /* ScanItCore */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0DAF0A0130791C50009259FA /* ScanItCore in Frameworks */,
+				2749FAD7EC266F7EE63D8D29 /* Algorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = scanit;
 			packageProductDependencies = (
 				0DAF0A0230791C50009259FA /* ScanItCore */,
+				B452E5CBF87BA482EA51F076 /* Algorithms */,
 			);
 			productName = scanit;
 			productReference = 0DAF084830791C4B009259FA /* scanit.app */;
@@ -203,6 +206,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0DAF0A0330791C50009259FA /* XCLocalSwiftPackageReference "../scanit-core" */,
+				BE0E4A43AFCFC1C0ED0E786B /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0DAF084930791C4B009259FA /* Products */;
@@ -758,7 +762,23 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		BE0E4A43AFCFC1C0ED0E786B /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		B452E5CBF87BA482EA51F076 /* Algorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BE0E4A43AFCFC1C0ED0E786B /* XCRemoteSwiftPackageReference "swift-algorithms" */;
+			productName = Algorithms;
+		};
 		0DAF0A0230791C50009259FA /* ScanItCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScanItCore;

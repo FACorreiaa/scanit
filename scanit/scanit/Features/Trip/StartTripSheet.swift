@@ -1,3 +1,4 @@
+import Algorithms
 import ScanItCore
 import SwiftData
 import SwiftUI
@@ -130,10 +131,7 @@ struct StartTripSheet: View {
     }
 
     private var currencyChoices: [String] {
-        var choices = [currency, Locale.current.currency?.identifier ?? "EUR", "EUR", "USD", "GBP"]
-        var seen = Set<String>()
-        choices = choices.filter { seen.insert($0).inserted }
-        return choices
+        Array([currency, Locale.current.currency?.identifier ?? "EUR", "EUR", "USD", "GBP"].uniqued())
     }
 
     private func chipTitle(_ suggestion: TripStartOptions.LimitSuggestion) -> String {
