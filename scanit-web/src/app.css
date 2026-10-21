@@ -52,12 +52,11 @@ a {
 	border-radius: 6px;
 }
 
-/* Mascot backdrop: brand green #10AA51, decorative only. */
-.mascot-disc {
-	background: radial-gradient(circle at 50% 55%, rgb(16 170 81 / 0.16), rgb(16 170 81 / 0.05) 70%, transparent 71%);
+/* Header links: dim until hovered. */
+.nav-link {
+	color: var(--ink-muted);
+	transition: color 0.15s ease;
 }
-@media (prefers-color-scheme: dark) {
-	.mascot-disc {
-		background: radial-gradient(circle at 50% 55%, rgb(16 170 81 / 0.3), rgb(16 170 81 / 0.1) 70%, transparent 71%);
-	}
+.nav-link:hover {
+	color: var(--ink);
 }
