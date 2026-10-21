@@ -1,8 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// Three tabs (`DESIGN.md` → Information architecture). Settings live behind the avatar in
-/// the History and Insights headers, not in a tab.
+/// Three tabs (`DESIGN.md` → Information architecture). Tab roots carry no large title: the tab
+/// bar already names them, so each screen opens on its content.
 struct RootView: View {
     enum TabID: Hashable {
         case trip, history, insights
@@ -22,7 +22,13 @@ struct RootView: View {
                 InsightsView()
             }
         }
+        .environment(\.showTrip) { selection = .trip }
     }
+}
+
+extension EnvironmentValues {
+    /// Switches to the Trip tab, for empty states whose next step is to go shopping.
+    @Entry var showTrip: () -> Void = {}
 }
 
 #Preview {

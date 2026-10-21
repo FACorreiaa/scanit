@@ -23,13 +23,18 @@ The user is standing in an aisle, often with one hand on a trolley. So:
 
 ## Information architecture
 
-Tab bar with 3 tabs. Settings live behind the avatar in the History and Insights headers.
+Tab bar with 3 tabs. Settings live behind the avatar in the History and Insights headers (not built yet).
 
-| Tab | Purpose |
-| --- | --- |
-| **Trip** | Start shopping. The active trip becomes the whole tab. |
-| **History** | Past trips, newest first, grouped by month with the month's total. |
-| **Insights** | Numbers and charts (catalogue below). |
+Tab roots have **no large title** (owner, 2026-10-21): the tab bar already names the screen, so each
+one opens on its content. Pushed screens and sheets keep an inline title when it carries
+information (store name, "New trip"). Every empty state ends in the next action, full width, in the
+bottom third.
+
+| Tab | Purpose | Opens on |
+| --- | --- | --- |
+| **Trip** | Start shopping. The active trip becomes the whole tab. | Mascot, "Ready to shop?", last trip; **Start shopping** pinned bottom |
+| **History** | Past trips, newest first, grouped by month with the month's total. | This month's spend and trip count |
+| **Insights** | Numbers and charts (catalogue below). | Headline tiles; before 3 trips, progress ("1 of 3 trips done") and what unlocks |
 
 ## Flows
 
@@ -159,7 +164,7 @@ and never converted.
 | INS-09 | Till gap | mean (actual till total − scanned total) over trips where the till total was entered |
 | INS-10 | Personal basket inflation | weighted price change of the user's regular basket (INS-07 GTINs) over 90 days. Norviq's `PersonalInflationCalculator` is the reference for method |
 
-A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show a plain "after 3 trips you'll see…" placeholder. Charts follow the `dataviz` skill.
+A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show progress toward 3 trips and what each unlocks, with **Start shopping**. Charts follow the `dataviz` skill.
 
 ## Brand (2026-10-10)
 

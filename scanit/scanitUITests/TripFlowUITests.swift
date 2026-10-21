@@ -153,7 +153,12 @@ final class TripFlowUITests: XCTestCase {
     func testInsightsPlaceholderBeforeThreeTrips() throws {
         launch()
         app.tabBars.buttons["Insights"].tap()
-        XCTAssertTrue(app.staticTexts["Insights after 3 trips"].waitForExistence(timeout: 5))
+        let progress = app.descendants(matching: .any)["insightsProgress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        XCTAssertEqual(progress.value as? String, "0 of 3 trips done")
+        snapshot("13-insights-progress")
+        app.buttons["insightsStartShopping"].tap()
+        XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5), "the empty state leads to the Trip tab")
     }
 
     /// REL-003: past the free trips, Start shows the paywall; History locks older trips.
@@ -167,6 +172,7 @@ final class TripFlowUITests: XCTestCase {
         snapshot("12-paywall")
         app.buttons["notNow"].tap()
         XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5), "dismissable at no cost")
+        snapshot("12b-empty-trip-last-trip")
         XCTAssertFalse(app.textFields["storeName"].exists)
 
         app.tabBars.buttons["History"].tap()
