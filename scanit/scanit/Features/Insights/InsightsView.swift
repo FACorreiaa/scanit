@@ -4,10 +4,12 @@ import SwiftUI
 
 /// Spending numbers (`DESIGN.md` → Insights catalogue, BACKLOG INS-103). Headline numbers are
 /// stat tiles; spend by store and by category are single-series horizontal bars; products,
-/// price changes and cheapest stores are lists. Nothing shows until 3 trips are finished.
+/// price changes and cheapest stores are lists. Until 3 trips are finished the screen shows how
+/// far along the user is and what is coming.
 struct InsightsView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.analytics) private var analytics
+    @Environment(\.showTrip) private var showTrip
     @Query(filter: #Predicate<ShoppingSession> { $0.statusRaw == "finished" && $0.deletedAt == nil })
     private var finishedTrips: [ShoppingSession]
 
@@ -21,14 +23,13 @@ struct InsightsView: View {
                 if calculator.hasEnoughData {
                     content(calculator)
                 } else {
-                    ContentUnavailableView {
-                        Label("Insights after 3 trips", systemImage: "chart.bar")
-                    } description: {
-                        Text("Once you've finished 3 trips you'll see what you spend, where, and which prices went up.")
-                    }
+                    InsightsProgress(finished: finishedTrips.count)
+                        .safeAreaInset(edge: .bottom) {
+                            PrimaryActionBar(title: "Start shopping", identifier: "insightsStartShopping", action: showTrip)
+                        }
                 }
             }
-            .navigationTitle("Insights")
+            .toolbarVisibility(.hidden, for: .navigationBar)
         }
         .onAppear { analytics.track(.insightsViewed) }
     }
@@ -140,6 +141,8 @@ struct InsightsView: View {
                 }
             }
         }
+        .headerProminence(.increased)
+        .contentMargins(.top, 8, for: .scrollContent)
     }
 
     private func signedPercent(_ value: Double) -> String {
@@ -156,6 +159,69 @@ struct InsightsView: View {
     private func productName(_ code: String) -> String {
         finishedTrips.lazy.flatMap(\.liveItems).first { $0.code == code }?.productName
             ?? ScannedCode(kind: .gtin, value: code).displayValue
+    }
+}
+
+/// Before there is enough data: how many trips are done, and what each next trip unlocks. One
+/// segment per required trip, so progress reads at a glance and in words.
+private struct InsightsProgress: View {
+    let finished: Int
+    private let required = InsightsCalculator.minimumTrips
+
+    var body: some View {
+        // Centred when it fits, scrollable at the largest text sizes.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Insights unlock after \(required) trips")
+                            .font(.title2.bold())
+                        HStack(spacing: 6) {
+                            ForEach(0..<required, id: \.self) { index in
+                                Capsule()
+                                    .fill(index < finished ? Color.accentColor : Color(.tertiarySystemFill))
+                                    .frame(height: 8)
+                            }
+                        }
+                        Text("\(min(finished, required)) of \(required) trips done")
+                            .font(.subheadline)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Insights unlock after \(required) trips")
+                    .accessibilityValue("\(min(finished, required)) of \(required) trips done")
+                    .accessibilityIdentifier("insightsProgress")
+
+                    VStack(alignment: .leading, spacing: 20) {
+                        Teaser(symbol: "banknote", text: "What you spend each week and month")
+                        Teaser(symbol: "storefront", text: "Which stores get most of your money")
+                        Teaser(symbol: "arrow.up.right.circle", text: "Which of your prices went up")
+                    }
+                }
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    private struct Teaser: View {
+        let symbol: String
+        let text: LocalizedStringKey
+        /// One icon column, so the three lines start at the same x whatever the symbol's width.
+        @ScaledMetric(relativeTo: .title3) private var iconWidth: CGFloat = 32
+
+        var body: some View {
+            Label {
+                Text(text)
+            } icon: {
+                Image(systemName: symbol)
+                    .foregroundStyle(Color.accentColor)
+                    .font(.title3)
+                    .frame(width: iconWidth)
+            }
+        }
     }
 }
 

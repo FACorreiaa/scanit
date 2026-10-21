@@ -135,7 +135,7 @@ struct ActiveTripView: View {
     }
 
     private var itemCountText: String {
-        let count = session.liveItems.reduce(0) { $0 + $1.quantity }
+        let count = session.itemCount
         return count == 1 ? "1 item" : "\(count) items"
     }
 }

@@ -13,6 +13,7 @@ struct HistoryView: View {
 
     @Environment(PurchaseStore.self) private var purchases
     @Environment(\.paywallPolicy) private var paywall
+    @Environment(\.showTrip) private var showTrip
     @State private var paywallReason: PaywallReasonItem?
 
     var body: some View {
@@ -23,11 +24,19 @@ struct HistoryView: View {
                         Label("No trips yet", systemImage: "clock.arrow.circlepath")
                     } description: {
                         Text("Finished trips show up here, grouped by month.")
+                    } actions: {
+                        Button("Start shopping", action: showTrip)
+                            .buttonStyle(.borderedProminent)
                     }
                 } else {
                     let split = paywall.visibleTrips(trips, isUnlimited: purchases.isUnlimited)
+                    let months = MonthGroup.group(split.visible)
                     List {
-                        ForEach(MonthGroup.group(split.visible)) { month in
+                        Section {
+                            MonthSummary(month: months.first)
+                                .listRowBackground(Color.clear)
+                        }
+                        ForEach(months) { month in
                             Section {
                                 ForEach(month.trips, id: \.id) { trip in
                                     NavigationLink(value: TripRoute(id: trip.id)) {
@@ -40,8 +49,12 @@ struct HistoryView: View {
                                     Spacer()
                                     Text(month.totals.map { $0.formatted() }.joined(separator: " · "))
                                         .monospacedDigit()
+                                        .foregroundStyle(.secondary)
                                         .accessibilityIdentifier("monthTotal")
                                 }
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                                .textCase(nil)
                             }
                         }
                         if split.hiddenCount > 0 {
@@ -62,7 +75,7 @@ struct HistoryView: View {
                     }
                 }
             }
-            .navigationTitle("History")
+            .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(item: $paywallReason) { item in
                 PaywallSheet(reason: item.reason)
                     .presentationDetents([.medium, .large])
@@ -81,6 +94,41 @@ struct TripRoute: Hashable {
     let id: UUID
 }
 
+/// The screen's headline: what this month has cost so far. It answers the question people open
+/// History with before they go looking for a single trip.
+private struct MonthSummary: View {
+    /// The newest month with trips; only counted when it is the current month.
+    let month: MonthGroup?
+
+    var body: some View {
+        let current = month.flatMap { Calendar.current.isDate($0.monthStart, equalTo: .now, toGranularity: .month) ? $0 : nil }
+        VStack(alignment: .leading, spacing: 4) {
+            Text("This month")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(current?.totals.map { $0.formatted() }.joined(separator: " · ") ?? "Nothing yet")
+                .font(.largeTitle.weight(.light))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            Text(tripCountText(current?.trips.count ?? 0))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func tripCountText(_ count: Int) -> String {
+        switch count {
+        case 0: "No trips this month yet"
+        case 1: "1 trip this month"
+        default: "\(count) trips this month"
+        }
+    }
+}
+
 private struct TripRow: View {
     let trip: ShoppingSession
 
@@ -88,15 +136,38 @@ private struct TripRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(trip.store?.name ?? "Trip")
-                Text(trip.startedAt, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
-                    .font(.caption)
+                    .font(.body.weight(.medium))
+                Text(detailText)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(trip.total.formatted())
-                .monospacedDigit()
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(trip.total.formatted())
+                    .font(.body.weight(.medium))
+                    .monospacedDigit()
+                if let limitText {
+                    Text(limitText)
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(trip.limitStatus.state == .over ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                }
+            }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var detailText: String {
+        let date = trip.startedAt.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        let count = trip.itemCount
+        return "\(date) · \(count == 1 ? "1 item" : "\(count) items")"
+    }
+
+    /// Colour is never the only signal (`DESIGN.md` → Accessibility), so the result is words.
+    private var limitText: String? {
+        guard let remaining = trip.limitStatus.remainingMinor else { return nil }
+        guard remaining < 0 else { return "Under limit" }
+        return "\(Money(amountMinor: -remaining, currency: trip.currency).formatted()) over"
     }
 }
 

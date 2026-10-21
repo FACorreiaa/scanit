@@ -106,6 +106,8 @@ nonisolated final class ShoppingSession: SyncedRecord {
     }
 
     var total: Money { Money(amountMinor: totalMinor, currency: currency) }
+    /// Σ quantity over items that are not deleted: "2 × milk" is two items.
+    var itemCount: Int { liveItems.reduce(0) { $0 + $1.quantity } }
     var limit: Money? { limitMinor.map { Money(amountMinor: $0, currency: currency) } }
     var limitStatus: LimitStatus { LimitStatus(totalMinor: totalMinor, limitMinor: limitMinor) }
 }

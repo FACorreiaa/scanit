@@ -13,26 +13,27 @@ struct TripView: View {
     @State private var finished: FinishedTrip?
     @State private var paywallReason: PaywallReasonItem?
     @State private var startAfterPaywall = false
+    @Query(TripView.lastFinished) private var lastTrips: [ShoppingSession]
+
+    private static var lastFinished: FetchDescriptor<ShoppingSession> {
+        var descriptor = FetchDescriptor<ShoppingSession>(
+            predicate: #Predicate { $0.statusRaw == "finished" && $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return descriptor
+    }
 
     var body: some View {
         NavigationStack {
             if let active = sessions.active {
                 ActiveTripView(session: active) { finished = FinishedTrip(session: $0) }
             } else {
-                ContentUnavailableView {
-                    VStack(spacing: 16) {
-                        MascotView(height: 200)
-                        Text("Ready to shop?")
+                ReadyToShop(lastTrip: lastTrips.first)
+                    .safeAreaInset(edge: .bottom) {
+                        PrimaryActionBar(title: "Start shopping", identifier: "openStartTrip", action: requestStart)
                     }
-                } description: {
-                    Text("Scan products as you shop and watch your total against your limit.")
-                } actions: {
-                    Button("Start shopping", action: requestStart)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .accessibilityIdentifier("openStartTrip")
-                }
-                .navigationTitle("Trip")
+                    .toolbarVisibility(.hidden, for: .navigationBar)
             }
         }
         .sheet(isPresented: $isStarting) {
@@ -65,6 +66,42 @@ struct TripView: View {
             isStarting = true
         } else {
             paywallReason = PaywallReasonItem(reason: .tripQuota(used: used))
+        }
+    }
+}
+
+/// The empty Trip tab: one job, starting a trip. The mascot welcomes; the last trip, when there is
+/// one, reminds where and how much. Start sits in the bottom inset, out of this view.
+private struct ReadyToShop: View {
+    let lastTrip: ShoppingSession?
+
+    var body: some View {
+        // Centred when it fits, scrollable at the largest text sizes.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 24) {
+                    MascotView(height: 220)
+                    VStack(spacing: 8) {
+                        Text("Ready to shop?")
+                            .font(.title2.bold())
+                        Text("Scan as you go and see your total before the till.")
+                            .foregroundStyle(.secondary)
+                    }
+                    if let lastTrip {
+                        Text("Last trip: \(lastTrip.store?.name ?? "Trip") · \(lastTrip.total.formatted()) · \(lastTrip.startedAt.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))")
+                            .font(.footnote)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(.secondarySystemBackground), in: .capsule)
+                    }
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 }
