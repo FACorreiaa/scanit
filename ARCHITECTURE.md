@@ -116,6 +116,9 @@ Swift 6 language mode, `MainActor` default isolation (Xcode 26 template default)
   - The output is the best candidate plus a confidence. The user always confirms; the parser never adds an item by itself.
 - **Name clash:** iOS 18 / macOS 15 `Vision` ships its own `RecognizedText`. Any file that imports both Vision and ScanItCore must write `ScanItCore.RecognizedText`.
 - **Accuracy harness:** `tools/label-bench` (see its README) measures prefill accuracy on real label photos.
+  It reads them with `ScanItCore.LabelReader` (Vision text + barcodes on one still, macOS/iOS only), the code
+  the app uses. `--record` saves the recognised text and boxes to `scanit-core/Fixtures/labels.json`, and
+  `LabelSetTests` replays it on Linux CI against a hand-raised accuracy floor. Photos stay local.
 
 ### Data model (SwiftData)
 

@@ -1,16 +1,46 @@
 import Algorithms
 import Foundation
 
+/// A rectangle in one frame, normalised to 0…1 with the origin at the top left (y grows down).
+/// Text and barcode boxes from the same still share this space, so the parser can compare them.
+public struct LabelBox: Hashable, Codable, Sendable {
+    public let x: Double
+    public let y: Double
+    public let width: Double
+    public let height: Double
+
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+
+    public var maxX: Double { x + width }
+    public var maxY: Double { y + height }
+    public var midX: Double { x + width / 2 }
+    public var midY: Double { y + height / 2 }
+}
+
 /// One piece of text the scanner recognised on a shelf label.
 public struct RecognizedText: Hashable, Sendable {
     public let text: String
     /// Bounding-box height, in any unit as long as it is the same for every item in one frame.
     /// The shelf price is the biggest number on the label, so height is the main ranking signal.
     public let height: Double
+    /// Where the text sits in the frame, when the recogniser reports it (`LabelReader` does).
+    public let box: LabelBox?
 
     public init(text: String, height: Double) {
         self.text = text
         self.height = height
+        self.box = nil
+    }
+
+    public init(text: String, box: LabelBox) {
+        self.text = text
+        self.height = box.height
+        self.box = box
     }
 }
 
