@@ -258,12 +258,16 @@ PostHog and Sentry, initialised as in `apps/lumina/LuminaVaultClient/LuminaVault
 | --- | --- |
 | `trip_started` | `has_limit` |
 | `item_scanned` | `price_source`, `symbology` |
-| `price_ocr_result` | `accepted` / `edited` / `failed` |
+| `price_ocr_result` | `outcome` (`accepted` / `edited` / `none`), `ms` (barcode lock to Add) |
+| `price_ocr_corrected` | (a label price changed later, e.g. in History) |
 | `trip_finished` | `items`, `under_limit?` |
 | `insights_viewed` | |
 | `signed_in` | `provider` |
 
 No amounts or product names are sent. These events are the measurement behind the P2 strangers gate (`BACKLOG.md`).
+
+Until PostHog (FND-004) the shelf-price field metrics are also counted on the phone from each item's
+`priceSource` (`ocr`, `ocr_edited`, `ocr_corrected`) by `OCRStats`, shown in a debug-only Insights section.
 
 ## Server — `scanit-server` (P4)
 

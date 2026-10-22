@@ -119,7 +119,7 @@ struct SessionStoreTests {
         #expect(store.active?.totalMinor == 297)
         store.update(item, unitPriceMinor: 89)
         #expect(store.active?.totalMinor == 267)
-        #expect(item.priceSource == .manual, "a corrected price is a manual price")
+        #expect(item.priceSource == .ocrCorrected, "a corrected label price is counted as a correction")
         store.update(item, quantity: 0)
         #expect(item.quantity == 1)
     }
