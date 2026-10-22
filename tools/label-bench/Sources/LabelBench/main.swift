@@ -110,14 +110,17 @@ let labelSet = LabelSet(floor: 0, labels: recorded)
 let score = labelSet.score()
 for (row, label) in zip(score.rows, recorded) {
     let confidence = row.confidence.map { String(format: "%.2f", $0) } ?? "-"
-    print("\(row.isHit ? "✓" : "✗") \(row.name): expected \(money(row.expectedMinor, label.currency)), got \(money(row.gotMinor, label.currency)) (confidence \(confidence))")
+    let mark = row.isHit ? "✓" : row.isWrongPrefill ? "✗!" : "✗"
+    print("\(mark) \(row.name): expected \(money(row.expectedMinor, label.currency)), prefilled \(money(row.prefillMinor, label.currency)), top \(money(row.topMinor, label.currency)) (confidence \(confidence))")
     if dump || !row.isHit {
         for text in label.recognized.sorted(by: { $0.height > $1.height }) {
             print("     \(String(format: "%.3f", text.height))  \(text.text)")
         }
     }
 }
-print(String(format: "\nPrefilled correctly: %d of %d (%.0f%%). Target (IOS-007): 70%%.", score.hits, score.rows.count, score.rate * 100))
+let count = score.rows.count
+print(String(format: "\nPrefilled correctly: %d of %d (%.0f%%). Target (IOS-007): 70%%.", score.hits, count, score.rate * 100))
+print("Correct top candidate: \(score.topHits) of \(count). Wrong price prefilled (✗!): \(score.wrongPrefills) of \(count).")
 
 if record {
     // Keep the committed floor: it is raised by hand, never lowered by a recording.

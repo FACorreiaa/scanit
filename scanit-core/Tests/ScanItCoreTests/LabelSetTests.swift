@@ -10,7 +10,7 @@ struct LabelSetTests {
         let set = try Fixtures.decode(LabelSet.self, from: "labels.json")
         let score = set.score()
         let misses = score.rows.filter { !$0.isHit }.map(\.name)
-        #expect(score.rate >= set.floor, "\(score.hits) of \(score.rows.count) correct; misses: \(misses)")
+        #expect(score.rate >= set.floor, "\(score.hits) of \(score.rows.count) prefilled correctly; misses: \(misses)")
     }
 
     @Test func recordedLabelRoundTrips() throws {

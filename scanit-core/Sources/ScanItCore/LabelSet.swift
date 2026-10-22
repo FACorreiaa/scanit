@@ -30,7 +30,7 @@ public struct LabelSet: Codable, Sendable {
         }
     }
 
-    /// Lowest accepted share of correct top candidates, 0…1. Raised by hand as the parser improves.
+    /// Lowest accepted share of correct prefills, 0…1. Raised by hand as the parser improves.
     public var floor: Double
     public var labels: [Label]
 
@@ -52,24 +52,35 @@ public struct LabelScore: Sendable {
     public struct Row: Sendable {
         public let name: String
         public let expectedMinor: Int?
-        public let gotMinor: Int?
+        /// The parser's best item price, prefilled or not.
+        public let topMinor: Int?
+        /// What the app would fill in: `nil` when confidence is under the threshold.
+        public let prefillMinor: Int?
         public let confidence: Double?
-        public var isHit: Bool { expectedMinor == gotMinor }
+
+        /// IOS-007's bar: the right price is the one filled in (or nothing, when nothing is right).
+        public var isHit: Bool { prefillMinor == expectedMinor }
+        public var isTopHit: Bool { topMinor == expectedMinor }
+        /// The dangerous miss: a price filled in that is not the shelf price.
+        public var isWrongPrefill: Bool { prefillMinor != nil && prefillMinor != expectedMinor }
     }
 
     public let rows: [Row]
     public var hits: Int { rows.count(where: \.isHit) }
+    public var topHits: Int { rows.count(where: \.isTopHit) }
+    public var wrongPrefills: Int { rows.count(where: \.isWrongPrefill) }
     public var rate: Double { rows.isEmpty ? 0 : Double(hits) / Double(rows.count) }
 }
 
 extension LabelSet {
-    /// Scores the parser's top candidate against each label's expected price.
+    /// Scores what the app would prefill on each label against the price the owner expects.
     public func score() -> LabelScore {
         LabelScore(rows: labels.map { label in
-            let best = PriceParser(currency: label.currency).parse(label.recognized).best
+            let result = PriceParser(currency: label.currency).parse(label.recognized, barcode: label.barcode)
             return LabelScore.Row(
                 name: label.name, expectedMinor: label.expectedMinor,
-                gotMinor: best?.total.amountMinor, confidence: best?.confidence
+                topMinor: result.best?.total.amountMinor, prefillMinor: result.prefill?.total.amountMinor,
+                confidence: result.best?.confidence
             )
         })
     }

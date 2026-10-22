@@ -11,12 +11,12 @@
   { "name": "Dollar, dot decimal", "currency": "USD",
     "items": [{ "text": "$1.99", "height": 0.10 }],
     "expected": { "totalMinor": 199, "quantity": 1 } },
-  { "name": "Multiplied: 2 x 0,99", "currency": "EUR",
+  { "name": "Multi-buy 2 x 0,99 is flagged, not guessed", "currency": "EUR",
     "items": [{ "text": "2 x 0,99", "height": 0.10 }],
-    "expected": { "totalMinor": 198, "quantity": 2 } },
-  { "name": "Deal: 3 for 5.00", "currency": "USD",
+    "expected": null, "multiBuys": 1 },
+  { "name": "Multi-buy 3 for 5.00 is flagged, not guessed", "currency": "USD",
     "items": [{ "text": "3 for 5.00", "height": 0.10 }],
-    "expected": { "totalMinor": 500, "quantity": 3 } },
+    "expected": null, "multiBuys": 1 },
   { "name": "Unit price next to the price is ignored", "currency": "EUR",
     "items": [{ "text": "1,99 €", "height": 0.12 }, { "text": "3,98 €/kg", "height": 0.04 }],
     "expected": { "totalMinor": 199, "quantity": 1 } },
@@ -55,5 +55,43 @@
     "expected": { "totalMinor": 198, "quantity": 1 } },
   { "name": "Pound", "currency": "GBP",
     "items": [{ "text": "£3.50", "height": 0.10 }],
-    "expected": { "totalMinor": 350, "quantity": 1 } }
+    "expected": { "totalMinor": 350, "quantity": 1 } },
+  { "name": "Item price wins over a smaller multi-buy", "currency": "EUR",
+    "items": [{ "text": "1,29 €", "height": 0.10 }, { "text": "2 x 0,99", "height": 0.06 }],
+    "expected": { "totalMinor": 129, "quantity": 1, "prefill": true }, "multiBuys": 1 },
+  { "name": "Multi-buy printed bigger than the item price: no prefill", "currency": "USD",
+    "items": [{ "text": "3 for 5.00", "height": 0.15 }, { "text": "$1.99 each", "height": 0.06 }],
+    "expected": { "totalMinor": 199, "quantity": 1, "prefill": false }, "multiBuys": 1 },
+  { "name": "Superscript cents: big 2, small 49", "currency": "EUR",
+    "items": [
+      { "text": "2", "box": { "x": 0.10, "y": 0.30, "width": 0.10, "height": 0.30 } },
+      { "text": "49", "box": { "x": 0.21, "y": 0.31, "width": 0.08, "height": 0.13 } },
+      { "text": "4,98 €/kg", "box": { "x": 0.10, "y": 0.70, "width": 0.20, "height": 0.05 } }
+    ],
+    "expected": { "totalMinor": 249, "quantity": 1, "prefill": true } },
+  { "name": "Superscript cents with a euro sign", "currency": "EUR",
+    "items": [
+      { "text": "€1", "box": { "x": 0.10, "y": 0.30, "width": 0.12, "height": 0.30 } },
+      { "text": "99", "box": { "x": 0.23, "y": 0.30, "width": 0.08, "height": 0.12 } }
+    ],
+    "expected": { "totalMinor": 199, "quantity": 1 } },
+  { "name": "Small number far from a big digit is not cents", "currency": "EUR",
+    "items": [
+      { "text": "2", "box": { "x": 0.10, "y": 0.30, "width": 0.10, "height": 0.30 } },
+      { "text": "49", "box": { "x": 0.70, "y": 0.80, "width": 0.08, "height": 0.13 } }
+    ],
+    "expected": null },
+  { "name": "Two labels side by side: the one under the barcode wins", "currency": "EUR",
+    "barcode": { "x": 0.55, "y": 0.20, "width": 0.30, "height": 0.10 },
+    "items": [
+      { "text": "1,99 €", "box": { "x": 0.05, "y": 0.55, "width": 0.30, "height": 0.15 } },
+      { "text": "2,49 €", "box": { "x": 0.55, "y": 0.55, "width": 0.30, "height": 0.15 } }
+    ],
+    "expected": { "totalMinor": 249, "quantity": 1, "candidates": 2 } },
+  { "name": "Same price printed twice is not a rival", "currency": "EUR",
+    "items": [{ "text": "2,49", "height": 0.15 }, { "text": "PVP 2,49 €", "height": 0.14 }],
+    "expected": { "totalMinor": 249, "quantity": 1, "prefill": true } },
+  { "name": "Two prices almost the same size: no prefill", "currency": "EUR",
+    "items": [{ "text": "1,99", "height": 0.10 }, { "text": "2,49", "height": 0.098 }],
+    "expected": { "totalMinor": 199, "quantity": 1, "prefill": false } }
 ]
