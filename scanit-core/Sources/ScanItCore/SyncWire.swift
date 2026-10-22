@@ -16,6 +16,10 @@ public enum SessionStatus: String, Codable, Sendable {
 
 public enum PriceSource: String, Codable, Sendable {
     case ocr, manual, remembered, embedded
+    /// A label price was offered, and the user picked another candidate or typed over it.
+    case ocrEdited = "ocr_edited"
+    /// Accepted from the label, then corrected later (e.g. in History): a wrong price got through.
+    case ocrCorrected = "ocr_corrected"
 }
 
 public struct StoreDTO: Hashable, Codable, Sendable {

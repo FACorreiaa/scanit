@@ -1,16 +1,46 @@
 import Algorithms
 import Foundation
 
+/// A rectangle in one frame, normalised to 0…1 with the origin at the top left (y grows down).
+/// Text and barcode boxes from the same still share this space, so the parser can compare them.
+public struct LabelBox: Hashable, Codable, Sendable {
+    public let x: Double
+    public let y: Double
+    public let width: Double
+    public let height: Double
+
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+
+    public var maxX: Double { x + width }
+    public var maxY: Double { y + height }
+    public var midX: Double { x + width / 2 }
+    public var midY: Double { y + height / 2 }
+}
+
 /// One piece of text the scanner recognised on a shelf label.
 public struct RecognizedText: Hashable, Sendable {
     public let text: String
     /// Bounding-box height, in any unit as long as it is the same for every item in one frame.
     /// The shelf price is the biggest number on the label, so height is the main ranking signal.
     public let height: Double
+    /// Where the text sits in the frame, when the recogniser reports it (`LabelReader` does).
+    public let box: LabelBox?
 
     public init(text: String, height: Double) {
         self.text = text
         self.height = height
+        self.box = nil
+    }
+
+    public init(text: String, box: LabelBox) {
+        self.text = text
+        self.height = box.height
+        self.box = box
     }
 }
 
@@ -20,19 +50,28 @@ public struct PriceCandidate: Hashable, Sendable {
     public let quantity: Int
     /// A per-kg / per-litre / per-100 g price. Kept so the UI can show it, never picked as best.
     public let isUnitPrice: Bool
+    /// `2 x 0,99` or `3 for 5.00`. Shown as a flag, never picked as best: what one item costs is a guess.
+    public let isMultiBuy: Bool
     public let hasCurrencySymbol: Bool
     public let sourceText: String
     public let height: Double
+    /// Where the text was, for drawing candidate boxes. `nil` when the recogniser gave no box.
+    public let box: LabelBox?
     /// 0…1. Low when another price on the label is almost as big. The user always confirms.
     public let confidence: Double
 }
 
 public struct PriceParseResult: Sendable {
-    /// Prices first (best first), unit prices last.
+    /// Item prices first (best first), then multi-buys, then unit prices.
     public let candidates: [PriceCandidate]
 
     public var best: PriceCandidate? {
-        candidates.first { !$0.isUnitPrice }
+        candidates.first { !$0.isUnitPrice && !$0.isMultiBuy }
+    }
+
+    /// The price to fill in for the user, or `nil` when the label is too ambiguous to guess.
+    public var prefill: PriceCandidate? {
+        best.flatMap { $0.confidence >= PriceParser.prefillThreshold ? $0 : nil }
     }
 }
 
@@ -47,29 +86,110 @@ public struct PriceParser: Sendable {
         self.minorDigits = Money.minorUnitDigits(for: currency)
     }
 
-    public func parse(_ items: [RecognizedText]) -> PriceParseResult {
-        let (shelfPrices, unitPrices) = items.flatMap(amounts(in:)).partitioned(by: \.isUnitPrice)
-        let prices = shelfPrices.enumerated()
-            .sorted { lhs, rhs in
-                if lhs.element.height != rhs.element.height { return lhs.element.height > rhs.element.height }
-                if lhs.element.hasSymbol != rhs.element.hasSymbol { return lhs.element.hasSymbol }
-                return lhs.offset < rhs.offset
-            }
-            .map(\.element)
+    /// Below this confidence nothing is prefilled and the candidates are offered as chips.
+    /// A wrong price accepted without noticing is worse than typing it. Tuned on `tools/label-bench`.
+    public static let prefillThreshold = 0.6
 
-        let confidence = bestConfidence(prices)
-        let ranked = prices.enumerated().map { index, amount in
-            amount.candidate(currency: currency, confidence: index == 0 ? confidence : 0)
-        } + unitPrices.map { $0.candidate(currency: currency, confidence: 0) }
-        return PriceParseResult(candidates: ranked)
+    /// `barcode` is the locked product's barcode box in the same frame: a price near it (and
+    /// below it) belongs to this product rather than to the neighbouring label.
+    public func parse(_ items: [RecognizedText], barcode: LabelBox? = nil) -> PriceParseResult {
+        let found = mergingSuperscriptCents(items).flatMap(amounts(in:))
+        let (shelfPrices, unitPrices) = found.partitioned(by: \.isUnitPrice)
+        let (itemPrices, multiBuys) = shelfPrices.partitioned(by: \.isMultiBuy)
+        let tallest = shelfPrices.map(\.height).max() ?? 0
+        let prices = rank(itemPrices, tallest: tallest, barcode: barcode)
+
+        let confidence = bestConfidence(prices, multiBuys: multiBuys)
+        let items: [PriceCandidate] = prices.enumerated().map { index, scored in
+            scored.amount.candidate(currency: currency, confidence: index == 0 ? confidence : 0)
+        }
+        let deals: [PriceCandidate] = rank(multiBuys, tallest: tallest, barcode: barcode).map {
+            $0.amount.candidate(currency: currency, confidence: 0)
+        }
+        let units: [PriceCandidate] = unitPrices.map { $0.candidate(currency: currency, confidence: 0) }
+        return PriceParseResult(candidates: items + deals + units)
     }
 
-    private func bestConfidence(_ prices: [FoundAmount]) -> Double {
+    private struct ScoredAmount {
+        var amount: FoundAmount
+        var score: Double
+    }
+
+    /// Glyph height leads (the shelf price is the biggest number on the label). Nearness to the
+    /// barcode settles labels that sit side by side; a currency symbol only breaks ties.
+    private func rank(_ amounts: [FoundAmount], tallest: Double, barcode: LabelBox?) -> [ScoredAmount] {
+        let scored = amounts.map { ScoredAmount(amount: $0, score: score($0, tallest: tallest, barcode: barcode)) }
+        return scored.indices
+            .sorted { lhs, rhs in
+                scored[lhs].score != scored[rhs].score ? scored[lhs].score > scored[rhs].score : lhs < rhs
+            }
+            .map { scored[$0] }
+    }
+
+    private func score(_ amount: FoundAmount, tallest: Double, barcode: LabelBox?) -> Double {
+        var score = tallest > 0 ? amount.height / tallest : 0
+        if amount.hasSymbol { score += 0.01 }
+        guard let barcode, let box = amount.box else { return score }
+        let dx = box.midX - barcode.midX
+        let dy = box.midY - barcode.midY
+        let distance = (dx * dx + dy * dy).squareRoot()
+        score += 0.15 * max(0, 1 - distance / 0.5)
+        if box.midY > barcode.midY { score += 0.05 }
+        return score
+    }
+
+    private func bestConfidence(_ prices: [ScoredAmount], multiBuys: [FoundAmount]) -> Double {
         guard let best = prices.first else { return 0 }
-        let base = best.hasSymbol && best.hasDecimals ? 0.95 : 0.85
-        guard let second = prices.dropFirst().first, best.height > 0 else { return base }
-        let ratio = second.height / best.height
-        return base * min(1, max(0, 0.4 + (1 - ratio) * 2))
+        var confidence = best.amount.hasSymbol && best.amount.hasDecimals ? 0.95 : 0.85
+        // The same amount printed twice (big, and again as "PVP 2,49 €") is not a rival.
+        if let rival = prices.dropFirst().first(where: { $0.amount.amountMinor != best.amount.amountMinor }),
+           best.score > 0 {
+            let ratio = rival.score / best.score
+            confidence *= min(1, max(0, 0.4 + (1 - ratio) * 2))
+        }
+        // A promotion printed bigger than the item price: the label is about the deal, so ask.
+        if multiBuys.contains(where: { $0.height > best.amount.height }) {
+            confidence = min(confidence, Self.prefillThreshold / 2)
+        }
+        return confidence
+    }
+
+    // MARK: - Superscript cents
+
+    /// A big "2" with a small, top-aligned "49" just to its right reads as 2,49. Vision returns
+    /// the two sizes as separate items; anything it joins into one line is left alone.
+    private func mergingSuperscriptCents(_ items: [RecognizedText]) -> [RecognizedText] {
+        guard minorDigits == 2 else { return items }
+        let whole = #/^\s*([€$£])?\s*(\d{1,3})\s*([€$£])?\s*$/#
+        let cents = #/^\s*(\d{2})\s*([€$£])?\s*$/#
+
+        var removed = Set<Int>()
+        var merged: [RecognizedText] = []
+        for (index, item) in items.enumerated() where !removed.contains(index) {
+            guard let box = item.box, let units = item.text.wholeMatch(of: whole) else { continue }
+            let partner = items.indices.first { other in
+                guard other != index, !removed.contains(other), let small = items[other].box,
+                      items[other].text.wholeMatch(of: cents) != nil
+                else { return false }
+                let ratio = small.height / box.height
+                let gap = small.x - box.maxX
+                return (0.25...0.75).contains(ratio)
+                    && gap >= -0.25 * box.width && gap <= box.height
+                    && abs(small.y - box.y) <= 0.3 * box.height
+            }
+            guard let partner, let fraction = items[partner].text.wholeMatch(of: cents) else { continue }
+            removed.formUnion([index, partner])
+            let symbol = units.output.1 ?? units.output.3 ?? fraction.output.2 ?? ""
+            let small = items[partner].box!
+            merged.append(RecognizedText(
+                text: "\(symbol)\(units.output.2),\(fraction.output.1)",
+                box: LabelBox(
+                    x: box.x, y: min(box.y, small.y),
+                    width: max(box.maxX, small.maxX) - box.x, height: box.height
+                )
+            ))
+        }
+        return items.indices.filter { !removed.contains($0) }.map { items[$0] } + merged
     }
 
     // MARK: - Scanning one text item
@@ -83,6 +203,9 @@ public struct PriceParser: Sendable {
         var isUnitPrice: Bool
         var sourceText: String
         var height: Double
+        var box: LabelBox?
+
+        var isMultiBuy: Bool { quantity > 1 }
 
         func candidate(currency: String, confidence: Double) -> PriceCandidate {
             let unit = Money(amountMinor: amountMinor, currency: currency)
@@ -90,9 +213,11 @@ public struct PriceParser: Sendable {
                 total: isDeal ? unit : unit.multiplied(by: quantity),
                 quantity: quantity,
                 isUnitPrice: isUnitPrice,
+                isMultiBuy: isMultiBuy,
                 hasCurrencySymbol: hasSymbol,
                 sourceText: sourceText,
                 height: height,
+                box: box,
                 confidence: confidence
             )
         }
@@ -137,7 +262,8 @@ public struct PriceParser: Sendable {
                 hasDecimals: hasDecimals,
                 isUnitPrice: Self.isUnitPrice(head: head, tail: tail),
                 sourceText: item.text,
-                height: item.height
+                height: item.height,
+                box: item.box
             ))
         }
         return results

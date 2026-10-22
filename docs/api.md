@@ -66,7 +66,7 @@ Rules:
 | --- | --- |
 | store | `name`, `chain?`, `countryCode`, `currency` |
 | session | `storeId?`, `limit?: Money`, `currency`, `startedAt`, `endedAt?`, `status`, `tillTotal?: Money` |
-| cart_item | `sessionId`, `code`, `codeKind` (`gtin` / `opaque`), `productName?`, `quantity`, `weightGrams?`, `unitPrice: Money`, `priceSource`, `scannedAt` |
+| cart_item | `sessionId`, `code`, `codeKind` (`gtin` / `opaque`), `productName?`, `quantity`, `weightGrams?`, `unitPrice: Money`, `priceSource` (`ocr` / `ocr_edited` / `ocr_corrected` / `manual` / `remembered` / `embedded`), `scannedAt` |
 | price_observation | `storeId`, `code`, `price: Money`, `observedAt`, `source` |
 
 ## Stats (P9, web)

@@ -26,5 +26,14 @@ read, sorted by text height, which is what `PriceParser` ranks on. A miss usuall
 `Fixtures/prices.json` vector plus a parser fix, or proof that a label layout needs the user to tap the
 price.
 
+## Record the set for CI
+
+`swift run -c release label-bench labels --record` also writes what Vision read on each photo (text, boxes,
+the barcode box and the expected price) to `scanit-core/Fixtures/labels.json`. The photos are not committed.
+`LabelSetTests` replays that file through `PriceParser` on Linux CI and fails when accuracy drops below its
+`floor`. A recording keeps the committed floor; raise it by hand when the parser gets better.
+
+Recognition is `ScanItCore.LabelReader`, the same code the app runs on a captured still.
+
 `swift run -c release label-bench --make-samples <dir>` renders synthetic labels. That is only a smoke test of
 the pipeline, not evidence about real labels.

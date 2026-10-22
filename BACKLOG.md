@@ -104,6 +104,12 @@ Check the iOS 18+ SDK for a currency `textContentType` in DataScanner. Compare i
 - **Needs from the owner:** about 20 real label photos and `expected.json` (see the README).
 - **Still to do:** decide on DataScanner's currency content type on device.
 
+**Status 2026-10-22:** `ScanItCore.LabelReader` (Vision text + barcode on one still) is shared by the app and the
+bench. `label-bench labels --record` saves the reads to `scanit-core/Fixtures/labels.json`, and `LabelSetTests` gates
+it on Linux CI (empty, floor 0, until the real photos are in). The parser now ranks by barcode nearness, flags
+multi-buys, merges superscript cents and gates the prefill on a confidence threshold. Still waiting for the owner's
+label photos. On device: still capture + Vision (B) against DataScanner `.text(.currency)` (A).
+
 ### IOS-007 · Scanner: shelf price · M
 **Needs:** IOS-006.
 Candidate boxes, the top candidate prefilled, the **Type it** keypad always available, and the 3-second fallback prompt.
@@ -118,6 +124,9 @@ The events in `ARCHITECTURE.md` → Analytics. No amounts or product names.
 
 **Status 2026-10-09:** `app_opened`, `trip_started`, `item_scanned`, `trip_finished`, `insights_viewed` are sent (to the
 local log until FND-004). `price_ocr_result` comes with IOS-007, `signed_in` with P4.
+
+**Status 2026-10-22:** `price_ocr_result` and `price_ocr_corrected` are defined, and the `ocr_edited` / `ocr_corrected`
+price sources and `OCRStats` (debug Insights section) are in. The scanner emits `price_ocr_result` once IOS-007 is live.
 
 ### IOS-013 · TestFlight internal build · S
 **Needs:** IOS-001…012.

@@ -111,11 +111,17 @@ Swift 6 language mode, `MainActor` default isolation (Xcode 26 template default)
   - Candidates come from recognised text items that match a locale-aware money pattern: `1,99`, `1.99`, `€ 1,99`, `1,99 €`, `$1.99`, `2 x 0,99`, `3 for 5.00`.
   - Each candidate is ranked:
     1. Prefer the **largest glyph height**, because the shelf price is the biggest number on the label.
-    2. Discard tokens next to `/kg`, `/l`, `per 100 g` and the like (unit price).
-    3. Keep a second candidate when the label shows a loyalty-card price.
-  - The output is the best candidate plus a confidence. The user always confirms; the parser never adds an item by itself.
+    2. Then prefer text **near and below the locked barcode** (same still, `LabelBox` space), which settles labels side by side. A currency symbol only breaks ties.
+    3. Discard tokens next to `/kg`, `/l`, `per 100 g` and the like (unit price).
+    4. **Multi-buys** (`2 x 0,99`, `3 for 5.00`) are flagged and never picked: what one item costs would be a guess. A multi-buy printed bigger than the item price drops confidence below the threshold.
+    5. **Superscript cents:** a big `2` with a small, top-aligned `49` to its right is merged into `2,49` before parsing.
+    6. Keep a second candidate when the label shows a loyalty-card price.
+  - The output is the best candidate plus a confidence. Confidence compares the best with the next *different* amount, so the same price printed twice is not a rival. `prefill` is the best candidate only when confidence ≥ `PriceParser.prefillThreshold` (0.6, tuned on the bench); below it nothing is filled in and the candidates are offered as chips. The user always confirms; the parser never adds an item by itself.
 - **Name clash:** iOS 18 / macOS 15 `Vision` ships its own `RecognizedText`. Any file that imports both Vision and ScanItCore must write `ScanItCore.RecognizedText`.
 - **Accuracy harness:** `tools/label-bench` (see its README) measures prefill accuracy on real label photos.
+  It reads them with `ScanItCore.LabelReader` (Vision text + barcodes on one still, macOS/iOS only), the code
+  the app uses. `--record` saves the recognised text and boxes to `scanit-core/Fixtures/labels.json`, and
+  `LabelSetTests` replays it on Linux CI against a hand-raised accuracy floor. Photos stay local.
 
 ### Data model (SwiftData)
 
@@ -252,12 +258,16 @@ PostHog and Sentry, initialised as in `apps/lumina/LuminaVaultClient/LuminaVault
 | --- | --- |
 | `trip_started` | `has_limit` |
 | `item_scanned` | `price_source`, `symbology` |
-| `price_ocr_result` | `accepted` / `edited` / `failed` |
+| `price_ocr_result` | `outcome` (`accepted` / `edited` / `none`), `ms` (barcode lock to Add) |
+| `price_ocr_corrected` | (a label price changed later, e.g. in History) |
 | `trip_finished` | `items`, `under_limit?` |
 | `insights_viewed` | |
 | `signed_in` | `provider` |
 
 No amounts or product names are sent. These events are the measurement behind the P2 strangers gate (`BACKLOG.md`).
+
+Until PostHog (FND-004) the shelf-price field metrics are also counted on the phone from each item's
+`priceSource` (`ocr`, `ocr_edited`, `ocr_corrected`) by `OCRStats`, shown in a debug-only Insights section.
 
 ## Server — `scanit-server` (P4)
 

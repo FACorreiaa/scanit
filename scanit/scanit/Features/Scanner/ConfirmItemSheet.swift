@@ -105,7 +105,9 @@ struct ConfirmItemSheet: View {
 
     private func add() {
         guard let price else { return }
-        let source: PriceSource = price == remembered?.price ? .remembered : .manual
+        let source = PriceSourceResolver.resolve(
+            price: price, prefill: nil, labelCandidates: [], remembered: remembered?.price
+        )
         onAdd(quantity, price, source)
         dismiss()
     }

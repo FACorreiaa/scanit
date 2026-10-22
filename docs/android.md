@@ -33,7 +33,7 @@ Port these pure functions, with the **same test vectors** as iOS. Keep the vecto
 fixtures in `scanit-core/Fixtures/`, so both platforms run the same cases:
 
 - barcode normaliser: GTIN-14, GS1 Digital Link, in-store 2x prefixes
-- price parser: locale money patterns, largest-glyph ranking, unit-price rejection
+- price parser: locale money patterns, largest-glyph ranking, nearness to the barcode box, unit-price rejection, multi-buy flagging (never prefilled), superscript-cents merge, prefill threshold (`Fixtures/prices.json`; items may carry a `box`, vectors a `barcode`)
 - limit maths: `LimitStatus` / `LimitState.feedback` (80 % near, > 100 % over, haptic only on upward crossings)
 - insights calculator: INS-01 … INS-10
 

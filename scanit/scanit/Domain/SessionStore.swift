@@ -122,9 +122,12 @@ final class SessionStore {
         if let quantity { item.quantity = max(1, quantity) }
         if let unitPriceMinor, unitPriceMinor != item.unitPriceMinor {
             item.unitPriceMinor = unitPriceMinor
-            item.priceSource = .manual
+            // A label price corrected after the fact is counted, so wrong prefills show up (IOS-007).
+            let wasReadFromLabel = item.priceSource == .ocr || item.priceSource == .ocrEdited
+            item.priceSource = wasReadFromLabel ? .ocrCorrected : .manual
+            if wasReadFromLabel { analytics.track(.priceOCRCorrected) }
             if let session = item.session {
-                recordPrice(code: item.code, unitPriceMinor: unitPriceMinor, source: .manual, in: session)
+                recordPrice(code: item.code, unitPriceMinor: unitPriceMinor, source: item.priceSource, in: session)
             }
         }
         item.touch(now())

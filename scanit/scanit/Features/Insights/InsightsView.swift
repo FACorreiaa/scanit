@@ -140,6 +140,10 @@ struct InsightsView: View {
                     }
                 }
             }
+
+            #if DEBUG
+            OCRStatsSection(stats: OCRStats.current(context: context))
+            #endif
         }
         .headerProminence(.increased)
         .contentMargins(.top, 8, for: .scrollContent)
@@ -327,3 +331,25 @@ private extension Int {
         Money(amountMinor: self, currency: currency).formatted()
     }
 }
+
+#if DEBUG
+/// Owner-only readout of the shelf-price field metrics (BACKLOG IOS-007) until PostHog arrives.
+private struct OCRStatsSection: View {
+    let stats: OCRStats
+
+    var body: some View {
+        Section("Shelf-price reading (debug)") {
+            LabeledContent("Accepted unedited", value: share(stats.acceptedShare, of: stats.accepted))
+            LabeledContent("Edited in the sheet", value: "\(stats.edited)")
+            LabeledContent("Corrected later", value: share(stats.correctedShare, of: stats.corrected))
+            LabeledContent("Items scanned", value: "\(stats.scanned)")
+        }
+        .monospacedDigit()
+    }
+
+    private func share(_ value: Double?, of count: Int) -> String {
+        guard let value else { return "–" }
+        return "\(count) · \(value.formatted(.percent.precision(.fractionLength(0))))"
+    }
+}
+#endif

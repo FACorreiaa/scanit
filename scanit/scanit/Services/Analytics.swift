@@ -7,6 +7,10 @@ enum AnalyticsEvent: Equatable, Sendable {
     case appOpened
     case tripStarted(hasLimit: Bool)
     case itemScanned(priceSource: PriceSource, symbology: Symbology?)
+    /// One per scanned item on a device that reads labels. `ms` runs from barcode lock to Add.
+    case priceOCRResult(outcome: PriceOCROutcome, ms: Int)
+    /// A price that came from the label was changed later, e.g. in History.
+    case priceOCRCorrected
     /// `underLimit` is `nil` for trips without a limit.
     case tripFinished(items: Int, underLimit: Bool?)
     case insightsViewed
@@ -16,6 +20,8 @@ enum AnalyticsEvent: Equatable, Sendable {
         case .appOpened: "app_opened"
         case .tripStarted: "trip_started"
         case .itemScanned: "item_scanned"
+        case .priceOCRResult: "price_ocr_result"
+        case .priceOCRCorrected: "price_ocr_corrected"
         case .tripFinished: "trip_finished"
         case .insightsViewed: "insights_viewed"
         }
@@ -23,12 +29,14 @@ enum AnalyticsEvent: Equatable, Sendable {
 
     var properties: [String: String] {
         switch self {
-        case .appOpened, .insightsViewed:
+        case .appOpened, .insightsViewed, .priceOCRCorrected:
             [:]
         case .tripStarted(let hasLimit):
             ["has_limit": String(hasLimit)]
         case .itemScanned(let source, let symbology):
             ["price_source": source.rawValue, "symbology": symbology?.rawValue ?? "none"]
+        case .priceOCRResult(let outcome, let ms):
+            ["outcome": outcome.rawValue, "ms": String(ms)]
         case .tripFinished(let items, let underLimit):
             ["items": String(items)].merging(underLimit.map { ["under_limit": String($0)] } ?? [:]) { a, _ in a }
         }
