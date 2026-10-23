@@ -11,7 +11,7 @@
 
 	<h2>Usage statistics and crash reports</h2>
 	<p>
-		These are not linked to your name or email. If you want them removed, write to <Contact /> and include the date you
-		used the app, and they will be deleted within 30 days.
+		These are not linked to your name or email. If you want them removed, send us the date you used the app and they
+		will be deleted within 30 days: <Contact />.
 	</p>
 </LegalPage>

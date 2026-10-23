@@ -24,5 +24,7 @@ struct AnalyticsEventTests {
     @Test func eventNamesMatchTheTrackingPlan() {
         #expect(AnalyticsEvent.appOpened.name == "app_opened")
         #expect(AnalyticsEvent.appOpened.properties.isEmpty)
+        #expect(AnalyticsEvent.discordLinkClicked(surface: .settings).name == "discord_link_clicked")
+        #expect(AnalyticsEvent.discordLinkClicked(surface: .settings).properties == ["surface": "settings"])
     }
 }
