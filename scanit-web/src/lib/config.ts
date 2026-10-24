@@ -13,6 +13,8 @@ export const site = {
 	playUrl: '' as string,
 	/** Owner's X profile, linked from the header. */
 	xUrl: 'https://x.com/fatc88',
+	/** Invite to the ScanItNow channel on Discord, linked from the header and the legal pages. */
+	discordUrl: 'https://discord.gg/rNW3yVGZy',
 	/** Contact for privacy and deletion requests. OPEN: owner's choice. */
 	contactEmail: '' as string,
 	/** Last change to the legal pages. */

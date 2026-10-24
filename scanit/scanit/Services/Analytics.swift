@@ -14,6 +14,12 @@ enum AnalyticsEvent: Equatable, Sendable {
     /// `underLimit` is `nil` for trips without a limit.
     case tripFinished(items: Int, underLimit: Bool?)
     case insightsViewed
+    case discordLinkClicked(surface: LinkSurface)
+
+    /// Where an external link was tapped.
+    enum LinkSurface: String, Sendable {
+        case settings
+    }
 
     var name: String {
         switch self {
@@ -24,6 +30,7 @@ enum AnalyticsEvent: Equatable, Sendable {
         case .priceOCRCorrected: "price_ocr_corrected"
         case .tripFinished: "trip_finished"
         case .insightsViewed: "insights_viewed"
+        case .discordLinkClicked: "discord_link_clicked"
         }
     }
 
@@ -39,6 +46,8 @@ enum AnalyticsEvent: Equatable, Sendable {
             ["outcome": outcome.rawValue, "ms": String(ms)]
         case .tripFinished(let items, let underLimit):
             ["items": String(items)].merging(underLimit.map { ["under_limit": String($0)] } ?? [:]) { a, _ in a }
+        case .discordLinkClicked(let surface):
+            ["surface": surface.rawValue]
         }
     }
 }

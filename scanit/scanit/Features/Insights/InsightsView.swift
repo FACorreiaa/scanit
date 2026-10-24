@@ -14,6 +14,7 @@ struct InsightsView: View {
     private var finishedTrips: [ShoppingSession]
 
     @State private var period: InsightsCalculator.Period = .month
+    @State private var isShowingAbout = false
 
     var body: some View {
         // Recomputed whenever finished trips change (the query drives the redraw).
@@ -29,7 +30,23 @@ struct InsightsView: View {
                         }
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                // The tab hides its navigation bar, so the screen carries its own one-button header.
+                HStack {
+                    Spacer()
+                    Button("About", systemImage: "info.circle") { isShowingAbout = true }
+                        .labelStyle(.iconOnly)
+                        .font(.title3)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityIdentifier("insightsAbout")
+                }
+                .padding(.horizontal, 8)
+            }
             .toolbarVisibility(.hidden, for: .navigationBar)
+        }
+        .sheet(isPresented: $isShowingAbout) {
+            AboutSheet()
+                .presentationDetents([.medium])
         }
         .onAppear { analytics.track(.insightsViewed) }
     }

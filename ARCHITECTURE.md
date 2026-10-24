@@ -262,6 +262,7 @@ PostHog and Sentry, initialised as in `apps/lumina/LuminaVaultClient/LuminaVault
 | `price_ocr_corrected` | (a label price changed later, e.g. in History) |
 | `trip_finished` | `items`, `under_limit?` |
 | `insights_viewed` | |
+| `discord_link_clicked` | `surface` (`settings`: the About sheet) |
 | `signed_in` | `provider` |
 
 No amounts or product names are sent. These events are the measurement behind the P2 strangers gate (`BACKLOG.md`).
