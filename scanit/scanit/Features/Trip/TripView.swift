@@ -1,4 +1,5 @@
 import ScanItCore
+import StoreKit
 import SwiftData
 import SwiftUI
 
@@ -7,6 +8,10 @@ import SwiftUI
 struct TripView: View {
     @Environment(SessionStore.self) private var sessions
     @Environment(PurchaseStore.self) private var purchases
+    @Environment(ReviewPrompter.self) private var reviews
+    @Environment(\.analytics) private var analytics
+    @Environment(\.requestReview) private var requestReview
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.paywallPolicy) private var paywall
     @Environment(\.modelContext) private var context
     @State private var isStarting = false
@@ -40,7 +45,7 @@ struct TripView: View {
             StartTripSheet()
                 .presentationDetents([.medium, .large])
         }
-        .sheet(item: $finished) { trip in
+        .sheet(item: $finished, onDismiss: summaryClosed) { trip in
             TripSummarySheet(session: trip.session)
         }
         // Open the start sheet only after the paywall has fully closed.
@@ -53,6 +58,30 @@ struct TripView: View {
             PaywallSheet(reason: item.reason) { startAfterPaywall = true }
                 .presentationDetents([.medium, .large])
         }
+        .task(id: reviews.isPromptDue) { await askForReviewIfDue() }
+    }
+
+    /// The summary closed. "Undo finish" puts the trip back as the active one; anything else
+    /// (Done, swipe-down) keeps it, and a kept trip is the success worth a rating ask.
+    private func summaryClosed() {
+        guard sessions.active == nil else { return }
+        reviews.recordSuccess()
+        reviews.recordMilestone(once: "firstTrip")
+    }
+
+    /// Ask for a rating once the summary's dismissal has settled. Leaving the tab or the app
+    /// first drops the ask; the count stands, so a later trip earns it again.
+    private func askForReviewIfDue() async {
+        guard reviews.isPromptDue else { return }
+        try? await Task.sleep(for: ReviewPrompter.settleDelay)
+        guard !Task.isCancelled, scenePhase == .active else {
+            reviews.skipPrompt()
+            return
+        }
+        guard reviews.isPromptDue else { return }
+        requestReview()
+        reviews.didPrompt()
+        analytics.track(.reviewPromptRequested)
     }
 
     /// The free-trip quota is checked here and only here: a trip in progress always finishes.

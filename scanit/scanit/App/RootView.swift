@@ -38,5 +38,6 @@ extension EnvironmentValues {
         .environment(ProductEnricher(context: container.mainContext, lookup: FixedProductLookup(names: [:])))
         .environment(ConnectivityMonitor())
         .environment(PurchaseStore())
+        .environment(ReviewPrompter(defaults: UserDefaults(suiteName: "scanit.preview") ?? .standard, isSuppressed: true))
         .modelContainer(container)
 }

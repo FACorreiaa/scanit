@@ -10,6 +10,7 @@ struct ScanItApp: App {
     @State private var enricher: ProductEnricher
     @State private var connectivity = ConnectivityMonitor()
     @State private var purchases = PurchaseStore()
+    @State private var reviews: ReviewPrompter
     private let paywallPolicy: PaywallPolicy
 
     private let container: ModelContainer
@@ -36,6 +37,16 @@ struct ScanItApp: App {
             ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo", "4006381333931": "Pão de forma"])
             : OpenFoodFactsClient()
         _enricher = State(initialValue: ProductEnricher(context: container.mainContext, lookup: lookup))
+        // UI tests never ask for a rating (debug builds always show the sheet) and keep the
+        // simulator's real defaults untouched.
+        if inMemory {
+            let suite = "scanit.uitesting"
+            let defaults = UserDefaults(suiteName: suite) ?? .standard
+            defaults.removePersistentDomain(forName: suite)
+            _reviews = State(initialValue: ReviewPrompter(defaults: defaults, isSuppressed: true))
+        } else {
+            _reviews = State(initialValue: ReviewPrompter())
+        }
 
         // Off until launch (REL-003). UI tests switch it on: `-paywall-enabled -paywall-free-trips N`.
         var policy = PaywallPolicy.launch
@@ -59,6 +70,7 @@ struct ScanItApp: App {
                 .environment(enricher)
                 .environment(connectivity)
                 .environment(purchases)
+                .environment(reviews)
                 .environment(\.paywallPolicy, paywallPolicy)
                 .environment(\.analytics, analytics)
                 // v1 ships free (docs/release.md): no StoreKit traffic until the paywall is switched on.
