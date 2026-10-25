@@ -10,6 +10,8 @@ enum AnalyticsEvent: Equatable, Sendable {
     /// `underLimit` is `nil` for trips without a limit.
     case tripFinished(items: Int, underLimit: Bool?)
     case insightsViewed
+    /// The App Store rating request was handed to iOS, which decides whether the sheet shows.
+    case reviewPromptRequested
 
     var name: String {
         switch self {
@@ -18,12 +20,13 @@ enum AnalyticsEvent: Equatable, Sendable {
         case .itemScanned: "item_scanned"
         case .tripFinished: "trip_finished"
         case .insightsViewed: "insights_viewed"
+        case .reviewPromptRequested: "review_prompt_requested"
         }
     }
 
     var properties: [String: String] {
         switch self {
-        case .appOpened, .insightsViewed:
+        case .appOpened, .insightsViewed, .reviewPromptRequested:
             [:]
         case .tripStarted(let hasLimit):
             ["has_limit": String(hasLimit)]
