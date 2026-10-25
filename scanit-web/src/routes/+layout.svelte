@@ -21,6 +21,9 @@
 	<header class="relative z-20 mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 md:px-8">
 		<a href="/" class="no-underline" aria-label="{site.name} home"><Lockup /></a>
 		<nav class="flex items-center gap-6 text-sm" aria-label="Elsewhere">
+			<a href={site.discordUrl} target="_blank" rel="noopener noreferrer" class="nav-link font-medium no-underline"
+				>Join us on Discord</a
+			>
 			<a
 				href={site.xUrl}
 				target="_blank"
