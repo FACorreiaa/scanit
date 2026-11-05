@@ -116,6 +116,8 @@ Candidate boxes, the top candidate prefilled, the **Type it** keypad always avai
 
 **Done when:** on the 20-label set, the correct price is the prefilled one on at least 70 % of labels (OCR accuracy target, confirmed by the owner 2026-10-09). A wrong prefill can be corrected in one tap.
 
+**Status 2026-11-05: built, not yet proven on real labels.** The scanner asks for the shelf price when none is remembered: **Read price** takes one still from the running `DataScannerViewController` (option B, so the bench measures what ships), `ScanItCore.LabelReader` and `PriceParser` read it on the device, and the sheet opens with the price prefilled or chips. **Type it** is always there. Tap-to-read replaced the live candidate boxes and the 3-second prompt: one deliberate still rather than repeated captures. Vision's accurate text recogniser cannot run on the simulator, so UI tests stub the text with `UITEST_SHELF_TEXT`. **Still needs from the owner:** a real in-store test, and the 20-label set for the 70% target.
+
 ### IOS-012 · Analytics events · S
 **Needs:** IOS-010.
 The events in `ARCHITECTURE.md` → Analytics. No amounts or product names.

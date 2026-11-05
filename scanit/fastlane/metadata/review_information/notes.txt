@@ -1,5 +1,26 @@
 ScanItNow has no login and no in-app purchases.
 
-To test: tap "Start shopping", type any store name (for example "Lidl"), optionally set a limit such as 20, and tap Start. Tap Scan and point the camera at any packaged product's barcode (EAN-13, EAN-8, UPC or a product QR code). Type the shelf price in the sheet and tap Add. The running total and the limit bar update. Scan the same product again: the price is remembered for that store. Tap Finish to see the summary; past trips are under History, and Insights appear after three finished trips.
+PURPOSE AND AUDIENCE
+ScanItNow is for grocery shoppers who want to stay on budget. Shoppers often learn their total only at the checkout. The app keeps a running total as they scan each product, against an optional limit for the trip, and remembers prices per store.
 
-The camera is used only to read barcodes on the device. Barcode numbers are sent to Open Food Facts (openfoodfacts.org) to look up product names. No personal data is collected.
+SETUP AND MAIN FEATURES
+No account, setup or sample files are needed. Any packaged product's barcode works.
+1. Tap "Start shopping", type a store name (for example "Lidl"), optionally set a limit such as 20, and tap Start.
+2. Tap Scan and point the camera at a barcode (EAN-13, EAN-8, UPC or a product QR code).
+3. For a product with no remembered price, point the camera at its shelf label and tap Read price, then check the price and tap Add. To test without a shelf label, tap Type it and type a price. The running total and limit bar update.
+4. Scan the same product again: the price is remembered for that store.
+5. Tap Finish to see the summary. Past trips are under History. Insights appear after three finished trips.
+
+EXTERNAL SERVICES
+Open Food Facts (openfoodfacts.org) is the only external service. The app sends it the barcode number to look up the product name and photo. It needs no key or account, and scanning and totals work offline without it.
+The app uses no authentication service, payment processor, AI service, or analytics or advertising SDK. Barcode scanning and shelf-price reading run on the device using Apple's frameworks. The shelf-label photo is read once and is never saved or uploaded. Trips are stored only on the device.
+
+REGIONAL DIFFERENCES
+The app's features work the same in all regions. The default currency follows the device's region and can be changed when starting a trip. Open Food Facts product coverage varies by country; when a product isn't found, the user can still add it with a price.
+
+REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
+The app does not operate in a regulated industry. Product data and images come from Open Food Facts under its open licences (ODbL for data, CC BY-SA for images), and the app credits Open Food Facts on the confirm sheet.
+
+ACCOUNTS, USER-GENERATED CONTENT AND PAID CONTENT
+The app has no accounts, no shared user-generated content and no paid features, so the recording shows none of these.
+The About sheet (info button on Insights) has a link to our community Discord, which opens outside the app. The app has no chat or community features of its own.

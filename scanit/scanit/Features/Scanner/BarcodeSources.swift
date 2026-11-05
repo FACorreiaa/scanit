@@ -9,8 +9,11 @@ struct DetectedCode: Identifiable, Equatable {
     let id = UUID()
     let code: ScannedCode
     let symbology: Symbology
+    /// The raw barcode value, to find this code again in a shelf-label still.
+    let payload: String
 
     init(payload: String, symbology: Symbology) {
+        self.payload = payload
         self.code = BarcodeNormalizer.normalize(payload: payload, symbology: symbology)
         self.symbology = symbology
     }
@@ -24,6 +27,15 @@ enum BarcodeSource {
     case capture
     /// UI tests: buttons that emit the codes in `UITEST_SCAN_CODES`.
     case simulated([String])
+
+    /// Whether a shelf price can be read here. The AVFoundation fallback only sees barcodes.
+    var readsShelfPrices: Bool {
+        switch self {
+        case .dataScanner: true
+        case .capture: false
+        case .simulated: ProcessInfo.processInfo.environment["UITEST_SHELF_TEXT"] != nil
+        }
+    }
 
     @MainActor static var current: BarcodeSource {
         let info = ProcessInfo.processInfo
@@ -39,6 +51,7 @@ enum BarcodeSource {
 
 struct DataScannerView: UIViewControllerRepresentable {
     let isPaused: Bool
+    let camera: ScannerCamera
     let onDetect: (DetectedCode) -> Void
 
     func makeUIViewController(context: Context) -> DataScannerViewController {
@@ -50,6 +63,7 @@ struct DataScannerView: UIViewControllerRepresentable {
             isHighlightingEnabled: true
         )
         controller.delegate = context.coordinator
+        camera.controller = controller
         return controller
     }
 
