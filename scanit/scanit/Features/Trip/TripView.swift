@@ -109,7 +109,7 @@ private struct ReadyToShop: View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 24) {
-                    MascotView(height: 220)
+                    Mascot3DView(height: 220)
                     VStack(spacing: 8) {
                         Text("Ready to shop?")
                             .font(.title2.bold())
