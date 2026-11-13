@@ -173,7 +173,7 @@ rules are in `brand/README.md`. Short version:
 
 - **App icon:** the logo mark.
 - **Launch screen:** the mark on an adaptive background.
-- **Mascot:** welcome moments only (empty Trip screen, paywall, web hero), always on its green disc in dark mode.
+- **Mascot:** ScanBot (since 2026-11-13), welcome moments only (empty Trip screen, paywall, web hero). 3D and slowly turning on the web hero and empty Trip screen, still PNG everywhere else and whenever Reduce Motion is on.
 - **Brand green `#10AA51`:** illustration only. UI stays on the accessible accent `#23843B`.
 
 ## Visual direction (proposal)

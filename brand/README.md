@@ -10,7 +10,10 @@ scripts in `tools/`, so it can be regenerated and never drifts between web and i
 | `logo-mark.svg`, `logo-mark-dark.svg` | The mark: green viewfinder brackets around a 2×2 grid of dark squares | Redrawn as exact geometry from measured proportions (`tools/measure.swift`, `tools/make-mark.swift`) |
 | `logo-mark-currentcolor.svg` | Mark whose squares follow the CSS text colour | same |
 | `wordmark.svg`, `wordmark-dark.svg`, `wordmark-currentcolor.svg` | "ScanItNow" lettering, "It" in green | Traced with potrace from the sheet at 4× (`tools/trace-wordmark.sh`) |
-| `png/mascot.png` | The mascot, transparent, 795×752 | Vision subject lifting (`tools/lift-mascot.swift`) |
+| `png/mascot.png` | ScanBot, the mascot, transparent, 767×641 | Owner-supplied render (2026-11-13) |
+| `3d/scanbot.glb` | ScanBot as a 3D model (static, ~2 MB) for the web hero | Owner-supplied; served as `scanit-web/static/models/scanbot.glb` |
+| `3d/scanbot.usdz` | The same model for iOS (`RealityView`) | Converted from the GLB with Reality Converter |
+| `png/mascot-v1.png` | The first mascot (TV-head bot), retired 2026-11-13 | Vision subject lifting (`tools/lift-mascot.swift`) |
 | `png/logo-mark-1024.png` | Mark, transparent, 1024² | `tools/make-mark.swift` |
 | `tools/og.html` | Social card for link previews (`scanit-web/static/og.png`, 1200×630) | Rendered with headless Chrome (command in the file) |
 
@@ -28,8 +31,10 @@ scripts in `tools/`, so it can be regenerated and never drifts between web and i
 
 ## Rules
 
-- **Mascot on dark backgrounds** always sits on the soft green disc (`MascotView` in iOS, `.mascot-disc` on the web). Its
-  black body disappears on dark otherwise.
+- **Mascot backdrop:** a soft green disc (`MascotView` in iOS, the green card on the web wall) as a brand glow. ScanBot's
+  pearl body reads on both light and dark, so the disc is decoration, not a contrast fix.
+- **3D:** the web hero and the empty Trip screen show the 3D model, slowly turning. Reduced motion (and Save-Data on the
+  web) always gets the still PNG instead.
 - **The mascot is for welcome moments**: empty Trip screen, paywall, website hero, social card. It does not go on every
   screen. History and Insights keep plain system symbols.
 - **Lockup:** mark plus wordmark, mark height = 1.2 × wordmark cap height, gap ≈ 0.35 × mark height. Leave clear space
@@ -43,8 +48,8 @@ scripts in `tools/`, so it can be regenerated and never drifts between web and i
 ```sh
 swift brand/tools/make-mark.swift .              # marks, app icons, launch mark
 brand/tools/trace-wordmark.sh                    # wordmark SVGs (needs potrace)
-swift brand/tools/lift-mascot.swift brand/source/brand-sheet.png brand/png/mascot.png
 ```
 
-Then copy the outputs into `scanit-web/static/brand/` and the asset catalog. Shrink the web mascot with
-`sips -Z 720` and encode the AVIF (48 KB vs 571 KB PNG).
+Then copy the outputs into `scanit-web/static/brand/` and the asset catalog. For the web mascot, encode AVIF and WebP
+from `png/mascot.png` (`avifenc -q 60 -s 4`, `cwebp -q 82 -alpha_q 90`), and re-render `og.png` (command in
+`tools/og.html`).
