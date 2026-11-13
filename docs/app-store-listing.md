@@ -42,12 +42,13 @@ Re-do this section when v1.1 adds PostHog, Sentry or the purchase.
 
 **Description**
 
-> Know your total before the till.
+> Scan smart. Spend with clarity.
 >
-> ScanItNow adds up your shopping as you go. Scan a product's barcode, confirm the price, and watch your running total update. Set a limit for the trip and the bar turns amber as you get close and red when you go over, so the surprise happens in the aisle, not at the checkout.
+> ScanItNow adds up your shopping as you go. Scan a product's barcode, read the shelf price with the camera or type it, and watch your running total update. Set a limit for the trip and the bar turns amber as you get close and red when you go over, so the surprise happens in the aisle, not at the checkout.
 >
 > MADE FOR THE AISLE
 > • Scan EAN and UPC barcodes and product QR codes
+> • Read the shelf price with the camera, then check it and add
 > • Set an optional limit per trip, with a gentle buzz at 80% and 100%
 > • Prices are remembered per store: a product you bought before is two taps, scan and add
 > • Works fully offline. Product names and photos fill in once you are back online

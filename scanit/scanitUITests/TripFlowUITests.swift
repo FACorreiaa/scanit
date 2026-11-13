@@ -115,6 +115,40 @@ final class TripFlowUITests: XCTestCase {
     }
 
     /// IOS-004: the largest accessibility text size does not clip the total.
+    func testReadingTheShelfPriceFillsTheSheet() throws {
+        app.launchEnvironment["UITEST_SHELF_TEXT"] = "1,99 €|9,95 €/kg"
+        launch()
+        startTrip(newStore: "Lidl", limit: "20")
+        app.buttons["scan"].tap()
+        scan(milk)
+
+        XCTAssertTrue(app.staticTexts["priceStepTitle"].waitForExistence(timeout: 5))
+        snapshot("price-step")
+        app.buttons["readPrice"].tap()
+
+        let price = app.textFields["price"]
+        XCTAssertTrue(price.waitForExistence(timeout: 5))
+        XCTAssertEqual(price.value as? String, "1,99")
+        snapshot("price-read-sheet")
+        app.buttons["addItem"].tap()
+        XCTAssertTrue(text(containing: "1,99").waitForExistence(timeout: 5), "HUD total updates after add")
+    }
+
+    func testTypingStaysAvailableWhenNoPriceIsRead() throws {
+        app.launchEnvironment["UITEST_SHELF_TEXT"] = "Leite meio gordo"
+        launch()
+        startTrip(newStore: "Lidl", limit: "20")
+        app.buttons["scan"].tap()
+        scan(milk)
+
+        XCTAssertTrue(app.buttons["readPrice"].waitForExistence(timeout: 5))
+        app.buttons["readPrice"].tap()
+        XCTAssertTrue(app.staticTexts["Couldn't read a price"].waitForExistence(timeout: 5))
+
+        app.buttons["typePrice"].tap()
+        XCTAssertTrue(app.textFields["price"].waitForExistence(timeout: 5))
+    }
+
     func testLargestTextSizeKeepsTotalReadable() throws {
         launch(extraArguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
 

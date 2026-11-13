@@ -75,6 +75,12 @@ struct HistoryView: View {
                     }
                 }
             }
+            // The hidden bar leaves no scroll edge effect, so the list needs a backdrop under the clock.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear
+                    .frame(height: 0)
+                    .background { (trips.isEmpty ? Color(.systemBackground) : Color(.systemGroupedBackground)).ignoresSafeArea(edges: .top) }
+            }
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(item: $paywallReason) { item in
                 PaywallSheet(reason: item.reason)
