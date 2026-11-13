@@ -2,6 +2,7 @@
 	import { site } from '$lib/config';
 	import StoreBadges from '$lib/StoreBadges.svelte';
 	import CardWall from '$lib/CardWall.svelte';
+	import HeroMascot from '$lib/HeroMascot.svelte';
 </script>
 
 <svelte:head>
@@ -12,24 +13,32 @@
 	/>
 </svelte:head>
 
-<!-- Hero: centred copy, official store badges, and a wall of shelf-label cards fanned along the bottom. -->
+<!-- Hero: copy and store badges beside ScanBot (stacked and centred on phones), and a wall of shelf-label
+     cards fanned along the bottom. -->
 <section class="hero relative">
 	<div class="hero-glow" aria-hidden="true"></div>
-	<div class="relative z-40 mx-auto flex max-w-3xl flex-col items-center px-4 pt-10 text-center md:pt-16">
-		<a href="#made-for-the-aisle" class="pill">
-			<span class="pill-dot" aria-hidden="true"></span>
-			Free on iPhone · no account needed
-			<span class="pill-arrow" aria-hidden="true">→</span>
-		</a>
-		<h1 class="mt-6 text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl md:text-6xl">
-			<span class="block text-balance">Know your total</span>
-			<span class="block text-balance" style="color: var(--ink-muted)">before the till.</span>
-		</h1>
-		<p class="mt-5 max-w-xl text-base sm:text-lg" style="color: var(--ink-muted)">
-			Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit.
-		</p>
-		<div class="mt-8">
-			<StoreBadges />
+	<div
+		class="relative z-40 mx-auto flex max-w-3xl flex-col items-center px-4 pt-6 md:max-w-6xl md:flex-row-reverse md:justify-between md:gap-8 md:px-8 md:pt-12"
+	>
+		<div class="hero-mascot-slot shrink-0">
+			<HeroMascot />
+		</div>
+		<div class="mt-2 flex flex-col items-center text-center md:mt-0 md:items-start md:text-left">
+			<a href="#made-for-the-aisle" class="pill">
+				<span class="pill-dot" aria-hidden="true"></span>
+				Free on iPhone · no account needed
+				<span class="pill-arrow" aria-hidden="true">→</span>
+			</a>
+			<h1 class="mt-6 text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl md:text-6xl">
+				<span class="block text-balance">Know your total</span>
+				<span class="block text-balance" style="color: var(--ink-muted)">before the till.</span>
+			</h1>
+			<p class="mt-5 max-w-xl text-base sm:text-lg" style="color: var(--ink-muted)">
+				Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit.
+			</p>
+			<div class="mt-8">
+				<StoreBadges />
+			</div>
 		</div>
 	</div>
 	<CardWall />
@@ -106,6 +115,14 @@
 	@media (min-width: 640px) {
 		.hero {
 			padding-bottom: max(16rem, calc(var(--card-h) + 3rem));
+		}
+	}
+	.hero-mascot-slot {
+		--mascot-w: 13rem;
+	}
+	@media (min-width: 768px) {
+		.hero-mascot-slot {
+			--mascot-w: clamp(20rem, 34vw, 28rem);
 		}
 	}
 	.hero-glow {
