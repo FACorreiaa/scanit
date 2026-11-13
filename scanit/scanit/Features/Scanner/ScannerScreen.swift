@@ -2,21 +2,31 @@ import ScanItCore
 import SwiftData
 import SwiftUI
 
-/// Full-screen scanner (`DESIGN.md` §4, BACKLOG IOS-005). Camera fills the screen, the total
-/// stays visible in a top HUD, and each barcode lock opens the confirm sheet. The scanner stays
-/// open after an add so the next product can be scanned straight away.
+/// Full-screen scanner (`DESIGN.md` §4, BACKLOG IOS-005, IOS-007). Camera fills the screen and the
+/// total stays visible in a top HUD. A barcode lock opens the confirm sheet when the price is
+/// remembered; otherwise the shelf price is read first, with typing it always one tap away. The
+/// scanner stays open after an add so the next product can be scanned straight away.
 struct ScannerScreen: View {
     @Environment(SessionStore.self) private var sessions
     @Environment(ProductEnricher.self) private var enricher
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.analytics) private var analytics
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let session: ShoppingSession
 
     @State private var source = BarcodeSource.current
     @State private var access = CameraAccess.current
     @State private var pending: DetectedCode?
+    /// Locked on a product with no remembered price: waiting for its shelf price.
+    @State private var awaitingPrice: DetectedCode?
+    @State private var isReadingPrice = false
+    @State private var priceReadFailed = false
+    @State private var labelOffer: LabelPriceOffer?
+    @State private var lockedAt: Date?
+    @State private var scannerCamera = ScannerCamera()
 
     var body: some View {
         ZStack {
@@ -24,14 +34,16 @@ struct ScannerScreen: View {
             camera
         }
         .overlay(alignment: .top) { hud }
-        .overlay(alignment: .bottom) { hint }
-        .sheet(item: $pending) { detected in
+        .overlay(alignment: .bottom) { bottomOverlay }
+        .sheet(item: $pending, onDismiss: { labelOffer = nil }) { detected in
             ConfirmItemSheet(
                 detected: detected,
                 currency: session.currency,
-                remembered: PriceMemory.lookup(code: detected.code.value, store: session.store, context: context),
-                product: enricher.cached(detected.code)
+                remembered: rememberedPrice(for: detected),
+                product: enricher.cached(detected.code),
+                offer: labelOffer
             ) { quantity, price, priceSource in
+                trackLabelRead(source: priceSource, price: price)
                 guard let item = sessions.addItem(
                     code: detected.code, quantity: quantity, unitPriceMinor: price.amountMinor,
                     priceSource: priceSource, symbology: detected.symbology
@@ -42,7 +54,7 @@ struct ScannerScreen: View {
             }
             .presentationDetents([.medium, .large])
         }
-        .sensoryFeedback(trigger: pending?.id) { _, new in new == nil ? nil : .impact(weight: .light) }
+        .sensoryFeedback(trigger: pending?.id ?? awaitingPrice?.id) { _, new in new == nil ? nil : .impact(weight: .light) }
         .sensoryFeedback(trigger: sessions.feedback) { _, event in
             switch event?.kind {
             case .warning: .warning
@@ -59,7 +71,7 @@ struct ScannerScreen: View {
     private var camera: some View {
         switch (access, source) {
         case (_, .simulated(let codes)):
-            SimulatedScanner(codes: codes) { pending = $0 }
+            SimulatedScanner(codes: codes, onDetect: handleLock)
         case (.notDetermined, _):
             CameraPrimer { Task { access = await CameraAccess.request() } }
         case (.denied, _):
@@ -75,12 +87,73 @@ struct ScannerScreen: View {
             }
             .environment(\.colorScheme, .dark)
         case (.authorized, .dataScanner):
-            DataScannerView(isPaused: pending != nil) { pending = $0 }
+            DataScannerView(isPaused: isBusy, camera: scannerCamera, onDetect: handleLock)
                 .ignoresSafeArea()
         case (.authorized, .capture):
-            CaptureBarcodeView(isPaused: pending != nil) { pending = $0 }
+            CaptureBarcodeView(isPaused: isBusy, onDetect: handleLock)
                 .ignoresSafeArea()
         }
+    }
+
+    // MARK: - Price step
+
+    private var isBusy: Bool { pending != nil || awaitingPrice != nil }
+
+    private func rememberedPrice(for detected: DetectedCode) -> RememberedPrice? {
+        PriceMemory.lookup(code: detected.code.value, store: session.store, context: context)
+    }
+
+    private func handleLock(_ detected: DetectedCode) {
+        lockedAt = .now
+        priceReadFailed = false
+        let isRemembered = rememberedPrice(for: detected)?.price.currency == session.currency
+        if source.readsShelfPrices, !isRemembered {
+            awaitingPrice = detected
+        } else {
+            pending = detected
+        }
+    }
+
+    private func readPrice() {
+        guard let detected = awaitingPrice, !isReadingPrice else { return }
+        isReadingPrice = true
+        priceReadFailed = false
+        Task {
+            defer { isReadingPrice = false }
+            let offer = try? await labelOffer(for: detected)
+            // The product was cancelled while the still was being read.
+            guard awaitingPrice?.id == detected.id else { return }
+            guard let offer, !offer.isEmpty else {
+                priceReadFailed = true
+                return
+            }
+            labelOffer = offer
+            pending = detected
+            awaitingPrice = nil
+        }
+    }
+
+    private func labelOffer(for detected: DetectedCode) async throws -> LabelPriceOffer {
+        if case .simulated = source {
+            let text = ProcessInfo.processInfo.environment["UITEST_SHELF_TEXT"] ?? ""
+            return ShelfPriceReader.offer(fromTestText: text, currency: session.currency)
+        }
+        let photo = try await scannerCamera.photo()
+        return try await ShelfPriceReader.offer(from: photo, currency: session.currency, barcodePayload: detected.payload)
+    }
+
+    private func typePrice() {
+        pending = awaitingPrice
+        awaitingPrice = nil
+    }
+
+    /// One event per item that went through the price step. No amounts (`AnalyticsEvent`).
+    private func trackLabelRead(source priceSource: PriceSource, price: Money) {
+        guard source.readsShelfPrices, priceSource != .remembered, let lockedAt else { return }
+        let outcome = PriceSourceResolver.outcome(
+            source: priceSource, prefill: labelOffer?.prefill, labelCandidates: labelOffer?.candidates ?? []
+        )
+        analytics.track(.priceOCRResult(outcome: outcome, ms: Int(Date.now.timeIntervalSince(lockedAt) * 1000)))
     }
 
     // MARK: - Overlays
@@ -105,6 +178,74 @@ struct ScannerScreen: View {
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .environment(\.colorScheme, .dark)
+    }
+
+    @ViewBuilder
+    private var bottomOverlay: some View {
+        if let awaitingPrice {
+            priceStep(awaitingPrice)
+        } else {
+            hint
+        }
+    }
+
+    private func priceStep(_ detected: DetectedCode) -> some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(priceReadFailed ? "Couldn't read a price" : "Point at the shelf price")
+                        .font(.headline)
+                        .accessibilityIdentifier("priceStepTitle")
+                    Text(priceReadFailed ? "Move closer and try again, or type it." : detected.code.displayValue)
+                        .font(.footnote)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button("Cancel", systemImage: "xmark") { awaitingPrice = nil }
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .tint(.white)
+                    .accessibilityIdentifier("cancelPriceStep")
+            }
+            priceStepLayout { priceStepButtons }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 16))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .environment(\.colorScheme, .dark)
+    }
+
+    /// Side by side, stacked when large text would squeeze the labels.
+    private var priceStepLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
+    }
+
+    @ViewBuilder
+    private var priceStepButtons: some View {
+        Button(action: typePrice) {
+            Text("Type it").frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.large)
+        .tint(.white)
+        .accessibilityIdentifier("typePrice")
+
+        Button(action: readPrice) {
+            Group {
+                if isReadingPrice {
+                    ProgressView()
+                } else {
+                    Label("Read price", systemImage: "text.viewfinder")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .disabled(isReadingPrice)
+        .accessibilityIdentifier("readPrice")
     }
 
     @ViewBuilder

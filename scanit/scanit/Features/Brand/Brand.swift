@@ -3,40 +3,13 @@ import SwiftUI
 
 /// Brand pieces from `brand/` (see brand/README.md). The mark and wordmark are vector assets with
 /// light and dark variants; the mascot is a 3D illustration with a transparent background.
-extension Color {
-    /// Brand green from the logo (#10AA51). Decorative only: for text and buttons use the accent
-    /// (#23843B), which passes WCAG AA with white text.
-    static let brandGreen = Color(red: 0x10 / 255, green: 0xAA / 255, blue: 0x51 / 255)
-}
-
-/// ScanBot (the still) on a soft green disc. The disc is the brand glow behind the mascot and keeps
-/// its pearl body from fading into white backgrounds.
 struct MascotView: View {
     var height: CGFloat = 180
-    var showsDisc = true
-
     var body: some View {
         Image("Mascot")
             .resizable()
             .scaledToFit()
             .frame(height: height)
-            .background {
-                if showsDisc { MascotDisc(height: height) }
-            }
-            .accessibilityHidden(true)
-    }
-}
-
-/// The green disc behind the mascot, shared by the still and the 3D view.
-struct MascotDisc: View {
-    var height: CGFloat
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        Circle()
-            .fill(Color.brandGreen.opacity(colorScheme == .dark ? 0.22 : 0.14))
-            .frame(width: height * 0.95, height: height * 0.95)
-            .offset(y: height * 0.04)
             .accessibilityHidden(true)
     }
 }
@@ -57,10 +30,7 @@ struct Mascot3DView: View {
             MascotView(height: height)
         } else {
             ZStack {
-                // The disc stays put while the still swaps for the model: the pearl body needs it
-                // on white backgrounds.
-                MascotDisc(height: height)
-                MascotView(height: height, showsDisc: false)
+                MascotView(height: height)
                     .opacity(phase == .shown ? 0 : 1)
                 RealityView { content in
                     guard let bot = try? await Entity(named: "scanbot") else {

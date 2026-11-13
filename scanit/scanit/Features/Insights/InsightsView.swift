@@ -41,6 +41,11 @@ struct InsightsView: View {
                         .accessibilityIdentifier("insightsAbout")
                 }
                 .padding(.horizontal, 8)
+                // Opaque up to the top edge: the list scrolls away under the header and the clock.
+                .background {
+                    (calculator.hasEnoughData ? Color(.systemGroupedBackground) : Color(.systemBackground))
+                        .ignoresSafeArea(edges: .top)
+                }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
         }

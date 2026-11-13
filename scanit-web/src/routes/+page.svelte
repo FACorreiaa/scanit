@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>{site.name}: know your total before the till</title>
+	<title>{site.name}: scan smart, spend with clarity</title>
 	<meta
 		name="description"
 		content="Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit."
@@ -30,8 +30,8 @@
 				<span class="pill-arrow" aria-hidden="true">→</span>
 			</a>
 			<h1 class="mt-6 text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl md:text-6xl">
-				<span class="block text-balance">Know your total</span>
-				<span class="block text-balance" style="color: var(--ink-muted)">before the till.</span>
+				<span class="block text-balance">Scan smart.</span>
+				<span class="block text-balance" style="color: var(--ink-muted)">Spend with clarity.</span>
 			</h1>
 			<p class="mt-5 max-w-xl text-base sm:text-lg" style="color: var(--ink-muted)">
 				Scan each product as you shop. ScanItNow keeps a running total and tells you before you go over your limit.

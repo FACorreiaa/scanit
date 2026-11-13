@@ -99,8 +99,10 @@ Swift 6 language mode, `MainActor` default isolation (Xcode 26 template default)
   Check `DataScannerViewController.isSupported` (A12 or later) and `isAvailable` (camera permission)
   before showing it. Start from `apps/norviq/norviq-ios/financeplan/financeplan/Features/Receipts/ReceiptScannerView.swift`,
   which already wraps the scanner and does both checks, but reads QR only.
-- **Spike in P1:** confirm whether the iOS 18+ SDK's `.text(textContentType:)` offers a currency
-  content type. If it does, use it. If not, use plain `.text()` and the parser below.
+- **Shelf price (decided 2026-11-05):** one still from `capturePhoto()` on the running scanner, read by
+  `ScanItCore.LabelReader` and the parser below, rather than live `.text()` items. The bench then measures what ships,
+  and the barcode's box in the same still settles labels side by side. Vision's accurate recogniser does not run on the
+  simulator, so accuracy can only be measured on a device or with `tools/label-bench` on a Mac.
 - **Fallback** when the scanner is not supported: `AVCaptureMetadataOutput` for barcodes only, plus
   the manual price keypad.
 - **Barcode normaliser** (pure function, unit-tested):

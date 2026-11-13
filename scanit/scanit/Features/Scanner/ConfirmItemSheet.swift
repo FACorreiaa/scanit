@@ -1,15 +1,17 @@
 import ScanItCore
 import SwiftUI
 
-/// Confirm a scanned product (`DESIGN.md` §4, BACKLOG IOS-008/IOS-009). A remembered price is
-/// prefilled, so a known product is two taps: scan, Add. Otherwise the price keypad opens.
-/// Shelf-price reading (IOS-007) will prefill the field from the camera too.
+/// Confirm a scanned product (`DESIGN.md` §4, BACKLOG IOS-007/008/009). A remembered price or one
+/// read from the shelf label is prefilled, so a known product is two taps: scan, Add. Other prices
+/// on the label are one-tap chips. Otherwise the price keypad opens.
 struct ConfirmItemSheet: View {
     let detected: DetectedCode
     let currency: String
     let remembered: RememberedPrice?
     /// Open Food Facts details, when this product has been seen before.
     var product: Product? = nil
+    /// What the shelf label offered, when the price step read one.
+    var offer: LabelPriceOffer? = nil
     let onAdd: (_ quantity: Int, _ price: Money, _ source: PriceSource) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -40,6 +42,9 @@ struct ConfirmItemSheet: View {
                 }
 
                 Section {
+                    if let chips = offer?.chips, !chips.isEmpty {
+                        labelChips(chips)
+                    }
                     HStack {
                         Text(Money.symbol(for: currency)).foregroundStyle(.secondary)
                         TextField("0,00", text: $priceText)
@@ -56,7 +61,11 @@ struct ConfirmItemSheet: View {
                 } header: {
                     Text("Price")
                 } footer: {
-                    if let remembered {
+                    if offer?.prefill != nil {
+                        Label("Read from the shelf label. Check it matches.", systemImage: "text.viewfinder")
+                    } else if offer != nil {
+                        Text("Pick the price, or type it.")
+                    } else if let remembered {
                         Label {
                             Text("Seen here \(remembered.observedAt, format: .relative(presentation: .named))")
                         } icon: {
@@ -65,6 +74,7 @@ struct ConfirmItemSheet: View {
                     }
                 }
             }
+            .contentMargins(.bottom, 12, for: .scrollContent)
             .navigationTitle("Add to cart")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -86,7 +96,11 @@ struct ConfirmItemSheet: View {
             }
         }
         .onAppear {
-            if let remembered, remembered.price.currency == currency {
+            if let prefill = offer?.prefill {
+                priceText = MoneyInput.editingText(prefill)
+            } else if offer != nil {
+                priceFocused = false
+            } else if let remembered, remembered.price.currency == currency {
                 priceText = MoneyInput.editingText(remembered.price)
             } else {
                 priceFocused = true
@@ -103,10 +117,24 @@ struct ConfirmItemSheet: View {
         return "Add · \(price.multiplied(by: quantity).formatted())"
     }
 
+    private func labelChips(_ chips: [Money]) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(chips, id: \.self) { chip in
+                    Button(chip.formatted()) { priceText = MoneyInput.editingText(chip) }
+                        .buttonStyle(.bordered)
+                        .monospacedDigit()
+                        .accessibilityIdentifier("labelChip")
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+
     private func add() {
         guard let price else { return }
         let source = PriceSourceResolver.resolve(
-            price: price, prefill: nil, labelCandidates: [], remembered: remembered?.price
+            price: price, prefill: offer?.prefill, labelCandidates: offer?.chips ?? [], remembered: remembered?.price
         )
         onAdd(quantity, price, source)
         dismiss()

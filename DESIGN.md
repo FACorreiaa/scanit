@@ -82,7 +82,7 @@ The **Start** button sits at the bottom.
 - A reticle shows the barcode lock. On lock: a light haptic, the reticle snaps, and the code shows under it.
 - **Step 2, price:**
   - **Remembered price:** the confirm sheet comes up straight away with the price filled in and marked "seen 12 d ago". Scanning the shelf price is optional, to refresh it.
-  - **Not remembered:** the prompt is "Point at the shelf price". Candidate prices get highlighted boxes, and the top candidate pre-fills. The **Type it** keypad button is always visible.
+  - **Not remembered:** the prompt is "Point at the shelf price", with **Read price** and **Type it** always visible. Read price takes one still and reads it on the device. A clear price opens the confirm sheet pre-filled ("Read from the shelf label. Check it matches."); when two prices are close, nothing is guessed and they are offered as chips. Per-kg prices and multi-buys are never offered.
 - **Confirm sheet** (small detent):
   - product name and photo from Open Food Facts once they arrive, otherwise "Product 5601234…"
   - price, editable
@@ -90,7 +90,7 @@ The **Start** button sits at the bottom.
   - big **Add** button at the bottom
 
   After **Add**, the scanner stays open for the next item, and the HUD total animates up.
-- Barcode with no price found after about 3 s: the prompt changes to "Type the price".
+- Nothing readable on the still: the prompt changes to "Couldn't read a price", and the user can try again or type it. A wrong prefill is corrected in the sheet.
 - Unsupported device (older than A12): barcode-only scanner plus keypad, with the same confirm sheet.
 
 ### 5. Limit states
@@ -166,15 +166,15 @@ and never converted.
 
 A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show progress toward 3 trips and what each unlocks, with **Start shopping**. Charts follow the `dataviz` skill.
 
-## Brand (2026-10-10)
+## Brand (2026-11-05)
 
-Product name **ScanItNow**, with a logo mark, a wordmark and a mascot supplied by the owner. Assets, colours and usage
+Product name **ScanItNow**, tagline **Scan smart. Spend with clarity.**, with a logo mark and a mascot supplied by the owner. Assets, colours and usage
 rules are in `brand/README.md`. Short version:
 
-- **App icon:** the logo mark.
+- **App icon:** the logo mark on a dark tile, in both appearances.
 - **Launch screen:** the mark on an adaptive background.
-- **Mascot:** ScanBot (since 2026-11-13), welcome moments only (empty Trip screen, paywall, web hero). 3D and slowly turning on the web hero and empty Trip screen, still PNG everywhere else and whenever Reduce Motion is on.
-- **Brand green `#10AA51`:** illustration only. UI stays on the accessible accent `#23843B`.
+- **Mascot:** welcome moments only (empty Trip screen, paywall, web hero), with no disc behind it. ScanBot is 3D and turning slowly on the web hero and the empty Trip screen, and the still PNG everywhere else and whenever Reduce Motion is on.
+- **Teal and lime:** the logo only. UI stays on the accessible accent `#23843B`.
 
 ## Visual direction (proposal)
 

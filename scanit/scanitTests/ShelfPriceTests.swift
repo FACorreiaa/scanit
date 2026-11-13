@@ -1,3 +1,4 @@
+import UIKit
 import Foundation
 import ScanItCore
 import SwiftData
@@ -86,5 +87,70 @@ struct OCRStatsTests {
         #expect(event.name == "price_ocr_result")
         #expect(event.properties == ["outcome": "accepted", "ms": "1840"])
         #expect(AnalyticsEvent.priceOCRCorrected.properties.isEmpty)
+    }
+}
+
+@MainActor
+struct LabelPriceOfferTests {
+    private func offer(_ lines: [(String, Double)]) -> LabelPriceOffer {
+        LabelPriceOffer(PriceParser(currency: "EUR").parse(lines.map { RecognizedText(text: $0.0, height: $0.1) }))
+    }
+
+    @Test func aClearLabelPrefillsWithoutChips() {
+        let offer = offer([("1,99 €", 0.2), ("9,95 €/kg", 0.03)])
+        #expect(offer.prefill == Money(amountMinor: 199, currency: "EUR"))
+        #expect(offer.chips.isEmpty)
+    }
+
+    @Test func perKiloAndMultiBuyPricesAreNeverOffered() {
+        let offer = offer([("9,95 €/kg", 0.2), ("2 x 0,99", 0.2)])
+        #expect(offer.isEmpty)
+    }
+
+    @Test func twoSimilarPricesAreChipsAndNothingIsGuessed() {
+        let offer = offer([("1,99 €", 0.2), ("2,49 €", 0.2)])
+        #expect(offer.prefill == nil)
+        #expect(offer.chips.count == 2)
+    }
+
+    @Test func aLabelWithNoPriceIsEmpty() {
+        #expect(offer([("Leite meio gordo", 0.1)]).isEmpty)
+    }
+
+    /// Camera photos arrive rotated and Vision ignores the flag, so an unrotated still reads nothing.
+    /// Pixels only: Vision's text recogniser cannot run on the simulator (`tools/label-bench` covers it).
+    @Test func aRotatedPhotoIsRedrawnTheRightWayUp() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        // Left half red, right half blue; `.right` displays it turned clockwise, red on top.
+        let pixels = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 100), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 150, height: 100))
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 150, y: 0, width: 150, height: 100))
+        }
+        let photo = UIImage(cgImage: try #require(pixels.cgImage), scale: 1, orientation: .right)
+
+        let upright = try #require(ShelfPriceReader.upright(photo))
+
+        #expect(upright.width == 100)
+        #expect(upright.height == 300)
+        let context = try #require(CGContext(
+            data: nil, width: 100, height: 300, bitsPerComponent: 8, bytesPerRow: 400,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(upright, in: CGRect(x: 0, y: 0, width: 100, height: 300))
+        let bytes = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+        #expect(bytes[400 * 10 + 200] > 200, "top row is red")
+        #expect(bytes[400 * 290 + 200] < 50, "bottom row is not red")
+    }
+
+    @Test func aHugePhotoIsScaledDownForVision() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let photo = UIGraphicsImageRenderer(size: CGSize(width: 4800, height: 1200), format: format).image { _ in }
+        let upright = try #require(ShelfPriceReader.upright(photo))
+        #expect(upright.width == 2400)
+        #expect(upright.height == 600)
     }
 }

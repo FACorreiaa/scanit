@@ -1,5 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="ScanItNow">
-<style>.sq{fill:#222A35}@media (prefers-color-scheme:dark){.sq{fill:#EEF1F5}}</style>
-<path d="M11 85L11 41Q11 11 41 11L85 11M155 11L199 11Q229 11 229 41L229 85M229 155L229 199Q229 229 199 229L155 229M85 229L41 229Q11 229 11 199L11 155" fill="none" stroke="#10AA51" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M70 61H104A9 9 0 0 1 113 70V104A9 9 0 0 1 104 113H70A9 9 0 0 1 61 104V70A9 9 0 0 1 70 61ZM81 78H93A3 3 0 0 1 96 81V93A3 3 0 0 1 93 96H81A3 3 0 0 1 78 93V81A3 3 0 0 1 81 78ZM136 61H170A9 9 0 0 1 179 70V104A9 9 0 0 1 170 113H136A9 9 0 0 1 127 104V70A9 9 0 0 1 136 61ZM147 78H159A3 3 0 0 1 162 81V93A3 3 0 0 1 159 96H147A3 3 0 0 1 144 93V81A3 3 0 0 1 147 78ZM70 127H104A9 9 0 0 1 113 136V170A9 9 0 0 1 104 179H70A9 9 0 0 1 61 170V136A9 9 0 0 1 70 127ZM81 144H93A3 3 0 0 1 96 147V159A3 3 0 0 1 93 162H81A3 3 0 0 1 78 159V147A3 3 0 0 1 81 144ZM136 127L144 127L144 150.90L144 150.90C144 152.56 145.34 153.90 147 153.90L159 153.90C160.66 153.90 162 152.56 162 150.90L162 127L170 127C174.97 127 179 131.03 179 136L179 170C179 174.97 174.97 179 170 179L136 179C131.03 179 127 174.97 127 170L127 136C127 131.03 131.03 127 136 127Z" class="sq" fill-rule="evenodd"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-label="ScanItNow">
+<rect width="800" height="800" rx="180" fill="#0B1014"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 475" x="110" y="162" width="580" height="475">
+<defs>
+<linearGradient id="tl" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#3FDCC6"/><stop offset="1" stop-color="#6FEBD8"/></linearGradient>
+<linearGradient id="tr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#BDF27A"/><stop offset="1" stop-color="#86E23A"/></linearGradient>
+<linearGradient id="bl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#86E23A"/><stop offset="1" stop-color="#BDF27A"/></linearGradient>
+<linearGradient id="br" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#3FDCC6"/><stop offset="1" stop-color="#6FEBD8"/></linearGradient>
+</defs>
+<g fill="none" stroke-width="50" stroke-linecap="round">
+<path stroke="url(#tl)" d="M25 145V95A70 70 0 0 1 95 25H155"/>
+<path stroke="url(#tr)" d="M425 25H485A70 70 0 0 1 555 95V145"/>
+<path stroke="url(#bl)" d="M25 333V380A70 70 0 0 0 95 450H155"/>
+<path stroke="url(#br)" d="M425 450H485A70 70 0 0 0 555 380V333"/>
+</g>
+<path fill="none" stroke="#F2F2EC" stroke-width="35" stroke-linecap="round" stroke-linejoin="round" d="M128 139H166Q174 139 176 147L213 282Q218 301 237 301H352Q373 301 383 282L434 191H241"/>
+<circle cx="237" cy="364" r="25" fill="#F2F2EC"/><circle cx="345" cy="364" r="25" fill="#F2F2EC"/>
+</svg>
 </svg>
