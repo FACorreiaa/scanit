@@ -33,13 +33,16 @@ extension TripActivityAttributes.Level {
 
 /// Keeps one Live Activity in step with the active trip (BACKLOG LIVE-001). Everything is local:
 /// the app updates it on every change to the cart, and there is no push server.
+///
+/// Only the activity's id is kept. `Activity` is not `Sendable`, so each update looks it up again
+/// inside a nonisolated task instead of carrying it off the main actor (Swift 6 rejects that).
 final class TripActivityController {
-    private var activity: Activity<TripActivityAttributes>?
+    private var activityID: String?
     private var shown: TripActivityAttributes.ContentState?
 
     init() {
         // After a relaunch mid-trip the activity is still on the Lock Screen: take it back.
-        activity = Activity<TripActivityAttributes>.activities.first
+        activityID = Activity<TripActivityAttributes>.activities.first?.id
     }
 
     /// Call after every change. `nil` means no trip in progress.
@@ -49,27 +52,36 @@ final class TripActivityController {
             return
         }
         let state = TripActivityAttributes.ContentState(session: session)
-        if let activity {
+        if let activityID {
             guard state != shown else { return }
             shown = state
-            Task { await activity.update(ActivityContent(state: state, staleDate: nil)) }
+            Task { await Self.update(id: activityID, to: state) }
         } else {
             // Off in Settings, or not available: the trip works the same without it.
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
             shown = state
-            activity = try? Activity.request(
+            activityID = (try? Activity.request(
                 attributes: TripActivityAttributes(storeName: session.store?.name),
                 content: ActivityContent(state: state, staleDate: nil)
-            )
+            ))?.id
         }
     }
 
     private func end() {
         shown = nil
-        activity = nil
-        // Every one of them, in case an earlier launch left one behind.
-        for running in Activity<TripActivityAttributes>.activities {
-            Task { await running.end(nil, dismissalPolicy: .immediate) }
+        activityID = nil
+        Task { await Self.endAll() }
+    }
+
+    private nonisolated static func update(id: String, to state: TripActivityAttributes.ContentState) async {
+        guard let activity = Activity<TripActivityAttributes>.activities.first(where: { $0.id == id }) else { return }
+        await activity.update(ActivityContent(state: state, staleDate: nil))
+    }
+
+    /// Every one of them, in case an earlier launch left one behind.
+    private nonisolated static func endAll() async {
+        for activity in Activity<TripActivityAttributes>.activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
     }
 }

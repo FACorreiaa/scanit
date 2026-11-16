@@ -68,15 +68,37 @@ platform :ios do
     )
   end
 
-  desc "One-time (re-runnable): create ScanIt's App Store profiles in the shared match repo"
+  desc "One-time (re-runnable): create ScanIt's App IDs, then its App Store profiles in the shared match repo"
   desc "Reuses the team's existing Apple Distribution certificate; needs write access to the repo."
   lane :seed_signing do
     api_key = asc_api_key
     setup_ci if is_ci
+    ensure_bundle_ids(api_key: api_key)
     match(type: "appstore", readonly: false, api_key: api_key)
   end
 
   # ---- helpers ----
+
+  # match only makes profiles for App IDs that already exist. The widget extensions
+  # (LIVE-001) are new, so create whatever the Matchfile lists and the portal lacks. Plain
+  # App IDs: a Live Activity needs no capability.
+  private_lane :ensure_bundle_ids do |options|
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: options[:api_key])
+    [BUNDLE_ID, BUNDLE_ID + WIDGETS_SUFFIX, BETA_BUNDLE_ID, BETA_BUNDLE_ID + WIDGETS_SUFFIX].each do |identifier|
+      # The identifier filter also matches longer IDs, so compare exactly.
+      existing = Spaceship::ConnectAPI::BundleId.all(filter: { identifier: identifier })
+      next if existing.any? { |bundle_id| bundle_id.identifier == identifier }
+
+      name = identifier.end_with?(WIDGETS_SUFFIX) ? "ScanIt Widgets" : "ScanIt"
+      name += " Beta" if identifier.start_with?(BETA_BUNDLE_ID)
+      Spaceship::ConnectAPI::BundleId.create(
+        name: name,
+        platform: "IOS",
+        identifier: identifier
+      )
+      UI.success("Created App ID #{identifier}")
+    end
+  end
 
   private_lane :asc_api_key do
     app_store_connect_api_key(
