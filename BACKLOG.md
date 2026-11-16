@@ -32,6 +32,7 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 | Release plan | **Fast path (2026-10-10):** App Store v1.0 free, no IAP, no analytics SDKs, legal pages on facorreia.com. `scanit-web` is parked (built, not deployed). REL-003 and FND-004 move to v1.1. See `docs/release.md`. |
 | App Store | **1.0 (build 1) submitted for review 2026-10-14**, manual release. Free, Data Not Collected, 175 territories. |
 | Strangers count | 0 |
+| P10 Plan and save | Opened 2026-11-16 by owner decision while the strangers count was 0. Local-only items may start; items marked **(after P2)** wait for GATE-002. |
 
 ---
 
@@ -49,6 +50,7 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 | P7 | Live Activity | Total visible on the Lock Screen and Dynamic Island |
 | P8 | Android | Play Store production release at parity with P1–P4 |
 | P9 | Web stats | Signed-in web dashboard over `/v1/stats` |
+| P10 | Plan and save | One person plans a week, shops from the plan, and sees "saved €X this month" that adds up from the trip lines |
 
 ⛔ **P4, P8 and P9 do not start until P2 passes.** P3 and P5 may start during P2, because they make the
 tester experience and the App Store submission possible. P5's legal pages are needed for TestFlight
@@ -409,6 +411,228 @@ One file from Settings: trip, store, date, product, quantity, price.
 
 ---
 
+## P10 — Plan and save
+
+Opened 2026-11-16 by the owner. You plan the week's meals, the app tells you where the list is cheapest,
+and it shows what you saved. Portugal comes first (chains, labels, pt-PT), other countries follow.
+
+Owner decisions (2026-11-16):
+
+- **Price data:** your own scans plus **Open Prices** (prices.openfoodfacts.org, open data). Read-only
+  in the app; sending your own prices is opt-in and after P2. No scraping of chain websites.
+- **Meals:** your own meals as ingredient lists. A week plan becomes the shopping list plus a cost
+  estimate per store. No recipe catalogue, no AI.
+- **Currency:** each currency is counted on its own. Savings are never converted.
+- **Gate:** local-only items may start now. Items marked **(after P2)** wait for GATE-002.
+
+**Exit condition:** one person plans a week, shops from the plan, and sees "saved €X this month" that
+adds up from the trip lines.
+
+**Start order:** SAVE-001 → BUD-001 → CMP-001 → MEAL-001 → MEAL-002 → MEAL-003 → OPX-001 →
+SAVE-002/003 → MEAL-004 → CMP-002 → BUD-002 → OPX-002 → REG-001/002 → the rest.
+
+*Savings: the base the rest builds on.*
+
+### SAVE-001 · Savings definitions in ScanItCore · M
+Pure functions over `TripSnapshot` / `PriceSnapshot` in `ScanItCore/Insights.swift`, next to
+`cheapestStores`, so the server can run the same maths in P9. Definitions are INS-11…14 in `DESIGN.md`:
+
+- **INS-11 Line saving:** (reference price − price paid) × quantity. The reference is the median of
+  the latest price at each *other* store for the same GTIN over 90 days. Only real GTINs; in-store and
+  opaque codes are skipped, as in ADD-001. A line with no reference counts 0 and is reported as
+  "unpriced". It can be negative (you overpaid).
+- **INS-12 Trip saving:** Σ INS-11 over the trip, per currency.
+- **INS-13 Missed saving:** per line, (price paid − cheapest known price elsewhere) × quantity, only
+  when above 0.
+- **INS-14 Month saving:** Σ INS-12 over trips ended in the month, per currency.
+
+Fixtures in `Fixtures/savings.json`, every expected value worked out by hand, including a USD trip
+(currencies never mix) and an in-store code (skipped).
+
+**Done when:** every INS-11…14 case has a fixture test, and a deliberately wrong expected value fails.
+
+### SAVE-002 · Saving on the trip summary and in History · S
+**Needs:** SAVE-001.
+
+- The finish sheet (`TripSummary.swift`) shows "Saved €3,40 vs other stores" and "Could have saved €1,10 at Lidl".
+- History rows show each trip's saving.
+- The share card (ADD-002) can include the saving.
+
+**Done when:** a demo-data trip shows both numbers, and a trip with no reference prices shows neither.
+
+### SAVE-003 · Savings on Insights · S
+**Needs:** SAVE-001.
+
+- A "Saved this month" tile with a 6-month trend.
+- A "Where you'd save most" list built from INS-13.
+- The 3-trip placeholder rule still applies.
+
+**Done when:** the tile renders in light and dark mode with demo data and passes the `dataviz` validator.
+
+*Budget: improvements to the trip limit and ADD-003.*
+
+### BUD-001 · Budget per currency · S
+`BudgetStore` holds one `Money`. Keep one budget per currency, so a € and a $ budget can both exist.
+The existing `UserDefaults` keys are migrated.
+
+**Done when:** a € budget and a $ budget each show on Insights against their own month's spend, and
+an existing single budget survives the update.
+
+### BUD-002 · Over-limit help during the trip · M
+**Needs:** SAVE-001.
+When the trip is `.near` or `.over`, the trip screen suggests what would bring it back under:
+
+- lines that are not on the shopping list
+- lines that cost less at another store you know (`PriceMemory.cheapestElsewhere`)
+
+Suggestions only. The app never removes anything by itself.
+
+**Done when:** a demo trip over its limit shows at least one suggestion, and acting on it brings the
+state back to `.ok`.
+
+### BUD-003 · Weekly budget and carry-over · S
+**Needs:** BUD-001.
+
+- The budget can be weekly or monthly.
+- Optional carry-over adds what was not spent to the next period.
+- The Live Activity and the widget (LIVE-002) show what is left this period.
+
+**Done when:** fixture tests cover a week boundary, carry-over on and off, and a period with no trips.
+
+### BUD-004 · Savings goal · S
+**Needs:** SAVE-003.
+An optional monthly savings target, with INS-14 measured against it, as a progress ring on the tile.
+
+**Done when:** the ring fills from INS-14, and a month that reaches the target says so once.
+
+*Meals.*
+
+### MEAL-001 · Meal model · M
+New `Meal` (name, servings, note) and `MealIngredient` (meal, text, `code?`, quantity). Both
+`nonisolated` and `SyncedRecord`, as `ARCHITECTURE.md` requires, so P4 needs no change of shape.
+
+- Ingredients are picked from past purchases through `ShoppingList.suggestions` (links the barcode) or typed.
+- Screens: list meals, create, edit, delete.
+
+**Done when:** a meal with 5 ingredients, 3 of them from past scans, survives a relaunch, and a
+deleted meal is hidden (soft delete).
+
+### MEAL-002 · Week plan · M
+**Needs:** MEAL-001.
+A `PlanEntry` model (date, slot, meal, servings). A week view puts meals into days; a meal can be
+copied from last week.
+
+**Done when:** a UI test builds a 7-day plan with 10 meals in under 2 minutes, and the plan survives a relaunch.
+
+### MEAL-003 · Plan to shopping list · S
+**Needs:** MEAL-002, ADD-005.
+
+- "Add to list" merges the plan's ingredients into `ListItem`s through `ShoppingList.add(_:code:)`.
+- Duplicates are combined, and quantities are scaled by servings.
+- An ingredient can be marked "in pantry" so it is left out.
+
+**Done when:** two meals that share an ingredient produce one list line with the combined quantity,
+and scanning still ticks it.
+
+### MEAL-004 · Plan cost per store · M
+**Needs:** MEAL-003, SAVE-001. OPX-002 adds data later.
+
+- From `PriceMemory` (and Open Prices once in), estimate the list's cost at each store you know:
+  "€42 at Lidl · €47 at Continente · 3 unpriced".
+- Offer **Start trip** at the cheapest store, with the estimate as a limit chip
+  (`TripStartOptions.limitSuggestions`).
+
+**Done when:** the demo list shows costs for 2 stores that equal the sum of the remembered prices,
+and the limit chip equals the estimate rounded up.
+
+### MEAL-005 · Planned vs actual · S
+**Needs:** MEAL-004.
+A trip started from a plan keeps a link to it. The summary shows the planned cost against the amount
+spent, and the items that were not on the plan.
+
+**Done when:** a planned trip with one extra item shows that item and the right difference.
+
+*Compare stores.*
+
+### CMP-001 · Chain on a store · S
+`Store.chain` exists but is never filled in. Offer a chain list per country when a store is added
+(Portugal: Continente, Pingo Doce, Lidl, Aldi, Auchan, Intermarché, Mercadona, Minipreço; short lists
+for Spain, France and the US). The list is JSON in `ScanItCore`, so Android can use it too.
+Comparisons are by chain, not by branch.
+
+**Done when:** a new Portuguese store gets a chain in one tap, and older stores can be given one in Settings.
+
+### CMP-002 · Compare screen · M
+**Needs:** CMP-001, SAVE-001.
+A product view with the newest price at each chain, its age and its source (yours or Open Prices),
+and a basket view (the list or your regulars) with the total per chain. Prices older than 90 days are
+greyed out.
+
+**Done when:** with demo data, the basket totals per chain match INS-07, and old prices are marked as old.
+
+### CMP-003 · Unit price (€/kg, €/L) · M
+**Needs:** CMP-002.
+Read `quantity` / `product_quantity` from Open Food Facts into `Product`, so different pack sizes are
+compared per kg or per litre. Unknown size: no unit-price comparison.
+
+**Done when:** 500 g and 1 kg packs of the same product show the right price per kg.
+
+*Open Prices.*
+
+### OPX-001 · Spike: Open Prices for Portugal · S
+Check the API (product lookup, place and date filters, paging, rate limits), the licence (ODbL:
+attribution and share-alike), how many prices exist for the owner's 20 most-bought GTINs in Portugal,
+and how places map to chains (OSM `brand` / `brand:wikidata`).
+
+**Done when:** the hit rate on those 20 GTINs and the go/no-go are written in `ARCHITECTURE.md` →
+Open Prices. If Portugal coverage is too thin, the owner decides whether OPX-002 ships for other
+countries only or is dropped.
+
+### OPX-002 · Read Open Prices (local cache) · M
+**Needs:** OPX-001, CMP-001.
+Prices are fetched after the scan and cached in a new `ExternalPrice` model, not synced (like the OFF
+cache). Only the GTIN and the country are sent, never the cart. Batched and queued offline, following
+`ProductEnricher`. Results feed CMP-002, MEAL-004 and INS-11 (marked as external). Attribution on the
+About screen.
+
+**Done when:** stubbed tests cover a hit, a miss with a cache time limit, and the offline queue; an
+opt-in live test gets one real price; the privacy page and App Privacy labels are re-checked
+(REL-001, WEB-002).
+
+### OPX-003 · Send your prices to Open Prices (opt-in) · M · (after P2)
+**Needs:** OPX-002, GATE-002.
+
+- Off by default. Needs an Open Food Facts account.
+- Sends only GTIN, price, currency, date and OSM shop.
+- A preview shows what will be sent before it goes.
+- Legal pages and App Privacy labels updated.
+
+**Done when:** one test price shows on Open Prices, and turning the option off stops all sending.
+
+*Region.*
+
+### REG-001 · Portuguese (Portugal) · M
+The app is English only. Add a String Catalog with pt-PT, plus pt-PT App Store metadata and
+screenshots. Money formatting already follows the currency.
+
+**Done when:** with the phone in pt-PT, no English remains on the trip, scan, list, meal and insights
+screens, and the owner has checked a UI-test screenshot of each.
+
+### REG-002 · Region defaults · S
+Country and currency come from the phone's region on first launch. The chain list (CMP-001) and the
+price-in-barcode table (INS-105) are chosen by the store's `countryCode`.
+
+**Done when:** a fresh install in each of PT, ES and US gives that country's currency and chain list.
+
+*Later (after P2). Listed so nobody re-litigates them.*
+
+- **MEAL-101 · AI week-plan suggestions (Haiku).** Needs a server: the key cannot ship in the app.
+  Read `platform/infra/docs/llm-haiku-trial.md` first.
+- **CMP-101 · Chain catalogue prices for Portugal (scraping).** Not chosen (terms-of-service risk).
+- **SAVE-101 · Savings on the web stats page (P9).**
+
+---
+
 ## P7 — Live Activity and widgets
 
 ### LIVE-001 · Trip Live Activity · M
@@ -518,11 +742,11 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 
 ## Deferred
 
-- **Shared crowd prices between users.** Privacy, moderation, and needs scale first.
+- **Crowd prices beyond Open Prices (our own pool).** Privacy, moderation, and needs scale first. Open Prices is read in OPX-002 and contributed to, opt-in, in OPX-003 (owner decision 2026-11-16).
 - **Store auto-detect by location.** It needs a location permission. Manual store chips are fine for v1.
 - **Receipt scanning.** Norviq already does it.
 - **Export trips to Norviq** as grocery spend. Revisit only if both apps have users.
-- **Multi-currency conversion.** Totals are per currency, never converted.
+- **Multi-currency conversion.** Totals and savings are per currency, never converted (confirmed 2026-11-16).
 - **Cross-platform unlock** (buy on iOS, unlocked on Android). It needs server-side receipt validation and entitlements.
 - **"Sync on Wi-Fi only" toggle.** Payloads are a few KB, so any network is fine for now.
 - **Shared household trips** (two phones, one cart).

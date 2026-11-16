@@ -146,6 +146,18 @@ A read-only list of a finished trip. Editing is allowed (people fix prices after
 
   It is dismissable with no penalty. The history list shows hidden trips as a single locked "12 older trips" row, not as missing data.
 
+### 10. Plan (P10, proposal)
+
+Meals → week → list → trip:
+
+1. **Meals:** your own meals, each a name and a list of ingredients. Ingredients come from past purchases (linked to the barcode) or are typed.
+2. **Week:** put meals into days, with servings. "Copy last week" is one tap.
+3. **List:** "Add to list" merges the week into the shopping list. Pantry items are left out.
+4. **Cost:** the list shows an estimate per store, "€42 at Lidl · €47 at Continente · 3 unpriced", from your own prices and Open Prices.
+5. **Trip:** **Start trip** opens at the cheapest store with the estimate as a limit chip. The summary shows planned vs spent and the saving (INS-12).
+
+No recipe catalogue, no AI. Savings are shown in each trip's currency and never converted. The owner gives the verdict on the screens.
+
 ## Insights catalogue
 
 These definitions are the contract. iOS `InsightsCalculator` and the server's `/v1/stats` (P9)
@@ -164,6 +176,10 @@ and never converted.
 | INS-08 | Category split | Σ spend by first Open Food Facts category; unknown is shown as "Other" |
 | INS-09 | Till gap | mean (actual till total − scanned total) over trips where the till total was entered |
 | INS-10 | Personal basket inflation | weighted price change of the user's regular basket (INS-07 GTINs) over 90 days. Norviq's `PersonalInflationCalculator` is the reference for method |
+| INS-11 | Line saving | (reference price − price paid) × quantity. Reference = median of the latest price at each *other* store for the same GTIN over 90 days. Real GTINs only; in-store and opaque codes are skipped. No reference: 0, reported as "unpriced". May be negative |
+| INS-12 | Trip saving | Σ INS-11 over the trip, per currency |
+| INS-13 | Missed saving | per line, (price paid − cheapest known price elsewhere) × quantity, only when above 0 |
+| INS-14 | Month saving | Σ INS-12 over trips with `endedAt` in the month, per currency |
 
 A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show progress toward 3 trips and what each unlocks, with **Start shopping**. Charts follow the `dataviz` skill.
 
