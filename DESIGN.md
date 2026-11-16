@@ -150,7 +150,7 @@ A read-only list of a finished trip. Editing is allowed (people fix prices after
 
 Meals → week → list → trip:
 
-1. **Meals:** your own meals, each a name and a list of ingredients. Ingredients come from past purchases (linked to the barcode) or are typed.
+1. **Meals:** your own meals, each a name and a list of ingredients. Ingredients come from past purchases (linked to the barcode) or are typed. Built (MEAL-001): a **Meals** sheet beside **Shopping list** on the Trip tab, so the 3 tabs stay. Each meal shows its cost a serving and in total, at the cheapest price seen in 90 days, in whole packs; a meal with unpriced ingredients says "at least". Cost sits above the ingredients because it is why the user plans. The week plan (MEAL-002) gets a tab of its own (owner, 2026-11-16), so the tab bar goes to 4 then.
 2. **Week:** put meals into days, with servings. "Copy last week" is one tap.
 3. **List:** "Add to list" merges the week into the shopping list. Pantry items are left out.
 4. **Cost:** the list shows an estimate per store, "€42 at Lidl · €47 at Continente · 3 unpriced", from your own prices and Open Prices.

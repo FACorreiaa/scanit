@@ -293,6 +293,48 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertFalse(describe(picker).contains("None"), "Continente is set: \(describe(picker))")
     }
 
+    /// MEAL-001: a meal made from past purchases shows what it costs, in the editor and the list.
+    func testMealFromPastPurchasesShowsItsCost() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data"])
+        let meals = app.buttons["meals"]
+        XCTAssertTrue(meals.waitForExistence(timeout: 5))
+        meals.tap()
+        let newMeal = app.buttons["newMeal"]
+        XCTAssertTrue(newMeal.waitForExistence(timeout: 5))
+        snapshot("14-meals-empty")
+        newMeal.tap()
+
+        let name = app.textFields["mealName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Breakfast")
+        XCTAssertTrue(app.staticTexts["mealCostNone"].exists || app.otherElements["mealCostNone"].exists
+                      || text(containing: "No prices yet").exists, "nothing priced before any ingredient")
+
+        for typed in ["nutel", "leite"] {
+            let field = app.textFields["ingredientNew"]
+            field.tap()
+            field.typeText(typed)
+            let suggestion = app.buttons["ingredientSuggestion"].firstMatch
+            XCTAssertTrue(suggestion.waitForExistence(timeout: 5), "\(typed) was bought before")
+            suggestion.tap()
+        }
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "ingredientRow").count, 2)
+        // Submitting the empty field closes the keyboard, so the cost is in view again.
+        app.textFields["ingredientNew"].typeText("\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        app.swipeDown()
+        XCTAssertTrue(text(containing: "at Lidl").waitForExistence(timeout: 5), "each ingredient says where it was cheapest")
+        XCTAssertTrue(text(containing: "A serving").exists)
+        snapshot("15-meal-editor-cost")
+
+        app.navigationBars.buttons.firstMatch.tap()
+        let row = app.descendants(matching: .any).matching(identifier: "mealRow").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("Breakfast") && row.label.contains("a serving"), "list row: \(row.label)")
+        snapshot("16-meals-list")
+    }
+
     private func openStores() {
         app.tabBars.buttons["Insights"].tap()
         app.buttons["insightsAbout"].tap()

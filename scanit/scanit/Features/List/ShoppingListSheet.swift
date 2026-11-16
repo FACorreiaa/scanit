@@ -111,6 +111,8 @@ struct ShoppingListButton: View {
         .accessibilityIdentifier("shoppingList")
         .sheet(isPresented: $isShowing) {
             ShoppingListSheet()
+                // The Trip tab's empty state centres its text, and a sheet inherits that.
+                .multilineTextAlignment(.leading)
                 .presentationDetents([.medium, .large])
         }
     }

@@ -56,14 +56,33 @@ enum InsightsSource {
                 }
             )
         }
-        let prices = observations.compactMap { observation -> PriceSnapshot? in
+        return (trips, priceSnapshots(observations), sessions.first?.currency)
+    }
+
+    /// Every price the user has seen, for meal costs (MEAL-001) and comparisons.
+    static func prices(context: ModelContext) -> [PriceSnapshot] {
+        priceSnapshots((try? context.fetch(FetchDescriptor<PriceObservation>(predicate: #Predicate { $0.deletedAt == nil }))) ?? [])
+    }
+
+    /// The currency the user shops in: the newest finished trip's, else the phone's.
+    static func homeCurrency(context: ModelContext) -> String {
+        let finished = SessionStatus.finished.rawValue
+        var descriptor = FetchDescriptor<ShoppingSession>(
+            predicate: #Predicate { $0.statusRaw == finished && $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return (try? context.fetch(descriptor))?.first?.currency ?? Locale.current.currency?.identifier ?? "EUR"
+    }
+
+    private static func priceSnapshots(_ observations: [PriceObservation]) -> [PriceSnapshot] {
+        observations.compactMap { observation -> PriceSnapshot? in
             guard let store = observation.store else { return nil }
             return PriceSnapshot(
                 storeId: store.id.uuidString, storeName: store.name, code: observation.code,
                 priceMinor: observation.priceMinor, currency: observation.currency, observedAt: observation.observedAt
             )
         }
-        return (trips, prices, sessions.first?.currency)
     }
 
     /// "en:sweet-spreads" → "Sweet spreads"; "other" → "Other".
