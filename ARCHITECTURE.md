@@ -16,7 +16,11 @@
 5. iOS first. Android follows on the same API and data model (`docs/android.md`).
 
 Non-goals for v1: receipt scanning (Norviq already does it), crowd-sourced prices shared between
-users, price comparison across shops the user has not visited, budgets that span months, any LLM.
+users, any LLM.
+
+Changed 2026-11-16 (owner, BACKLOG P10): price comparison across shops the user has not visited is in
+scope, through Open Prices (read-only; contributing is opt-in and after P2). Budgets may span weeks and
+months. Amounts are still never converted between currencies.
 
 ## Principles
 
@@ -178,6 +182,21 @@ network returns (see Offline below).
 Implemented in `Domain/ProductEnricher.swift` and `Services/OpenFoodFacts.swift`. The lookup uses the pack's 13-digit
 code (`ScannedCode.displayValue`). Weighed-produce/deli codes (`isInStore`) and opaque codes are never looked up.
 UI tests swap in `FixedProductLookup`, so no test touches the network except the opt-in live test.
+
+### Open Prices (P10)
+
+Open Food Facts' open price database (prices.openfoodfacts.org, ODbL) fills in prices at stores the
+user has not visited. Planned in BACKLOG OPX-001…003; the API details, Portugal coverage and the
+go/no-go are written here by the OPX-001 spike.
+
+- **Read-only cache.** Results go into an `ExternalPrice` model that is a cache, not user data, so it
+  is never synced. The request carries only the GTIN and the country, never the cart.
+- **Never blocks a scan.** Lookups run after the item is added, batched, and queued offline exactly
+  like `ProductEnricher`.
+- **Same User-Agent as Open Food Facts**, with the contact address once it is set.
+- **Marked as external.** Every number that uses an Open Prices value (INS-11, compare, plan cost)
+  shows its source, and the About screen carries the attribution.
+- **Contributing** (OPX-003) is opt-in, needs an Open Food Facts account and waits for P2.
 
 ### Insights
 
