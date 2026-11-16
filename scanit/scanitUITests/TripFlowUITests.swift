@@ -91,6 +91,7 @@ final class TripFlowUITests: XCTestCase {
         app.textFields["tillTotal"].tap()
         app.textFields["tillTotal"].typeText("4")
         snapshot("6-summary")
+        XCTAssertTrue(app.buttons["shareTrip"].exists, "a finished trip can be shared")
         app.buttons["doneSummary"].tap()
         XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5))
 
@@ -100,38 +101,61 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["monthTotal"].label.contains("3,98"))
         snapshot("7-history")
 
-        // Next trip at Lidl: the milk price is remembered, so it is two taps.
+        // Next trip at Lidl: the milk price is remembered, so the scan alone adds it.
         app.tabBars.buttons["Trip"].tap()
         app.buttons["openStartTrip"].tap()
         XCTAssertTrue(app.buttons["Lidl"].waitForExistence(timeout: 5))
         app.buttons["startTrip"].tap()
         app.buttons["scan"].tap()
         scan(milk)
-        XCTAssertTrue(price.waitForExistence(timeout: 5))
-        XCTAssertEqual(price.value as? String, "1,99", "remembered price is prefilled")
+        let addedTitle = app.staticTexts["addedTitle"]
+        XCTAssertTrue(addedTitle.waitForExistence(timeout: 5), "a remembered price is added without a tap")
+        XCTAssertTrue(addedTitle.label.contains("1,99"))
         XCTAssertTrue(text(containing: "Seen here").exists)
-        app.buttons["addItem"].tap()
-        XCTAssertTrue(text(containing: "1,99").waitForExistence(timeout: 5))
+        XCTAssertFalse(price.exists, "no confirm sheet")
+        snapshot("added-remembered")
+
+        // Undo takes it back.
+        app.buttons["undoAdd"].tap()
+        XCTAssertTrue(addedTitle.waitForNonExistence(timeout: 5))
+        app.buttons["closeScanner"].tap()
+        XCTAssertTrue(app.staticTexts["Cart is empty"].waitForExistence(timeout: 5))
     }
 
-    /// IOS-004: the largest accessibility text size does not clip the total.
-    func testReadingTheShelfPriceFillsTheSheet() throws {
+    /// IOS-007: one clear price on the shelf label is added without a tap.
+    func testShelfPriceIsReadAndAddedWithoutATap() throws {
         app.launchEnvironment["UITEST_SHELF_TEXT"] = "1,99 €|9,95 €/kg"
         launch()
         startTrip(newStore: "Lidl", limit: "20")
         app.buttons["scan"].tap()
         scan(milk)
 
-        XCTAssertTrue(app.staticTexts["priceStepTitle"].waitForExistence(timeout: 5))
-        snapshot("price-step")
-        app.buttons["readPrice"].tap()
+        let addedTitle = app.staticTexts["addedTitle"]
+        XCTAssertTrue(addedTitle.waitForExistence(timeout: 5))
+        XCTAssertTrue(addedTitle.label.contains("1,99"))
+        XCTAssertTrue(text(containing: "Read from the shelf label").exists)
+        XCTAssertFalse(app.textFields["price"].exists, "no confirm sheet")
+        snapshot("added-from-label")
 
-        let price = app.textFields["price"]
-        XCTAssertTrue(price.waitForExistence(timeout: 5))
-        XCTAssertEqual(price.value as? String, "1,99")
+        // A wrong read is fixed from the banner.
+        app.buttons["editAdded"].tap()
+        let editPrice = app.textFields["editPrice"]
+        XCTAssertTrue(editPrice.waitForExistence(timeout: 5))
+        XCTAssertEqual(editPrice.value as? String, "1,99")
+        XCTAssertFalse(addedTitle.exists, "the banner makes way for the edit sheet")
+    }
+
+    /// IOS-007: a label with two item prices is not guessed; the sheet offers both.
+    func testAmbiguousLabelStillAsks() throws {
+        app.launchEnvironment["UITEST_SHELF_TEXT"] = "1,99 €|1,49 €"
+        launch()
+        startTrip(newStore: "Lidl", limit: "20")
+        app.buttons["scan"].tap()
+        scan(milk)
+
+        XCTAssertTrue(app.buttons["labelChip"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["addedTitle"].exists)
         snapshot("price-read-sheet")
-        app.buttons["addItem"].tap()
-        XCTAssertTrue(text(containing: "1,99").waitForExistence(timeout: 5), "HUD total updates after add")
     }
 
     func testTypingStaysAvailableWhenNoPriceIsRead() throws {
@@ -141,9 +165,8 @@ final class TripFlowUITests: XCTestCase {
         app.buttons["scan"].tap()
         scan(milk)
 
-        XCTAssertTrue(app.buttons["readPrice"].waitForExistence(timeout: 5))
-        app.buttons["readPrice"].tap()
-        XCTAssertTrue(app.staticTexts["Couldn't read a price"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Couldn't read a price"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["readPrice"].exists, "reading can be tried again")
 
         app.buttons["typePrice"].tap()
         XCTAssertTrue(app.textFields["price"].waitForExistence(timeout: 5))
@@ -174,6 +197,23 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Average trip"].exists)
         XCTAssertTrue(app.staticTexts["5 of 5"].exists, "all demo trips stayed under their limit")
         snapshot("9-insights-top")
+
+        // ADD-003: a monthly budget shows this month's spending against it.
+        let budget = app.buttons["monthlyBudget"]
+        XCTAssertTrue(budget.waitForExistence(timeout: 5))
+        budget.tap()
+        let amount = app.textFields["budgetAmount"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.typeText("5000")
+        app.buttons["saveBudget"].tap()
+        XCTAssertTrue(text(containing: "of ").waitForExistence(timeout: 5) || budget.label.contains("of "),
+                      "the budget row shows spent of budget")
+        snapshot("9b-insights-budget")
+        // ADD-006: trips can be exported from About.
+        app.buttons["insightsAbout"].tap()
+        XCTAssertTrue(app.buttons["exportTrips"].waitForExistence(timeout: 5))
+        app.buttons["Close"].firstMatch.tap()
+
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Prices that went up"].waitForExistence(timeout: 5)
                       || app.staticTexts["PRICES THAT WENT UP"].exists)
@@ -182,6 +222,83 @@ final class TripFlowUITests: XCTestCase {
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Your regular basket"].waitForExistence(timeout: 5), "INS-10 shown")
         snapshot("11-insights-your-prices")
+    }
+
+    /// ADD-004: "Start shopping" from a shortcut opens the start sheet, or the scanner mid-trip.
+    func testStartShoppingShortcut() throws {
+        launch(extraArguments: ["-ui-testing-start-shopping"])
+        XCTAssertTrue(app.textFields["storeName"].waitForExistence(timeout: 5), "no trip: the start sheet opens")
+
+        app.terminate()
+        launch(extraArguments: ["-ui-testing-start-shopping", "-ui-testing-demo-data", "-ui-testing-demo-trip"])
+        XCTAssertTrue(app.buttons["closeScanner"].waitForExistence(timeout: 5), "trip in progress: the scanner opens")
+    }
+
+    /// ADD-005: a list line is ticked when its product is scanned, and leaves "Still to get".
+    func testShoppingListIsTickedByScanning() throws {
+        launch()
+        XCTAssertTrue(app.buttons["shoppingList"].waitForExistence(timeout: 5))
+        app.buttons["shoppingList"].tap()
+        let field = app.textFields["listNewItem"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("leite\n")
+        field.typeText("ovos\n")
+        snapshot("list-sheet")
+        app.buttons["listDone"].tap()
+        XCTAssertTrue(app.buttons["Shopping list · 2 to get"].waitForExistence(timeout: 5))
+
+        startTrip(newStore: "Lidl", limit: "20")
+        XCTAssertTrue(app.staticTexts["Still to get"].waitForExistence(timeout: 5)
+                      || app.staticTexts["STILL TO GET"].exists)
+        app.buttons["scan"].tap()
+        scan(milk)
+        app.textFields["price"].typeText("1,99")
+        app.buttons["addItem"].tap()
+        app.buttons["closeScanner"].tap()
+
+        // The stubbed Open Food Facts names the milk "Leite meio gordo", which answers "leite".
+        XCTAssertTrue(app.staticTexts["Leite meio gordo"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons.matching(identifier: "listLine").count == 1, "only ovos is left to get")
+        snapshot("list-still-to-get")
+    }
+
+    /// LIVE-001: with a trip in progress, the total is in the Dynamic Island and on the Lock Screen.
+    func testLiveActivityShowsTheTotal() throws {
+        launch(extraArguments: ["-ui-testing-live-activity"])
+        startTrip(newStore: "Lidl", limit: "20")
+        // Starting the activity can hold the start sheet a moment longer, and a scanner opened
+        // while that sheet is still closing does not open at all.
+        XCTAssertTrue(app.staticTexts["Lidl"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["storeName"].waitForNonExistence(timeout: 5))
+        app.buttons["scan"].tap()
+        scan(milk)
+        app.textFields["price"].typeText("1,99")
+        app.buttons["addItem"].tap()
+        app.buttons["closeScanner"].tap()
+        XCUIDevice.shared.press(.home)
+
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let total = springboard.staticTexts.containing(NSPredicate(format: "label CONTAINS '1,99'")).firstMatch
+        let shown = total.waitForExistence(timeout: 10)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = "live-activity-island"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCTAssertTrue(shown, "the Dynamic Island shows the trip total")
+
+        // Finishing the trip takes it down.
+        // A tap can land while the app is still zooming back from the Home Screen and be lost.
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        let done = app.buttons["doneSummary"]
+        for _ in 0..<3 where !done.exists {
+            app.buttons["finishTrip"].tap()
+            _ = done.waitForExistence(timeout: 3)
+        }
+        XCTAssertTrue(done.exists, "Finish opens the summary")
+        done.tap()
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(total.waitForNonExistence(timeout: 10), "the activity ends with the trip")
     }
 
     func testInsightsPlaceholderBeforeThreeTrips() throws {

@@ -11,6 +11,9 @@ default_platform(:ios)
 PROJECT = "scanit.xcodeproj"
 SCHEME = "scanit"
 TARGET = "scanit"
+# The widget extension (trip Live Activity). Its bundle ID is the app's plus this suffix.
+WIDGETS_TARGET = "scanitWidgets"
+WIDGETS_SUFFIX = ".widgets"
 BUNDLE_ID = "com.fernandocorreia.scanit"
 BETA_BUNDLE_ID = "com.fernandocorreia.scanit.beta"
 TEAM_ID = "84X9WYBF36"
@@ -86,15 +89,17 @@ platform :ios do
 
   # The project uses Xcode-managed signing for local development; CI pins the match profile.
   private_lane :prepare_signing do |options|
-    update_code_signing_settings(
-      path: PROJECT,
-      use_automatic_signing: false,
-      team_id: TEAM_ID,
-      code_sign_identity: "Apple Distribution",
-      profile_name: "match AppStore #{options[:bundle_id]}",
-      targets: [TARGET],
-      build_configurations: [options[:config]]
-    )
+    { TARGET => options[:bundle_id], WIDGETS_TARGET => options[:bundle_id] + WIDGETS_SUFFIX }.each do |target, bundle_id|
+      update_code_signing_settings(
+        path: PROJECT,
+        use_automatic_signing: false,
+        team_id: TEAM_ID,
+        code_sign_identity: "Apple Distribution",
+        profile_name: "match AppStore #{bundle_id}",
+        targets: [target],
+        build_configurations: [options[:config]]
+      )
+    end
   end
 
   # CFBundleVersion must exceed every earlier upload of this app, so read them all from App Store

@@ -104,7 +104,13 @@ final class ProductEnricher {
     /// Only fills blanks: a name the user typed or edited is never overwritten.
     private func apply(_ product: Product, to items: [CartItem]) {
         for item in items {
-            if item.productName == nil, let name = product.displayName { item.productName = name }
+            if item.productName == nil, let name = product.displayName {
+                item.productName = name
+                // Only a line in the trip in progress can answer the shopping list.
+                if item.session?.status == .active, !item.isSoftDeleted {
+                    ShoppingList.tick(code: item.code, name: name, context: context)
+                }
+            }
             if item.imageURL == nil { item.imageURL = product.imageURL }
         }
     }

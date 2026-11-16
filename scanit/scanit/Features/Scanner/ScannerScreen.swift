@@ -3,9 +3,11 @@ import SwiftData
 import SwiftUI
 
 /// Full-screen scanner (`DESIGN.md` §4, BACKLOG IOS-005, IOS-007). Camera fills the screen and the
-/// total stays visible in a top HUD. A barcode lock opens the confirm sheet when the price is
-/// remembered; otherwise the shelf price is read first, with typing it always one tap away. The
-/// scanner stays open after an add so the next product can be scanned straight away.
+/// total stays visible in a top HUD. Scanning is the whole gesture: a product whose price is
+/// remembered for this store is added on the barcode lock, and otherwise the shelf label is read
+/// without a tap and added when it shows one clear price. Each of those adds shows a banner with
+/// Undo and Edit. The confirm sheet is left for what cannot be decided alone: a label with
+/// several prices, or a price that has to be typed. The scanner stays open throughout.
 struct ScannerScreen: View {
     @Environment(SessionStore.self) private var sessions
     @Environment(ProductEnricher.self) private var enricher
@@ -27,6 +29,14 @@ struct ScannerScreen: View {
     @State private var labelOffer: LabelPriceOffer?
     @State private var lockedAt: Date?
     @State private var scannerCamera = ScannerCamera()
+    /// The last item added without a confirm step, while its banner is up.
+    @State private var added: AddedItem?
+    @State private var editing: CartItemSelection?
+
+    /// Stills taken before giving up on a label; the first is taken on the barcode lock.
+    private static let priceReadAttempts = 3
+    private static let priceReadRetryDelay = Duration.milliseconds(800)
+    private static let bannerDuration = Duration.seconds(6)
 
     var body: some View {
         ZStack {
@@ -41,20 +51,25 @@ struct ScannerScreen: View {
                 currency: session.currency,
                 remembered: rememberedPrice(for: detected),
                 product: enricher.cached(detected.code),
-                offer: labelOffer
+                offer: labelOffer,
+                elsewhere: cheapestElsewhere(for: detected)
             ) { quantity, price, priceSource in
-                trackLabelRead(source: priceSource, price: price)
-                guard let item = sessions.addItem(
-                    code: detected.code, quantity: quantity, unitPriceMinor: price.amountMinor,
-                    priceSource: priceSource, symbology: detected.symbology
-                ) else { return }
-                // Name and photo arrive later, or when the network is back; the scan never waits.
-                enricher.enqueue(item)
-                Task { await enricher.flush() }
+                add(detected, quantity: quantity, price: price, source: priceSource, offer: labelOffer)
             }
             .presentationDetents([.medium, .large])
         }
+        .sheet(item: $editing) { selection in
+            EditItemSheet(item: selection.item, currency: session.currency)
+                .presentationDetents([.medium])
+        }
+        .task(id: added?.id) {
+            guard let shown = added?.id else { return }
+            try? await Task.sleep(for: Self.bannerDuration)
+            if !Task.isCancelled, added?.id == shown { added = nil }
+        }
+        .animation(.snappy, value: added?.id)
         .sensoryFeedback(trigger: pending?.id ?? awaitingPrice?.id) { _, new in new == nil ? nil : .impact(weight: .light) }
+        .sensoryFeedback(trigger: added?.id) { _, new in new == nil ? nil : .success }
         .sensoryFeedback(trigger: sessions.feedback) { _, event in
             switch event?.kind {
             case .warning: .warning
@@ -97,7 +112,13 @@ struct ScannerScreen: View {
 
     // MARK: - Price step
 
-    private var isBusy: Bool { pending != nil || awaitingPrice != nil }
+    private var isBusy: Bool { pending != nil || awaitingPrice != nil || editing != nil }
+
+    private func cheapestElsewhere(for detected: DetectedCode) -> PriceElsewhere? {
+        PriceMemory.cheapestElsewhere(
+            code: detected.code, store: session.store, currency: session.currency, context: context
+        )
+    }
 
     private func rememberedPrice(for detected: DetectedCode) -> RememberedPrice? {
         PriceMemory.lookup(code: detected.code.value, store: session.store, context: context)
@@ -106,31 +127,84 @@ struct ScannerScreen: View {
     private func handleLock(_ detected: DetectedCode) {
         lockedAt = .now
         priceReadFailed = false
-        let isRemembered = rememberedPrice(for: detected)?.price.currency == session.currency
-        if source.readsShelfPrices, !isRemembered {
+        if let remembered = rememberedPrice(for: detected), remembered.price.currency == session.currency {
+            add(detected, quantity: 1, price: remembered.price, source: .remembered, seenAt: remembered.observedAt)
+        } else if source.readsShelfPrices {
+            added = nil
             awaitingPrice = detected
+            readPrice()
         } else {
             pending = detected
         }
     }
 
+    /// Reads the shelf label, starting on the barcode lock and trying again for a moment while
+    /// the camera settles on it. One clear price is added; several are left to the confirm sheet.
     private func readPrice() {
         guard let detected = awaitingPrice, !isReadingPrice else { return }
         isReadingPrice = true
         priceReadFailed = false
         Task {
             defer { isReadingPrice = false }
-            let offer = try? await labelOffer(for: detected)
-            // The product was cancelled while the still was being read.
+            var offer: LabelPriceOffer?
+            for attempt in 0..<Self.priceReadAttempts {
+                if attempt > 0 { try? await Task.sleep(for: Self.priceReadRetryDelay) }
+                // The product was cancelled, or its price typed, while the label was being read.
+                guard awaitingPrice?.id == detected.id else { return }
+                offer = try? await labelOffer(for: detected)
+                if let offer, !offer.isEmpty { break }
+            }
             guard awaitingPrice?.id == detected.id else { return }
             guard let offer, !offer.isEmpty else {
                 priceReadFailed = true
                 return
             }
-            labelOffer = offer
-            pending = detected
             awaitingPrice = nil
+            if let prefill = offer.prefill, offer.candidates.isEmpty {
+                add(detected, quantity: 1, price: prefill, source: .ocr, offer: offer)
+            } else {
+                labelOffer = offer
+                pending = detected
+            }
         }
+    }
+
+    /// Adds to the cart. An add that skipped the confirm sheet (`.remembered` or `.ocr` straight
+    /// from the scan) shows the banner; one confirmed in the sheet needs no second look.
+    private func add(
+        _ detected: DetectedCode, quantity: Int, price: Money, source priceSource: PriceSource,
+        offer: LabelPriceOffer? = nil, seenAt: Date? = nil
+    ) {
+        let wasConfirmed = pending?.id == detected.id
+        trackLabelRead(source: priceSource, offer: offer)
+        let elsewhere = cheapestElsewhere(for: detected)
+        guard let item = sessions.addItem(
+            code: detected.code, quantity: quantity, unitPriceMinor: price.amountMinor,
+            priceSource: priceSource, symbology: detected.symbology
+        ) else { return }
+        // Name and photo arrive later, or when the network is back; the scan never waits.
+        enricher.enqueue(item)
+        Task { await enricher.flush() }
+        guard !wasConfirmed else {
+            added = nil
+            return
+        }
+        let shown = AddedItem(
+            item: item, price: price, source: priceSource, seenAt: seenAt,
+            elsewhere: elsewhere.flatMap { $0.isCheaper(than: price) ? $0 : nil }
+        )
+        added = shown
+        AccessibilityNotification.Announcement("Added, \(price.formatted())").post()
+    }
+
+    private func undoAdd(_ shown: AddedItem) {
+        sessions.undoAdd(shown.item)
+        added = nil
+    }
+
+    private func editAdded(_ shown: AddedItem) {
+        editing = CartItemSelection(item: shown.item)
+        added = nil
     }
 
     private func labelOffer(for detected: DetectedCode) async throws -> LabelPriceOffer {
@@ -148,10 +222,10 @@ struct ScannerScreen: View {
     }
 
     /// One event per item that went through the price step. No amounts (`AnalyticsEvent`).
-    private func trackLabelRead(source priceSource: PriceSource, price: Money) {
+    private func trackLabelRead(source priceSource: PriceSource, offer: LabelPriceOffer?) {
         guard source.readsShelfPrices, priceSource != .remembered, let lockedAt else { return }
         let outcome = PriceSourceResolver.outcome(
-            source: priceSource, prefill: labelOffer?.prefill, labelCandidates: labelOffer?.candidates ?? []
+            source: priceSource, prefill: offer?.prefill, labelCandidates: offer?.candidates ?? []
         )
         analytics.track(.priceOCRResult(outcome: outcome, ms: Int(Date.now.timeIntervalSince(lockedAt) * 1000)))
     }
@@ -184,6 +258,14 @@ struct ScannerScreen: View {
     private var bottomOverlay: some View {
         if let awaitingPrice {
             priceStep(awaitingPrice)
+        } else if let added {
+            AddedItemBanner(
+                added: added,
+                name: added.item.productName ?? added.item.scannedCode.displayValue,
+                onUndo: { undoAdd(added) },
+                onEdit: { editAdded(added) }
+            )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         } else {
             hint
         }
@@ -193,7 +275,7 @@ struct ScannerScreen: View {
         VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(priceReadFailed ? "Couldn't read a price" : "Point at the shelf price")
+                    Text(priceReadFailed ? "Couldn't read a price" : "Reading the shelf price…")
                         .font(.headline)
                         .accessibilityIdentifier("priceStepTitle")
                     Text(priceReadFailed ? "Move closer and try again, or type it." : detected.code.displayValue)
@@ -237,7 +319,7 @@ struct ScannerScreen: View {
                 if isReadingPrice {
                     ProgressView()
                 } else {
-                    Label("Read price", systemImage: "text.viewfinder")
+                    Label("Try again", systemImage: "text.viewfinder")
                 }
             }
             .frame(maxWidth: .infinity)

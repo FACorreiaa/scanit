@@ -1,4 +1,5 @@
 import ScanItCore
+import SwiftData
 import SwiftUI
 
 /// The trip in progress (`DESIGN.md` §3, BACKLOG IOS-004): hero total and limit bar, cart
@@ -11,6 +12,8 @@ struct ActiveTripView: View {
     @State private var isScanning = false
     @State private var editing: CartItemSelection?
     @State private var isConfirmingCancel = false
+    @Query(filter: #Predicate<ListItem> { $0.deletedAt == nil && $0.doneAt == nil }, sort: \ListItem.createdAt)
+    private var toGet: [ListItem]
 
     var body: some View {
         List {
@@ -26,6 +29,14 @@ struct ActiveTripView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .listRowBackground(Color.clear)
+            }
+
+            if !toGet.isEmpty {
+                Section("Still to get") {
+                    ForEach(toGet, id: \.id) { line in
+                        ListLineRow(line: line)
+                    }
+                }
             }
 
             Section {
@@ -57,6 +68,7 @@ struct ActiveTripView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    ShoppingListButton()
                     Button("Cancel trip", systemImage: "xmark", role: .destructive) {
                         isConfirmingCancel = true
                     }
@@ -74,6 +86,12 @@ struct ActiveTripView: View {
         }
         .fullScreenCover(isPresented: $isScanning) {
             ScannerScreen(session: session)
+        }
+        // "Start shopping" from Siri or the Action Button, mid-trip: straight to the scanner.
+        .onChange(of: ShortcutActions.shared.startShopping, initial: true) { _, request in
+            guard request != nil, editing == nil, !isConfirmingCancel, ShortcutActions.shared.takeStartShopping()
+            else { return }
+            isScanning = true
         }
         .sheet(item: $editing) { selection in
             EditItemSheet(item: selection.item, currency: session.currency)

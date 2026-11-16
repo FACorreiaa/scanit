@@ -13,8 +13,12 @@ git_branch("main")
 storage_mode("git")
 type("appstore")
 # Prod App Store app + side-by-side TestFlight beta app (separate App Store Connect apps).
+# Each app embeds the widget extension that draws the trip Live Activity (BACKLOG LIVE-001), and
+# an extension needs its own App ID and profile. After adding one here, run `seed_signing` once.
 app_identifier([
   "com.fernandocorreia.scanit",
-  "com.fernandocorreia.scanit.beta"
+  "com.fernandocorreia.scanit.widgets",
+  "com.fernandocorreia.scanit.beta",
+  "com.fernandocorreia.scanit.beta.widgets"
 ])
 team_id("84X9WYBF36")

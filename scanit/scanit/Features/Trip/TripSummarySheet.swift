@@ -42,6 +42,12 @@ struct TripSummarySheet: View {
                 }
 
                 Section {
+                    TripShareLink(session: session)
+                } footer: {
+                    Text("A picture of your total and limit. It doesn't show what you bought.")
+                }
+
+                Section {
                     HStack {
                         Text(Money.symbol(for: session.currency)).foregroundStyle(.secondary)
                         TextField("Optional", text: $tillText)

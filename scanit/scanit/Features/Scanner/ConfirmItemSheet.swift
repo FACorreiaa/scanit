@@ -12,6 +12,8 @@ struct ConfirmItemSheet: View {
     var product: Product? = nil
     /// What the shelf label offered, when the price step read one.
     var offer: LabelPriceOffer? = nil
+    /// The cheapest other store for this product, shown when it beats the price being added.
+    var elsewhere: PriceElsewhere? = nil
     let onAdd: (_ quantity: Int, _ price: Money, _ source: PriceSource) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -61,15 +63,20 @@ struct ConfirmItemSheet: View {
                 } header: {
                     Text("Price")
                 } footer: {
-                    if offer?.prefill != nil {
-                        Label("Read from the shelf label. Check it matches.", systemImage: "text.viewfinder")
-                    } else if offer != nil {
-                        Text("Pick the price, or type it.")
-                    } else if let remembered {
-                        Label {
-                            Text("Seen here \(remembered.observedAt, format: .relative(presentation: .named))")
-                        } icon: {
-                            Image(systemName: "clock.arrow.circlepath")
+                    VStack(alignment: .leading, spacing: 4) {
+                        if offer?.prefill != nil {
+                            Label("Read from the shelf label. Check it matches.", systemImage: "text.viewfinder")
+                        } else if offer != nil {
+                            Text("Pick the price, or type it.")
+                        } else if let remembered {
+                            Label {
+                                Text("Seen here \(remembered.observedAt, format: .relative(presentation: .named))")
+                            } icon: {
+                                Image(systemName: "clock.arrow.circlepath")
+                            }
+                        }
+                        if let elsewhere, elsewhere.isCheaper(than: price) {
+                            ElsewhereLabel(elsewhere: elsewhere)
                         }
                     }
                 }

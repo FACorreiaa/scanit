@@ -59,6 +59,13 @@ struct TripView: View {
                 .presentationDetents([.medium, .large])
         }
         .task(id: reviews.isPromptDue) { await askForReviewIfDue() }
+        // With a trip in progress the active-trip screen takes the request and opens the scanner.
+        .onChange(of: ShortcutActions.shared.startShopping, initial: true) { _, request in
+            guard request != nil, sessions.active == nil, !isStarting, paywallReason == nil, finished == nil,
+                  ShortcutActions.shared.takeStartShopping()
+            else { return }
+            requestStart()
+        }
     }
 
     /// The summary closed. "Undo finish" puts the trip back as the active one; anything else
@@ -125,6 +132,8 @@ private struct ReadyToShop: View {
                             .padding(.vertical, 6)
                             .background(Color(.secondarySystemBackground), in: .capsule)
                     }
+                    ShoppingListButton()
+                        .buttonStyle(.bordered)
                 }
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
