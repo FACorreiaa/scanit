@@ -1,0 +1,48 @@
+{
+  "_comment": "Supermarket chains per country (BACKLOG CMP-001). Shared with Android: read this file, do not copy it. `id` is stable and stored on Store.chain; the same chain uses the same id in every country. `aliases` are other names a store is typed as, matched as whole words after folding case, accents and punctuation. Keep aliases specific: a bare common word would tag unrelated stores.",
+  "version": 1,
+  "countries": {
+    "PT": [
+      { "id": "continente", "name": "Continente", "aliases": ["continente modelo", "continente bom dia"] },
+      { "id": "pingo-doce", "name": "Pingo Doce", "aliases": [] },
+      { "id": "lidl", "name": "Lidl", "aliases": [] },
+      { "id": "aldi", "name": "Aldi", "aliases": [] },
+      { "id": "auchan", "name": "Auchan", "aliases": ["my auchan", "jumbo"] },
+      { "id": "intermarche", "name": "Intermarché", "aliases": [] },
+      { "id": "mercadona", "name": "Mercadona", "aliases": [] },
+      { "id": "minipreco", "name": "Minipreço", "aliases": [] }
+    ],
+    "ES": [
+      { "id": "mercadona", "name": "Mercadona", "aliases": [] },
+      { "id": "carrefour", "name": "Carrefour", "aliases": ["carrefour express", "carrefour market"] },
+      { "id": "lidl", "name": "Lidl", "aliases": [] },
+      { "id": "dia", "name": "Dia", "aliases": [] },
+      { "id": "eroski", "name": "Eroski", "aliases": [] },
+      { "id": "auchan", "name": "Alcampo", "aliases": ["alcampo", "auchan"] },
+      { "id": "aldi", "name": "Aldi", "aliases": [] },
+      { "id": "consum", "name": "Consum", "aliases": [] }
+    ],
+    "FR": [
+      { "id": "carrefour", "name": "Carrefour", "aliases": ["carrefour city", "carrefour market"] },
+      { "id": "leclerc", "name": "E.Leclerc", "aliases": ["leclerc"] },
+      { "id": "intermarche", "name": "Intermarché", "aliases": [] },
+      { "id": "auchan", "name": "Auchan", "aliases": [] },
+      { "id": "super-u", "name": "Super U", "aliases": ["hyper u", "u express", "systeme u"] },
+      { "id": "lidl", "name": "Lidl", "aliases": [] },
+      { "id": "aldi", "name": "Aldi", "aliases": [] },
+      { "id": "monoprix", "name": "Monoprix", "aliases": [] }
+    ],
+    "US": [
+      { "id": "walmart", "name": "Walmart", "aliases": [] },
+      { "id": "kroger", "name": "Kroger", "aliases": [] },
+      { "id": "costco", "name": "Costco", "aliases": [] },
+      { "id": "target", "name": "Target", "aliases": [] },
+      { "id": "aldi", "name": "Aldi", "aliases": [] },
+      { "id": "publix", "name": "Publix", "aliases": [] },
+      { "id": "safeway", "name": "Safeway", "aliases": [] },
+      { "id": "trader-joes", "name": "Trader Joe's", "aliases": ["trader joes"] },
+      { "id": "whole-foods", "name": "Whole Foods Market", "aliases": ["whole foods"] },
+      { "id": "heb", "name": "H-E-B", "aliases": ["heb"] }
+    ]
+  }
+}

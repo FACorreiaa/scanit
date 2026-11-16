@@ -527,15 +527,7 @@ spent, and the items that were not on the plan.
 
 **Done when:** a planned trip with one extra item shows that item and the right difference.
 
-*Compare stores.*
-
-### CMP-001 · Chain on a store · S
-`Store.chain` exists but is never filled in. Offer a chain list per country when a store is added
-(Portugal: Continente, Pingo Doce, Lidl, Aldi, Auchan, Intermarché, Mercadona, Minipreço; short lists
-for Spain, France and the US). The list is JSON in `ScanItCore`, so Android can use it too.
-Comparisons are by chain, not by branch.
-
-**Done when:** a new Portuguese store gets a chain in one tap, and older stores can be given one in Settings.
+*Compare stores. CMP-001 (a chain on each store) is done; see **Done**.*
 
 ### CMP-002 · Compare screen · M
 **Needs:** CMP-001, SAVE-001.
@@ -973,3 +965,29 @@ an existing single budget survives the update.
   but no keyboard, so typed keys are lost. The UI test now taps the field and waits for the value
   before **Save**. Not seen on a device. Also, `testInsightsWithHistory` accepts any "of " text as
   proof the budget saved, and the "5 of 5" tile always matches, so it would not catch a broken save.
+
+### CMP-001 · Chain on a store · S
+`Store.chain` existed but was never filled in. Offer a chain list per country when a store is added.
+Comparisons are by chain within a country, not by branch.
+
+**Done when:** a new Portuguese store gets a chain in one tap, and older stores can be given one in Settings.
+
+**Closed 2026-11-16:**
+
+- **Catalogue:** `scanit-core/Sources/ScanItCore/Resources/chains.json`, read by `ChainCatalog`.
+  Portugal: Continente, Pingo Doce, Lidl, Aldi, Auchan, Intermarché, Mercadona, Minipreço; 8 each for
+  Spain and France, 10 for the US. One `id` per chain in every country (Auchan is "Alcampo" in Spain).
+  Android reads the same file. Not checked: whether each chain still trades under that name in each
+  country (Auchan Portugal is turning Minipreço shops into My Auchan; both names are kept).
+- **Matching:** a typed name is matched on whole words after folding case, accents and punctuation,
+  longest match first ("Pingo Doce Benfica" → Pingo Doce; "Lidlx" and "Super Mercado" match nothing).
+- **New store:** the start sheet shows the country's chains under the name field. One tap tags the
+  chain and names the store; typing a chain's name tags it too. The country is the phone's region.
+- **Older stores:** About → Stores (until Settings exists) lists every store with a chain picker, and
+  offers "Set to Lidl" when the name looks like a chain. Changing it marks the store for sync.
+- **Tests:** `ChainCatalogTests` (Linux CI); UI tests `testNewStoreTakesAChainInOneTap` and
+  `testOlderStoreGetsAChainInStores`, both with `-AppleLocale en_PT`.
+- **Found on the way:** Swift 6.2.3 crashes in IRGen on `Binding(get:set: method)` in this target;
+  `StoresView` passes a closure instead. `testStartWithLimitThenWithoutAndStoreIsRemembered` failed
+  once because its first tap on **Start shopping** came during launch and the sheet never opened; it
+  passed 3 of 3 reruns.

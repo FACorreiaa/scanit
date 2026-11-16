@@ -260,6 +260,51 @@ final class TripFlowUITests: XCTestCase {
         snapshot("9c-insights-budgets-two-currencies")
     }
 
+    /// CMP-001: a new Portuguese store takes its chain, and its name, in one tap.
+    func testNewStoreTakesAChainInOneTap() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT"])
+        app.buttons["openStartTrip"].tap()
+        let chip = app.buttons["chain.pingo-doce"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 5), "Portugal's chains are offered for a new store")
+        snapshot("12-start-trip-chains")
+        chip.tap()
+        XCTAssertEqual(app.textFields["storeName"].value as? String, "Pingo Doce", "the chip names the store")
+        app.buttons["startTrip"].tap()
+        XCTAssertTrue(app.staticTexts["Pingo Doce"].waitForExistence(timeout: 5))
+
+        openStores()
+        let picker = app.buttons["storeChain.Pingo Doce"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        XCTAssertFalse(describe(picker).contains("None"), "the store kept its chain: \(describe(picker))")
+    }
+
+    /// CMP-001: a store made before chains existed gets one from About → Stores.
+    func testOlderStoreGetsAChainInStores() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data"])
+        openStores()
+        let picker = app.buttons["storeChain.Continente"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        XCTAssertTrue(describe(picker).contains("None"), "demo stores have no chain yet: \(describe(picker))")
+        let suggestion = app.buttons["suggestChain.Continente"]
+        XCTAssertTrue(suggestion.exists, "the name looks like a chain, so it is offered")
+        snapshot("13-stores-suggestion")
+        suggestion.tap()
+        XCTAssertTrue(suggestion.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(describe(picker).contains("None"), "Continente is set: \(describe(picker))")
+    }
+
+    private func openStores() {
+        app.tabBars.buttons["Insights"].tap()
+        app.buttons["insightsAbout"].tap()
+        let stores = app.buttons["aboutStores"]
+        XCTAssertTrue(stores.waitForExistence(timeout: 5))
+        stores.tap()
+    }
+
+    private func describe(_ element: XCUIElement) -> String {
+        "\(element.label) \(element.value as? String ?? "")"
+    }
+
     /// ADD-004: "Start shopping" from a shortcut opens the start sheet, or the scanner mid-trip.
     func testStartShoppingShortcut() throws {
         launch(extraArguments: ["-ui-testing-start-shopping"])

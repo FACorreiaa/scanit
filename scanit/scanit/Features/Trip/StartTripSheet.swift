@@ -4,7 +4,8 @@ import SwiftData
 import SwiftUI
 
 /// Start a trip (`DESIGN.md` §2): store chips with the last one preselected, an optional limit
-/// with chips from the user's history, and the currency. BACKLOG IOS-003.
+/// with chips from the user's history, and the currency. BACKLOG IOS-003. A new store can take a
+/// chain from the country's list (CMP-001): one tap names the store and tags its chain.
 struct StartTripSheet: View {
     @Environment(SessionStore.self) private var sessions
     @Environment(\.modelContext) private var context
@@ -14,6 +15,9 @@ struct StartTripSheet: View {
     @State private var selectedStoreID: UUID?
     @State private var isAddingStore = false
     @State private var newStoreName = ""
+    /// `Chain.id` for the new store. Follows the typed name until a chip is tapped.
+    @State private var newStoreChain: String?
+    @State private var chainChosenByHand = false
     @State private var limitText = ""
     @State private var currency = Locale.current.currency?.identifier ?? "EUR"
     @FocusState private var focusedField: Field?
@@ -80,8 +84,43 @@ struct StartTripSheet: View {
                     .textInputAutocapitalization(.words)
                     .focused($focusedField, equals: .storeName)
                     .accessibilityIdentifier("storeName")
+                    .onChange(of: newStoreName) { _, name in
+                        guard !chainChosenByHand else { return }
+                        newStoreChain = ChainCatalog.match(storeName: name, country: country)?.id
+                    }
+                if !chains.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(chains) { chain in
+                                Chip(title: chain.name, isSelected: newStoreChain == chain.id) {
+                                    pickChain(chain)
+                                }
+                                .accessibilityIdentifier("chain.\(chain.id)")
+                            }
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                }
             }
         }
+    }
+
+    private var country: String { Locale.current.region?.identifier ?? "PT" }
+    private var chains: [Chain] { ChainCatalog.chains(country: country) }
+
+    /// One tap: tags the chain and, when the name is empty or still another chain's name, names
+    /// the store after it. A second tap on the same chip clears the chain.
+    private func pickChain(_ chain: Chain) {
+        chainChosenByHand = true
+        if newStoreChain == chain.id {
+            newStoreChain = nil
+            return
+        }
+        let current = trimmedNewStoreName
+        if current.isEmpty || chains.contains(where: { $0.name == current }) {
+            newStoreName = chain.name
+        }
+        newStoreChain = chain.id
     }
 
     private var limitSection: some View {
@@ -156,11 +195,7 @@ struct StartTripSheet: View {
     private func start() {
         let store: Store?
         if isAddingStore {
-            let created = Store(
-                name: trimmedNewStoreName,
-                countryCode: Locale.current.region?.identifier ?? "PT",
-                currency: currency
-            )
+            let created = Store(name: trimmedNewStoreName, chain: newStoreChain, countryCode: country, currency: currency)
             context.insert(created)
             store = created
         } else {
