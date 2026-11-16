@@ -418,14 +418,45 @@ struct BudgetStoreTests {
     @Test func budgetSurvivesRelaunchAndCanBeRemoved() throws {
         let defaults = try freshDefaults()
         let store = BudgetStore(defaults: defaults)
-        #expect(store.budget == nil)
+        #expect(store.budget(for: "EUR") == nil)
 
         store.set(Money(amountMinor: 40_000, currency: "EUR"))
-        #expect(BudgetStore(defaults: defaults).budget == Money(amountMinor: 40_000, currency: "EUR"))
+        #expect(BudgetStore(defaults: defaults).budget(for: "EUR") == Money(amountMinor: 40_000, currency: "EUR"))
 
         store.set(Money(amountMinor: 0, currency: "EUR"))
-        #expect(store.budget == nil)
-        #expect(BudgetStore(defaults: defaults).budget == nil)
+        #expect(store.budget(for: "EUR") == nil)
+        #expect(BudgetStore(defaults: defaults).budget(for: "EUR") == nil)
+    }
+
+    /// BUD-001: a € budget and a $ budget live side by side, and removing one keeps the other.
+    @Test func euroAndDollarBudgetsAreSeparate() throws {
+        let defaults = try freshDefaults()
+        let store = BudgetStore(defaults: defaults)
+        store.set(Money(amountMinor: 40_000, currency: "EUR"))
+        store.set(Money(amountMinor: 25_000, currency: "usd"))
+
+        let relaunched = BudgetStore(defaults: defaults)
+        #expect(relaunched.currencies == ["EUR", "USD"])
+        #expect(relaunched.budget(for: "EUR") == Money(amountMinor: 40_000, currency: "EUR"))
+        #expect(relaunched.budget(for: "USD") == Money(amountMinor: 25_000, currency: "USD"))
+        #expect(relaunched.status(spent: Money(amountMinor: 24_000, currency: "USD"))?.state == .near)
+        #expect(relaunched.status(spent: Money(amountMinor: 24_000, currency: "EUR"))?.state == .ok)
+
+        relaunched.remove(currency: "EUR")
+        #expect(BudgetStore(defaults: defaults).currencies == ["USD"])
+    }
+
+    /// BUD-001: the single ADD-003 budget survives the update and the old keys are gone.
+    @Test func legacyBudgetIsMigrated() throws {
+        let defaults = try freshDefaults()
+        defaults.set(30_000, forKey: "monthlyBudget.minor")
+        defaults.set("EUR", forKey: "monthlyBudget.currency")
+
+        #expect(BudgetStore(defaults: defaults).budget(for: "EUR") == Money(amountMinor: 30_000, currency: "EUR"))
+        #expect(defaults.object(forKey: "monthlyBudget.minor") == nil)
+        #expect(defaults.object(forKey: "monthlyBudget.currency") == nil)
+        #expect(BudgetStore(defaults: defaults).budget(for: "EUR") == Money(amountMinor: 30_000, currency: "EUR"),
+                "still there on the launch after the migration")
     }
 
     @Test func statusUsesTheTripLimitThresholds() throws {
@@ -438,7 +469,25 @@ struct BudgetStoreTests {
         #expect(store.status(spent: euro(32_000))?.state == .near)
         #expect(store.status(spent: euro(40_001))?.state == .over)
         #expect(store.status(spent: euro(40_001))?.remainingMinor == -1)
-        #expect(store.status(spent: Money(amountMinor: 100, currency: "GBP")) == nil, "other currency is not compared")
+        #expect(store.status(spent: Money(amountMinor: 100, currency: "GBP")) == nil, "no GBP budget, no status")
+    }
+
+    /// BUD-001: Insights measures each budget against its own currency's month.
+    @Test func monthSpendIsPerCurrency() throws {
+        let context = try makeContext()
+        let now = Date()
+        DemoData.seed(context, now: now)
+        DemoData.seedForeignTrip(context, now: now)
+        let euroMonth = InsightsSource.calculator(context: context, now: now).spend(.month).current
+
+        let spends = InsightsSource.monthSpend(context: context, alsoIn: ["gbp"], now: now)
+        #expect(spends.map(\.currency) == ["EUR", "GBP", "USD"])
+        #expect(spends[0] == euroMonth, "the euro row matches the Insights month")
+        #expect(spends[1].amountMinor == 0, "a budgeted currency with no trips shows 0")
+        let usdTripThisMonth = Calendar.current.isDate(now.addingTimeInterval(-3 * 86_400), equalTo: now, toGranularity: .month)
+        #expect(spends[2].amountMinor == (usdTripThisMonth ? DemoData.foreignTripTotalMinor : 0))
+        #expect(InsightsSource.calculator(context: context, now: now).currency == "EUR",
+                "the older dollar trip does not change the Insights currency")
     }
 }
 

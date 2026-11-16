@@ -13,6 +13,7 @@ struct InsightsView: View {
     @Query(filter: #Predicate<ShoppingSession> { $0.statusRaw == "finished" && $0.deletedAt == nil })
     private var finishedTrips: [ShoppingSession]
 
+    @Environment(BudgetStore.self) private var budgets
     @State private var period: InsightsCalculator.Period = .month
     @State private var isShowingAbout = false
 
@@ -72,7 +73,12 @@ struct InsightsView: View {
             }
 
             Section("Monthly budget") {
-                MonthlyBudgetRow(spent: calculator.spend(.month).current)
+                let rows = budgetRows(calculator)
+                ForEach(rows, id: \.currency) { spent in
+                    MonthlyBudgetRow(
+                        spent: spent, isPrimary: spent.currency == calculator.currency, showsCurrency: rows.count > 1
+                    )
+                }
             }
 
             Section {
@@ -184,6 +190,15 @@ struct InsightsView: View {
     private func signedMoney(_ money: Money) -> String {
         let amount = Money(amountMinor: abs(money.amountMinor), currency: money.currency).formatted()
         return money.amountMinor == 0 ? "Matches" : "\(money.amountMinor > 0 ? "+" : "−")\(amount)"
+    }
+
+    /// BUD-001: this month in every currency used or budgeted, the Insights currency first.
+    private func budgetRows(_ calculator: InsightsCalculator) -> [Money] {
+        let spends = InsightsSource.monthSpend(
+            context: context, alsoIn: budgets.currencies + [calculator.currency], now: calculator.now,
+            calendar: calculator.calendar
+        )
+        return spends.filter { $0.currency == calculator.currency } + spends.filter { $0.currency != calculator.currency }
     }
 
     private func productName(_ code: String) -> String {
