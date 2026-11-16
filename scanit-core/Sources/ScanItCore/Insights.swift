@@ -166,8 +166,9 @@ public struct InsightsCalculator: Sendable {
     public let currency: String
     public let now: Date
     public let calendar: Calendar
-    private let trips: [TripSnapshot]
-    private let prices: [PriceSnapshot]
+    // Internal, not private: `Savings.swift` extends the calculator.
+    let trips: [TripSnapshot]
+    let prices: [PriceSnapshot]
 
     public init(trips: [TripSnapshot], prices: [PriceSnapshot], currency: String, now: Date, calendar: Calendar = .current) {
         let currency = currency.uppercased()
@@ -261,10 +262,7 @@ public struct InsightsCalculator: Sendable {
         let pricesByCode = Dictionary(grouping: prices.filter { $0.observedAt <= now }) { $0.code }
         return regulars
             .compactMap { code, info -> CheapestStore? in
-                // Latest observation per store; on a tie the first one stays, as with `max(by:)`.
-                let latestPerStore = (pricesByCode[code] ?? []).keyed(by: \.storeId) { _, kept, next in
-                    next.observedAt > kept.observedAt ? next : kept
-                }.values
+                let latestPerStore = Self.latestPerStore(pricesByCode[code] ?? [])
                 guard latestPerStore.count >= 2,
                       let cheapest = latestPerStore.min(by: { ($0.priceMinor, $0.storeId) < ($1.priceMinor, $1.storeId) }),
                       let dearest = latestPerStore.max(by: { $0.priceMinor < $1.priceMinor }),
@@ -337,7 +335,14 @@ public struct InsightsCalculator: Sendable {
 
     // MARK: - Helpers
 
-    private func trips(in interval: DateInterval) -> [TripSnapshot] {
+    /// The newest observation for each store. On a tie the first one stays, as with `max(by:)`.
+    static func latestPerStore(_ observations: [PriceSnapshot]) -> [PriceSnapshot] {
+        Array(observations.keyed(by: \.storeId) { _, kept, next in
+            next.observedAt > kept.observedAt ? next : kept
+        }.values)
+    }
+
+    func trips(in interval: DateInterval) -> [TripSnapshot] {
         trips.filter { $0.endedAt >= interval.start && $0.endedAt < interval.end }
     }
 
@@ -350,7 +355,7 @@ public struct InsightsCalculator: Sendable {
         money(trips(in: interval).reduce(0) { $0 + $1.totalMinor })
     }
 
-    private func money(_ minor: Int) -> Money {
+    func money(_ minor: Int) -> Money {
         Money(amountMinor: minor, currency: currency)
     }
 }

@@ -431,25 +431,7 @@ adds up from the trip lines.
 **Start order:** SAVE-001 → BUD-001 → CMP-001 → MEAL-001 → MEAL-002 → MEAL-003 → OPX-001 →
 SAVE-002/003 → MEAL-004 → CMP-002 → BUD-002 → OPX-002 → REG-001/002 → the rest.
 
-*Savings: the base the rest builds on.*
-
-### SAVE-001 · Savings definitions in ScanItCore · M
-Pure functions over `TripSnapshot` / `PriceSnapshot` in `ScanItCore/Insights.swift`, next to
-`cheapestStores`, so the server can run the same maths in P9. Definitions are INS-11…14 in `DESIGN.md`:
-
-- **INS-11 Line saving:** (reference price − price paid) × quantity. The reference is the median of
-  the latest price at each *other* store for the same GTIN over 90 days. Only real GTINs; in-store and
-  opaque codes are skipped, as in ADD-001. A line with no reference counts 0 and is reported as
-  "unpriced". It can be negative (you overpaid).
-- **INS-12 Trip saving:** Σ INS-11 over the trip, per currency.
-- **INS-13 Missed saving:** per line, (price paid − cheapest known price elsewhere) × quantity, only
-  when above 0.
-- **INS-14 Month saving:** Σ INS-12 over trips ended in the month, per currency.
-
-Fixtures in `Fixtures/savings.json`, every expected value worked out by hand, including a USD trip
-(currencies never mix) and an in-store code (skipped).
-
-**Done when:** every INS-11…14 case has a fixture test, and a deliberately wrong expected value fails.
+*Savings: the base the rest builds on. SAVE-001 (the INS-11…14 maths) is done; see **Done**.*
 
 ### SAVE-002 · Saving on the trip summary and in History · S
 **Needs:** SAVE-001.
@@ -956,3 +938,23 @@ INS-09 and INS-10. Port the method from Norviq's `PersonalInflationCalculator.sw
   - basket inflation is spend-weighted per product and store, after Norviq's `expense_weighted_cpi_v1`
   - both have hand-computed fixture expectations
   - both are shown under "Your prices" on Insights, hidden when there is no data
+
+### SAVE-001 · Savings definitions in ScanItCore · M
+Pure functions for INS-11…14 (`DESIGN.md`), so the server can run the same maths in P9.
+
+**Done when:** every INS-11…14 case has a fixture test, and a deliberately wrong expected value fails.
+
+**Closed 2026-11-16:**
+
+- **Code:** `ScanItCore/Savings.swift` extends `InsightsCalculator` with `tripSaving(_:)` (INS-11…13, per
+  line and per trip, plus missed saving per store) and `savings(in:)` (INS-14). The "latest price per
+  store" rule is now one helper shared with INS-07.
+- **Definition pinned while building:** the 90-day window counts back from the trip's end, not from
+  today, so a past trip's saving never moves. With an even number of stores, the reference is the mean of
+  the two middle prices, rounded half up. Both are written in `DESIGN.md`.
+- **Fixture:** `Fixtures/savings.json` holds 3 EUR trips and 1 USD trip over 4 + 2 stores, with the
+  working for every line written next to the expected values. It covers an odd and an even median, a
+  negative saving, an unpriced line, an in-store code, a price older than 90 days, a price after the
+  trip's end, the trip's own store being left out, and a month boundary.
+- **Checked:** `swift test` runs 44 tests, all passing. With T1's saving set to 83 and T2's milk
+  reference set to 96, the suite failed on exactly those two values.

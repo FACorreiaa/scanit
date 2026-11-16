@@ -176,9 +176,9 @@ and never converted.
 | INS-08 | Category split | Σ spend by first Open Food Facts category; unknown is shown as "Other" |
 | INS-09 | Till gap | mean (actual till total − scanned total) over trips where the till total was entered |
 | INS-10 | Personal basket inflation | weighted price change of the user's regular basket (INS-07 GTINs) over 90 days. Norviq's `PersonalInflationCalculator` is the reference for method |
-| INS-11 | Line saving | (reference price − price paid) × quantity. Reference = median of the latest price at each *other* store for the same GTIN over 90 days. Real GTINs only; in-store and opaque codes are skipped. No reference: 0, reported as "unpriced". May be negative |
+| INS-11 | Line saving | (reference price − price paid) × quantity. Reference = median of the latest price at each *other* store for the same GTIN, over the 90 days up to the trip's end (so a past trip's saving never moves); with an even count, the mean of the two middle prices rounded half up. Real GTINs only; in-store and opaque codes are skipped. No reference: 0, reported as "unpriced". May be negative |
 | INS-12 | Trip saving | Σ INS-11 over the trip, per currency |
-| INS-13 | Missed saving | per line, (price paid − cheapest known price elsewhere) × quantity, only when above 0 |
+| INS-13 | Missed saving | per line, (price paid − cheapest latest price at another store, same window as INS-11) × quantity, only when above 0; also summed per store |
 | INS-14 | Month saving | Σ INS-12 over trips with `endedAt` in the month, per currency |
 
 A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show progress toward 3 trips and what each unlocks, with **Start shopping**. Charts follow the `dataviz` skill.
