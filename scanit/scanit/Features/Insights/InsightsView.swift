@@ -51,7 +51,7 @@ struct InsightsView: View {
         }
         .sheet(isPresented: $isShowingAbout) {
             AboutSheet()
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
         }
         .onAppear { analytics.track(.insightsViewed) }
     }
@@ -69,6 +69,10 @@ struct InsightsView: View {
                 HeadlineTiles(calculator: calculator)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
+            }
+
+            Section("Monthly budget") {
+                MonthlyBudgetRow(spent: calculator.spend(.month).current)
             }
 
             Section {

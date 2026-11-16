@@ -164,6 +164,11 @@ Per-country table for 20–29 prefix EANs (start with the owner's country). Pric
 
 **Done when:** 5 real weighed-produce labels parse to the printed price.
 
+**Status 2026-11-15: not started, waiting on real labels.** GS1 leaves the layout of 20–29 codes to each country
+and, in practice, to each chain: some carry the price, some the weight, with different digit counts. No published
+layout for Portuguese chains was found, and a guessed table would put wrong prices in the cart. **Needs from the
+owner:** photos of about 5 weighed labels from 2 or more chains, with the printed price, weight and price per kg readable.
+
 
 ---
 
@@ -345,6 +350,65 @@ Decided 2026-10-09: free, plus a one-time non-consumable that unlocks unlimited 
 
 ---
 
+## Small adds (owner, 2026-11-15)
+
+Local only: no backend, no account. Chosen by the owner while the strangers count was still 0, in
+this order. LIVE-001 and INS-105 above are part of the same list (third and fourth).
+
+### ADD-001 · Zero-tap scan and "cheaper elsewhere" · M
+Scanning is the whole gesture. A price remembered for this store is added on the barcode lock. With
+no remembered price the shelf label is read without a tap (up to 3 stills) and added when it shows
+one clear price. Both show a banner with **Undo** and **Edit**, and "€1,79 at Aldi · 12 Oct" when
+another store's newest price (90 days, real GTINs only) is lower. Several prices on a label, or
+none, still go to the confirm sheet, which shows the same hint. Undo also forgets the price it
+recorded, so a misread is not added again.
+
+**Done when:** in a real shop, a known product is in the cart with no tap, a shelf label with one
+price is added with no tap, and a wrong read is undone from the banner.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`, not yet tried on a device.** Open: whether
+`capturePhoto()` makes a shutter sound on each automatic still, and how often packaging text is
+taken for a price when the label is out of frame (IOS-007's 20-label set still measures this).
+The store screenshot "SKIP RETYPING" shows the confirm sheet, which a remembered price no longer opens.
+
+### ADD-002 · Share a trip summary · S
+An image card from the summary: total against the limit, items, store. System share sheet.
+
+**Done when:** a finished trip can be shared to Messages as one image with no amounts cut off.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`.** A 1080 × 1350 card (store, date, total, limit bar and result, item count, mascot) from the summary and from a past trip in History. Totals only, no product names. Not yet shared from a device.
+
+### ADD-003 · Monthly grocery budget · S
+**Needs:** INS-103.
+A month limit on Insights, measured with `LimitStatus` over the month's finished trips.
+
+**Done when:** the Insights tile shows spent and left for the month and turns amber and red at the trip thresholds.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`.** "Monthly budget" section under the Insights tiles, one amount for every month, kept in `UserDefaults`. Shown only once Insights has its 3 trips.
+
+### ADD-004 · "Start shopping" App Intent · S
+Siri, Action Button and Control Center start a trip at the last store.
+
+**Done when:** the Action Button opens the scanner on a new trip from a locked phone.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`.** `StartShoppingIntent` with Siri phrases; it opens the scanner mid-trip and the start sheet otherwise, so the limit and the free-trip quota are still asked. Not yet run from Siri or the Action Button. A Control Center control needs the widget extension (LIVE-001).
+
+### ADD-005 · Shopping list · M
+A list written before the trip, ticked off when its product is scanned.
+
+**Done when:** a scan ticks the matching line, and the trip screen shows what is still to get.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`.** New `ListItem` model. A line picked from past purchases is ticked by its barcode; a typed line by the product name (every word starts a word of the name) or by hand. Ticked lines leave the list when the trip is finished.
+
+### ADD-006 · Export trips as CSV · S
+One file from Settings: trip, store, date, product, quantity, price.
+
+**Done when:** the file opens in Numbers with one row per cart line.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`.** In the About sheet. Not yet opened in Numbers.
+
+---
+
 ## P7 — Live Activity and widgets
 
 ### LIVE-001 · Trip Live Activity · M
@@ -352,6 +416,14 @@ Decided 2026-10-09: free, plus a one-time non-consumable that unlocks unlimited 
 ActivityKit Live Activity with total, limit bar and remaining. Compact and expanded Dynamic Island. Updated locally on every add; no push server.
 
 **Done when:** with the phone locked mid-trip, the Lock Screen shows the right total after an add, and the activity ends on Finish.
+
+**Status 2026-11-15: built on `feat/zero-tap-scan`, works on the simulator, not yet signed.** New target
+`scanitWidgets` (bundle IDs `…scanit.widgets` and `…scanit.beta.widgets`) draws the Lock Screen banner and the
+Dynamic Island; `TripActivityController` starts, updates and ends it from `SessionStore`. A UI test sees the total
+in the Dynamic Island and sees it go when the trip is finished. **Needs from the owner before this reaches `main`:**
+run the `seed_signing` lane once (it creates the two App IDs and their profiles in the shared match repo). Until
+then the `beta` and `release` lanes fail at `match`, because `Matchfile` now lists the two new IDs. Not yet seen on
+a locked phone.
 
 ### LIVE-002 · Home Screen widget · S
 **Needs:** INS-102.

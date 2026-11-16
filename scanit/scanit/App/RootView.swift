@@ -23,6 +23,10 @@ struct RootView: View {
             }
         }
         .environment(\.showTrip) { selection = .trip }
+        // A shortcut asked to start shopping: the Trip tab acts on it once it is in front.
+        .onChange(of: ShortcutActions.shared.startShopping, initial: true) { _, request in
+            if request != nil { selection = .trip }
+        }
     }
 }
 
@@ -39,5 +43,6 @@ extension EnvironmentValues {
         .environment(ConnectivityMonitor())
         .environment(PurchaseStore())
         .environment(ReviewPrompter(defaults: UserDefaults(suiteName: "scanit.preview") ?? .standard, isSuppressed: true))
+        .environment(BudgetStore(defaults: UserDefaults(suiteName: "scanit.preview") ?? .standard))
         .modelContainer(container)
 }

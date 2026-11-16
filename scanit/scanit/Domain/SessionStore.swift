@@ -23,13 +23,20 @@ final class SessionStore {
     @ObservationIgnored private let context: ModelContext
     @ObservationIgnored private let analytics: any AnalyticsClient
     @ObservationIgnored private let now: () -> Date
+    /// Told the active trip (or `nil`) after every change, for the Live Activity (LIVE-001).
+    @ObservationIgnored private let onTripChange: (ShoppingSession?) -> Void
     @ObservationIgnored private let logger = Logger(subsystem: "com.fernandocorreia.scanit", category: "session")
 
-    init(context: ModelContext, analytics: any AnalyticsClient = LogAnalytics(), now: @escaping () -> Date = { .now }) {
+    init(
+        context: ModelContext, analytics: any AnalyticsClient = LogAnalytics(), now: @escaping () -> Date = { .now },
+        onTripChange: @escaping (ShoppingSession?) -> Void = { _ in }
+    ) {
         self.context = context
         self.analytics = analytics
         self.now = now
+        self.onTripChange = onTripChange
         loadActive()
+        onTripChange(active)
     }
 
     // MARK: - Trip lifecycle
@@ -47,6 +54,7 @@ final class SessionStore {
         limitState = session.limitStatus.state
         feedback = nil
         analytics.track(.tripStarted(hasLimit: session.limitMinor != nil))
+        onTripChange(active)
         return session
     }
 
@@ -56,6 +64,7 @@ final class SessionStore {
         save()
         self.active = nil
         limitState = .noLimit
+        onTripChange(nil)
     }
 
     /// Ends the active trip and returns it for the summary. `nil` when there is nothing to finish.
@@ -64,8 +73,10 @@ final class SessionStore {
         guard let active, !active.liveItems.isEmpty else { return nil }
         close(active, as: .finished)
         save()
+        ShoppingList.clearDone(context: context, now: now())
         self.active = nil
         limitState = .noLimit
+        onTripChange(nil)
         let status = active.limitStatus
         analytics.track(.tripFinished(
             items: active.liveItems.reduce(0) { $0 + $1.quantity },
@@ -84,6 +95,7 @@ final class SessionStore {
         active = session
         limitState = session.limitStatus.state
         feedback = nil
+        onTripChange(active)
     }
 
     /// What the till actually charged (`DESIGN.md` §6); the gap is insight INS-09.
@@ -112,6 +124,9 @@ final class SessionStore {
         active.touch(now())
         recordPrice(code: code.value, unitPriceMinor: unitPriceMinor, source: priceSource, in: active)
         save()
+        // A scan answers the shopping list (BACKLOG ADD-005). A name that arrives later from
+        // Open Food Facts gets its own chance in `ProductEnricher`.
+        ShoppingList.tick(code: code.value, name: productName, context: context, now: now())
         refreshLimitState()
         analytics.track(.itemScanned(priceSource: priceSource, symbology: symbology))
         return item
@@ -142,6 +157,21 @@ final class SessionStore {
         refreshLimitState()
     }
 
+    /// Takes back an item that was added without a confirm step. Unlike `remove`, the price it
+    /// recorded is forgotten too: a misread label must not be added again on the next scan.
+    func undoAdd(_ item: CartItem) {
+        let code = item.code
+        let since = item.scannedAt
+        let storeID = item.session?.store?.id
+        let descriptor = FetchDescriptor<PriceObservation>(
+            predicate: #Predicate { $0.code == code && $0.deletedAt == nil && $0.observedAt >= since }
+        )
+        for observation in (try? context.fetch(descriptor)) ?? [] where observation.store?.id == storeID {
+            observation.softDelete(now())
+        }
+        remove(item)
+    }
+
     // MARK: - Internals
 
     private func loadActive() {
@@ -161,6 +191,7 @@ final class SessionStore {
             feedback = FeedbackEvent(kind: kind)
         }
         limitState = new
+        onTripChange(active)
     }
 
     /// Every confirmed price is a sighting, including a remembered price confirmed again: that

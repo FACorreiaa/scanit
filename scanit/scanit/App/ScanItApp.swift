@@ -11,6 +11,7 @@ struct ScanItApp: App {
     @State private var connectivity = ConnectivityMonitor()
     @State private var purchases = PurchaseStore()
     @State private var reviews: ReviewPrompter
+    @State private var budgets: BudgetStore
     private let paywallPolicy: PaywallPolicy
 
     private let container: ModelContainer
@@ -31,8 +32,18 @@ struct ScanItApp: App {
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-trip") {
             DemoData.seedActiveTrip(container.mainContext)
         }
+        // Stands in for `StartShoppingIntent`, which UI tests cannot run.
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-start-shopping") {
+            ShortcutActions.shared.requestStartShopping()
+        }
         #endif
-        _sessions = State(initialValue: SessionStore(context: container.mainContext, analytics: analytics))
+        // UI tests run without a Live Activity: it would outlive the throwaway store.
+        let wantsActivity = !inMemory || ProcessInfo.processInfo.arguments.contains("-ui-testing-live-activity")
+        let liveActivity = wantsActivity ? TripActivityController() : nil
+        _sessions = State(initialValue: SessionStore(
+            context: container.mainContext, analytics: analytics,
+            onTripChange: { liveActivity?.sync($0) }
+        ))
         let lookup: any ProductLookup = inMemory
             ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo", "4006381333931": "Pão de forma"])
             : OpenFoodFactsClient()
@@ -44,8 +55,10 @@ struct ScanItApp: App {
             let defaults = UserDefaults(suiteName: suite) ?? .standard
             defaults.removePersistentDomain(forName: suite)
             _reviews = State(initialValue: ReviewPrompter(defaults: defaults, isSuppressed: true))
+            _budgets = State(initialValue: BudgetStore(defaults: defaults))
         } else {
             _reviews = State(initialValue: ReviewPrompter())
+            _budgets = State(initialValue: BudgetStore())
         }
 
         // Off until launch (REL-003). UI tests switch it on: `-paywall-enabled -paywall-free-trips N`.
@@ -71,6 +84,7 @@ struct ScanItApp: App {
                 .environment(connectivity)
                 .environment(purchases)
                 .environment(reviews)
+                .environment(budgets)
                 .environment(\.paywallPolicy, paywallPolicy)
                 .environment(\.analytics, analytics)
                 // v1 ships free (docs/release.md): no StoreKit traffic until the paywall is switched on.

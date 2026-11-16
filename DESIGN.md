@@ -81,8 +81,9 @@ The **Start** button sits at the bottom.
 - **Top HUD** is a compact total and limit bar, so the number stays visible while scanning.
 - A reticle shows the barcode lock. On lock: a light haptic, the reticle snaps, and the code shows under it.
 - **Step 2, price:**
-  - **Remembered price:** the confirm sheet comes up straight away with the price filled in and marked "seen 12 d ago". Scanning the shelf price is optional, to refresh it.
-  - **Not remembered:** the prompt is "Point at the shelf price", with **Read price** and **Type it** always visible. Read price takes one still and reads it on the device. A clear price opens the confirm sheet pre-filled ("Read from the shelf label. Check it matches."); when two prices are close, nothing is guessed and they are offered as chips. Per-kg prices and multi-buys are never offered.
+  - **Remembered price:** the item is added on the barcode lock, with no sheet (ADD-001, 2026-11-15). A banner says "Added · €1,99 · Seen here 12 days ago" for 6 seconds, with **Undo** and **Edit**.
+  - **Not remembered:** the shelf label is read without a tap, up to 3 stills, under "Reading the shelf price…", with **Type it** always visible. One clear price is added, with the same banner. Several item prices open the confirm sheet with chips. No price shows "Couldn't read a price" with **Try again** and **Type it**.
+  - **Cheaper elsewhere:** the banner and the confirm sheet show "€1,79 at Aldi · 12 Oct" when another store's newest price for the product (last 90 days) is lower.
 - **Confirm sheet** (small detent):
   - product name and photo from Open Food Facts once they arrive, otherwise "Product 5601234…"
   - price, editable

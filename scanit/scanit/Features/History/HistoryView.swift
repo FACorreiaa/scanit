@@ -215,6 +215,11 @@ struct TripDetailView: View {
         }
         .navigationTitle(trip.store?.name ?? "Trip")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                TripShareLink(session: trip)
+            }
+        }
         .sheet(item: $editing) { selection in
             EditItemSheet(item: selection.item, currency: trip.currency)
                 .presentationDetents([.medium])
