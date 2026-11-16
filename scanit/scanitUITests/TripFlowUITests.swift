@@ -224,6 +224,42 @@ final class TripFlowUITests: XCTestCase {
         snapshot("11-insights-your-prices")
     }
 
+    /// BUD-001: a € budget and a $ budget each show against their own month's spending.
+    func testBudgetsInTwoCurrencies() throws {
+        launch(extraArguments: ["-ui-testing-demo-data", "-ui-testing-demo-usd-trip"])
+        app.tabBars.buttons["Insights"].tap()
+
+        let euro = app.buttons["monthlyBudget"]
+        XCTAssertTrue(euro.waitForExistence(timeout: 5))
+        let dollar = app.buttons["monthlyBudget.USD"]
+        XCTAssertTrue(dollar.waitForExistence(timeout: 5), "a row for the currency of the dollar trip")
+        XCTAssertTrue(dollar.label.contains("USD"), "with two currencies each row names its own")
+
+        for (row, amount) in [(euro, "500"), (dollar, "100")] {
+            row.tap()
+            let field = app.textFields["budgetAmount"]
+            XCTAssertTrue(field.waitForExistence(timeout: 5))
+            // The sheet focuses the field while it is still presenting, and on the simulator the
+            // keyboard sometimes never comes up, so keys typed then are lost. Tap the field first,
+            // and only tap Save once the amount is really in it and Save is enabled.
+            field.tap()
+            field.typeText(amount)
+            let save = app.buttons["saveBudget"]
+            let ready = [
+                expectation(for: NSPredicate(format: "value == %@", amount), evaluatedWith: field),
+                expectation(for: NSPredicate(format: "isEnabled == true AND isHittable == true"), evaluatedWith: save),
+            ]
+            wait(for: ready, timeout: 5)
+            save.tap()
+            XCTAssertTrue(field.waitForNonExistence(timeout: 5), "the sheet closes after saving \(amount)")
+        }
+
+        XCTAssertTrue(euro.label.contains("€") && euro.label.contains("of"), "euro row: \(euro.label)")
+        XCTAssertTrue(dollar.label.contains("$") && dollar.label.contains("of"), "dollar row: \(dollar.label)")
+        XCTAssertFalse(dollar.label.contains("€"), "the dollar row never shows euros: \(dollar.label)")
+        snapshot("9c-insights-budgets-two-currencies")
+    }
+
     /// ADD-004: "Start shopping" from a shortcut opens the start sheet, or the scanner mid-trip.
     func testStartShoppingShortcut() throws {
         launch(extraArguments: ["-ui-testing-start-shopping"])

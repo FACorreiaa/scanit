@@ -5,6 +5,27 @@ import SwiftData
 /// Turns SwiftData rows into the value snapshots `InsightsCalculator` works on (BACKLOG INS-103).
 enum InsightsSource {
     static func calculator(context: ModelContext, now: Date = .now, calendar: Calendar = .current) -> InsightsCalculator {
+        let (trips, prices, latestCurrency) = snapshots(context: context)
+        // The currency of the latest trip; most people shop in one.
+        let currency = latestCurrency ?? Locale.current.currency?.identifier ?? "EUR"
+        return InsightsCalculator(trips: trips, prices: prices, currency: currency, now: now, calendar: calendar)
+    }
+
+    /// This calendar month's spend in every currency the user has finished a trip in, or has a
+    /// budget in (BUD-001). Zero when nothing was spent in it this month. Sorted by currency code.
+    static func monthSpend(
+        context: ModelContext, alsoIn extra: [String] = [], now: Date = .now, calendar: Calendar = .current
+    ) -> [Money] {
+        let (trips, _, _) = snapshots(context: context)
+        let currencies = Set(trips.map { $0.currency.uppercased() } + extra.map { $0.uppercased() })
+        return currencies.sorted().map { currency in
+            InsightsCalculator(trips: trips, prices: [], currency: currency, now: now, calendar: calendar)
+                .spend(.month).current
+        }
+    }
+
+    /// Finished trips (newest first), price observations, and the newest trip's currency.
+    private static func snapshots(context: ModelContext) -> (trips: [TripSnapshot], prices: [PriceSnapshot], latestCurrency: String?) {
         let finished = SessionStatus.finished.rawValue
         let sessions = (try? context.fetch(FetchDescriptor<ShoppingSession>(
             predicate: #Predicate { $0.statusRaw == finished && $0.deletedAt == nil },
@@ -42,9 +63,7 @@ enum InsightsSource {
                 priceMinor: observation.priceMinor, currency: observation.currency, observedAt: observation.observedAt
             )
         }
-        // The currency of the latest trip; most people shop in one.
-        let currency = sessions.first?.currency ?? Locale.current.currency?.identifier ?? "EUR"
-        return InsightsCalculator(trips: trips, prices: prices, currency: currency, now: now, calendar: calendar)
+        return (trips, prices, sessions.first?.currency)
     }
 
     /// "en:sweet-spreads" → "Sweet spreads"; "other" → "Other".

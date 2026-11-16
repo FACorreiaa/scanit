@@ -58,6 +58,30 @@ enum DemoData {
         try? context.save()
     }
 
+    /// Total of `seedForeignTrip` in cents: 2 × 3,49 + 5,50.
+    static let foreignTripTotalMinor = 1_248
+
+    /// A finished dollar trip 3 days ago (`-ui-testing-demo-usd-trip`), for budgets in two currencies
+    /// (BUD-001). Older than the newest euro trip, so Insights stays in euros.
+    static func seedForeignTrip(_ context: ModelContext, now: Date = .now) {
+        let market = Store(name: "Corner Market", countryCode: "US", currency: "USD")
+        context.insert(market)
+        let start = now.addingTimeInterval(-3 * 86_400)
+        let session = ShoppingSession(store: market, limitMinor: nil, currency: "USD", now: start)
+        session.status = .finished
+        session.endedAt = start.addingTimeInterval(1200)
+        context.insert(session)
+        for (code, name, quantity, price) in [("00070038000563", "Whole milk 1 gal", 2, 349), ("00041220576463", "Eggs dozen", 1, 550)] {
+            let item = CartItem(
+                code: ScannedCode(kind: .gtin, value: code), productName: name,
+                quantity: quantity, unitPriceMinor: price, priceSource: .manual, now: start
+            )
+            context.insert(item)
+            item.session = session
+        }
+        try? context.save()
+    }
+
     /// A trip in progress for App Store screenshots: named products at Lidl, €60 limit, nearly reached.
     static func seedActiveTrip(_ context: ModelContext, now: Date = .now) {
         let lidl = (try? context.fetch(FetchDescriptor<Store>()))?.first { $0.name == "Lidl" }

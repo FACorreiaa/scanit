@@ -451,14 +451,7 @@ SAVE-002/003 → MEAL-004 → CMP-002 → BUD-002 → OPX-002 → REG-001/002 �
 
 **Done when:** the tile renders in light and dark mode with demo data and passes the `dataviz` validator.
 
-*Budget: improvements to the trip limit and ADD-003.*
-
-### BUD-001 · Budget per currency · S
-`BudgetStore` holds one `Money`. Keep one budget per currency, so a € and a $ budget can both exist.
-The existing `UserDefaults` keys are migrated.
-
-**Done when:** a € budget and a $ budget each show on Insights against their own month's spend, and
-an existing single budget survives the update.
+*Budget: improvements to the trip limit and ADD-003. BUD-001 (a budget per currency) is done; see **Done**.*
 
 ### BUD-002 · Over-limit help during the trip · M
 **Needs:** SAVE-001.
@@ -958,3 +951,25 @@ Pure functions for INS-11…14 (`DESIGN.md`), so the server can run the same mat
   trip's end, the trip's own store being left out, and a month boundary.
 - **Checked:** `swift test` runs 44 tests, all passing. With T1's saving set to 83 and T2's milk
   reference set to 96, the suite failed on exactly those two values.
+
+### BUD-001 · Budget per currency · S
+`BudgetStore` held one `Money`. Keep one budget per currency, so a € and a $ budget can both exist.
+
+**Done when:** a € budget and a $ budget each show on Insights against their own month's spend, and
+an existing single budget survives the update.
+
+**Closed 2026-11-16:**
+
+- **Store:** `BudgetStore` keeps a budget per currency under `monthlyBudgets`. ADD-003's single budget
+  (`monthlyBudget.minor` / `.currency`) is moved over on first launch and the old keys are removed.
+- **Insights:** the "Monthly budget" section has one row for each currency the user has finished a
+  trip in or has a budget in, the Insights currency first. Each row is measured against that
+  currency's month (`InsightsSource.monthSpend`). With more than one row, each names its currency.
+  Nothing is converted.
+- **Tests:** unit tests cover € and $ side by side, removing one, the migration, and per-currency
+  month spend (84 passing). UI test `testBudgetsInTwoCurrencies` sets €500 and $100 on demo data plus a
+  dollar trip (`-ui-testing-demo-usd-trip`) and checks that each row shows its own currency.
+- **Found on the way:** on the simulator the budget sheet sometimes opens with the field focused
+  but no keyboard, so typed keys are lost. The UI test now taps the field and waits for the value
+  before **Save**. Not seen on a device. Also, `testInsightsWithHistory` accepts any "of " text as
+  proof the budget saved, and the "5 of 5" tile always matches, so it would not catch a broken save.
