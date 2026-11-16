@@ -1,0 +1,99 @@
+{
+  "_comment": "Hand-computed expectations for INS-11..14 (DESIGN.md → Insights catalogue, BACKLOG SAVE-001). Shared with Android. UTC, week starts Monday. Reference = median of the latest price at each other store, 90 days up to the trip's end; even count = mean of the two middle prices, rounded half up. Stores: L Lidl, C Continente, P Pingo Doce, A Auchan (EUR); K and W (USD).",
+  "now": "2026-11-16T12:00:00Z",
+  "trips": [
+    { "id": "T1", "storeId": "L", "storeName": "Lidl", "currency": "EUR",
+      "startedAt": "2026-11-14T10:00:00Z", "endedAt": "2026-11-14T10:30:00Z", "limitMinor": 2000, "tillTotalMinor": null,
+      "lines": [
+        { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 2, "unitPriceMinor": 99, "category": "en:milks" },
+        { "code": "03017620422003", "codeKind": "gtin", "name": "Nutella", "quantity": 1, "unitPriceMinor": 429, "category": "en:spreads" },
+        { "code": "04006381333931", "codeKind": "gtin", "name": "Pão", "quantity": 1, "unitPriceMinor": 150, "category": "en:breads" },
+        { "code": "02040123001506", "codeKind": "gtin", "name": "Maçãs", "quantity": 1, "unitPriceMinor": 250, "category": null },
+        { "code": "05449000000996", "codeKind": "gtin", "name": "Coca-Cola", "quantity": 3, "unitPriceMinor": 120, "category": "en:sodas" } ] },
+    { "id": "T2", "storeId": "C", "storeName": "Continente", "currency": "EUR",
+      "startedAt": "2026-11-15T17:30:00Z", "endedAt": "2026-11-15T18:00:00Z", "limitMinor": null, "tillTotalMinor": null,
+      "lines": [
+        { "code": "05601234567892", "codeKind": "gtin", "name": "Leite", "quantity": 1, "unitPriceMinor": 105, "category": "en:milks" },
+        { "code": "05449000000996", "codeKind": "gtin", "name": "Coca-Cola", "quantity": 2, "unitPriceMinor": 100, "category": "en:sodas" } ] },
+    { "id": "T3", "storeId": "L", "storeName": "Lidl", "currency": "EUR",
+      "startedAt": "2026-10-31T23:00:00Z", "endedAt": "2026-10-31T23:30:00Z", "limitMinor": null, "tillTotalMinor": null,
+      "lines": [
+        { "code": "03017620422003", "codeKind": "gtin", "name": "Nutella", "quantity": 1, "unitPriceMinor": 419, "category": "en:spreads" } ] },
+    { "id": "T4", "storeId": "K", "storeName": "Kroger", "currency": "USD",
+      "startedAt": "2026-11-10T14:30:00Z", "endedAt": "2026-11-10T15:00:00Z", "limitMinor": null, "tillTotalMinor": null,
+      "lines": [
+        { "code": "05449000000996", "codeKind": "gtin", "name": "Coca-Cola", "quantity": 1, "unitPriceMinor": 199, "category": "en:sodas" } ] }
+  ],
+  "prices": [
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 99, "currency": "EUR", "observedAt": "2026-11-14T10:10:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "04006381333931", "priceMinor": 150, "currency": "EUR", "observedAt": "2026-11-14T10:12:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "03017620422003", "priceMinor": 419, "currency": "EUR", "observedAt": "2026-10-31T23:10:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 109, "currency": "EUR", "observedAt": "2026-11-01T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 105, "currency": "EUR", "observedAt": "2026-11-10T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "03017620422003", "priceMinor": 399, "currency": "EUR", "observedAt": "2026-11-05T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05449000000996", "priceMinor": 150, "currency": "EUR", "observedAt": "2026-11-02T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05449000000996", "priceMinor": 100, "currency": "EUR", "observedAt": "2026-11-15T17:45:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "05601234567892", "priceMinor": 94, "currency": "EUR", "observedAt": "2026-10-20T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "03017620422003", "priceMinor": 449, "currency": "EUR", "observedAt": "2026-11-12T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "05449000000996", "priceMinor": 130, "currency": "EUR", "observedAt": "2026-11-03T10:00:00Z" },
+    { "storeId": "A", "storeName": "Auchan", "code": "05601234567892", "priceMinor": 119, "currency": "EUR", "observedAt": "2026-07-01T10:00:00Z" },
+    { "storeId": "A", "storeName": "Auchan", "code": "03017620422003", "priceMinor": 459, "currency": "EUR", "observedAt": "2026-10-01T10:00:00Z" },
+    { "storeId": "W", "storeName": "Walmart", "code": "05449000000996", "priceMinor": 150, "currency": "USD", "observedAt": "2026-11-01T10:00:00Z" },
+    { "storeId": "K", "storeName": "Kroger", "code": "05449000000996", "priceMinor": 199, "currency": "USD", "observedAt": "2026-11-10T14:50:00Z" }
+  ],
+  "_workings": {
+    "T1 milk": "others C latest 105 (11-10, not 109), P 94; A 119 is older than 90 days. Median (94+105+1)/2 = 100. Saving (100-99)x2 = 2. Cheapest P 94 < 99: missed (99-94)x2 = 10 at P.",
+    "T1 nutella": "own L 419 excluded. Others C 399, P 449, A 459. Median 449. Saving (449-429)x1 = 20. Cheapest C 399: missed 30 at C.",
+    "T1 bread": "only L (own store) has a price: unpriced, 0 and 0.",
+    "T1 apples": "02... in-store code: skipped, not a line in the result.",
+    "T1 coke": "C 100 is after the trip ended, so C latest is 150; P 130. Median (130+150+1)/2 = 140. Saving (140-120)x3 = 60. Cheapest 130 >= 120: missed 0. The USD prices are another currency.",
+    "T1": "saving 2+20+0+60 = 82, missed 10+30 = 40, by store C 30, P 10, unpriced 1.",
+    "T2 milk": "own C excluded. Others L 99, P 94. Median (94+99+1)/2 = 97. Saving (97-105)x1 = -8 (overpaid). Missed (105-94) = 11 at P.",
+    "T2 coke": "own C excluded. Others P 130. Median 130. Saving (130-100)x2 = 60. Missed 0.",
+    "T2": "saving -8+60 = 52, missed 11, by store P 11.",
+    "T3 nutella": "window ends 10-31: C 399 (11-05) and P 449 (11-12) are later; own L excluded. Others A 459. Saving 459-419 = 40. Missed 0.",
+    "EUR November": "T1 + T2: saving 134, missed 51, 2 trips, by store C 30, P 10+11 = 21.",
+    "EUR October": "T3: saving 40, missed 0, 1 trip.",
+    "T4 (USD)": "own K excluded. Others W 150. Saving (150-199)x1 = -49. Missed 49 at W."
+  },
+  "expected": {
+    "EUR": {
+      "trips": [
+        { "id": "T1", "savingMinor": 82, "missedMinor": 40, "unpricedLines": 1,
+          "lines": [
+            { "code": "05601234567892", "referenceMinor": 100, "savingMinor": 2, "missedMinor": 10, "cheaperStoreId": "P" },
+            { "code": "03017620422003", "referenceMinor": 449, "savingMinor": 20, "missedMinor": 30, "cheaperStoreId": "C" },
+            { "code": "04006381333931", "referenceMinor": null, "savingMinor": 0, "missedMinor": 0, "cheaperStoreId": null },
+            { "code": "05449000000996", "referenceMinor": 140, "savingMinor": 60, "missedMinor": 0, "cheaperStoreId": null } ],
+          "missedByStore": [ { "storeId": "C", "missedMinor": 30 }, { "storeId": "P", "missedMinor": 10 } ] },
+        { "id": "T2", "savingMinor": 52, "missedMinor": 11, "unpricedLines": 0,
+          "lines": [
+            { "code": "05601234567892", "referenceMinor": 97, "savingMinor": -8, "missedMinor": 11, "cheaperStoreId": "P" },
+            { "code": "05449000000996", "referenceMinor": 130, "savingMinor": 60, "missedMinor": 0, "cheaperStoreId": null } ],
+          "missedByStore": [ { "storeId": "P", "missedMinor": 11 } ] },
+        { "id": "T3", "savingMinor": 40, "missedMinor": 0, "unpricedLines": 0,
+          "lines": [
+            { "code": "03017620422003", "referenceMinor": 459, "savingMinor": 40, "missedMinor": 0, "cheaperStoreId": null } ],
+          "missedByStore": [] }
+      ],
+      "months": [
+        { "offset": 0, "savingMinor": 134, "missedMinor": 51, "trips": 2,
+          "missedByStore": [ { "storeId": "C", "missedMinor": 30 }, { "storeId": "P", "missedMinor": 21 } ] },
+        { "offset": -1, "savingMinor": 40, "missedMinor": 0, "trips": 1, "missedByStore": [] }
+      ]
+    },
+    "USD": {
+      "trips": [
+        { "id": "T4", "savingMinor": -49, "missedMinor": 49, "unpricedLines": 0,
+          "lines": [
+            { "code": "05449000000996", "referenceMinor": 150, "savingMinor": -49, "missedMinor": 49, "cheaperStoreId": "W" } ],
+          "missedByStore": [ { "storeId": "W", "missedMinor": 49 } ] }
+      ],
+      "months": [
+        { "offset": 0, "savingMinor": -49, "missedMinor": 49, "trips": 1,
+          "missedByStore": [ { "storeId": "W", "missedMinor": 49 } ] },
+        { "offset": -1, "savingMinor": 0, "missedMinor": 0, "trips": 0, "missedByStore": [] }
+      ]
+    }
+  }
+}
