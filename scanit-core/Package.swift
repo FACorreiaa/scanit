@@ -14,7 +14,9 @@ let package = Package(
     targets: [
         .target(
             name: "ScanItCore",
-            dependencies: [.product(name: "Algorithms", package: "swift-algorithms")]
+            dependencies: [.product(name: "Algorithms", package: "swift-algorithms")],
+            // Shared with Android, which reads the same file (BACKLOG CMP-001).
+            resources: [.copy("Resources/chains.json")]
         ),
         .testTarget(name: "ScanItCoreTests", dependencies: ["ScanItCore"]),
     ]

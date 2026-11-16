@@ -23,6 +23,15 @@ struct AboutSheet: View {
                     .accessibilityIdentifier("aboutDiscord")
                 }
 
+                Section {
+                    NavigationLink {
+                        StoresView()
+                    } label: {
+                        Label("Stores", systemImage: "storefront")
+                    }
+                    .accessibilityIdentifier("aboutStores")
+                }
+
                 if let export {
                     Section {
                         ShareLink(item: export, preview: SharePreview("ScanItNow trips.csv")) {
