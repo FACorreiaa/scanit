@@ -1,0 +1,37 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	// Profile: "bug-finding". Every rule in the correctness, suspicious and perf
+	// categories, plus a few pedantic rules that catch defects rather than
+	// style. Not type-aware, to keep the dependencies light: svelte-check
+	// (`npm run check`) is the typecheck. oxlint lints .ts files and the
+	// <script> block of .svelte files; it does not look at Svelte templates.
+	"plugins": ["typescript", "unicorn", "oxc", "import"],
+	"categories": {
+		"correctness": "error",
+		"suspicious": "error",
+		"perf": "error"
+	},
+	"env": { "browser": true, "es2022": true },
+	"ignorePatterns": [".svelte-kit/**", ".wrangler/**", "static/**"],
+	"overrides": [
+		// `export {}` is what makes an ambient declaration file a module.
+		{ "files": ["**/*.d.ts"], "rules": { "unicorn/require-module-specifiers": "off" } }
+	],
+	"rules": {
+		"eqeqeq": ["error", "always", { "null": "ignore" }],
+		"array-callback-return": "error",
+		"no-self-compare": "error",
+		"no-constructor-return": "error",
+
+		"no-unused-vars": [
+			"error",
+			{ "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }
+		],
+
+		// Stylesheets are imported for their side effect.
+		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
+
+		// BACKLOG: empty. If a rule of this profile ever has to be relaxed for
+		// existing code, list it here as "warn" with its hit count, never "off".
+	}
+}

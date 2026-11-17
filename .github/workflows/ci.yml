@@ -31,8 +31,27 @@ jobs:
         working-directory: scanit-core
         run: swift test
 
-  web:
-    name: scanit-web (check + build)
+  # Three independent jobs, so a lint failure does not hide a type error or a
+  # broken build. Each is seconds long; splitting them buys coverage, not time.
+  web-lint:
+    name: scanit-web lint (oxlint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scanit-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: scanit-web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  web-check:
+    name: scanit-web check (svelte-check)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -47,6 +66,22 @@ jobs:
           cache-dependency-path: scanit-web/package-lock.json
       - run: npm ci
       - run: npm run check
+
+  web-build:
+    name: scanit-web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scanit-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: scanit-web/package-lock.json
+      - run: npm ci
       - run: npm run build
 
   ios:
