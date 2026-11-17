@@ -13,6 +13,9 @@ export function withCheckDigit(twelve: string): string {
 
 export type Bar = { x: number; w: number; guard: boolean };
 
+/** Whether module x belongs to the start, centre or end guard. */
+const isGuard = (x: number) => x < 3 || (x >= 45 && x < 50) || x >= 92;
+
 /** Bars of an EAN-13 in module units (95 wide). Guard bars are flagged so they can be drawn longer. */
 export function ean13Bars(code: string): Bar[] {
 	const d = [...code].map(Number);
@@ -23,13 +26,12 @@ export function ean13Bars(code: string): Bar[] {
 	for (let i = 7; i <= 12; i++) bits += R[d[i]];
 	bits += '101';
 
-	const guard = (x: number) => x < 3 || (x >= 45 && x < 50) || x >= 92;
 	const bars: Bar[] = [];
 	for (let x = 0; x < bits.length; x++) {
 		if (bits[x] !== '1') continue;
 		const last = bars[bars.length - 1];
-		if (last && last.x + last.w === x && last.guard === guard(x)) last.w++;
-		else bars.push({ x, w: 1, guard: guard(x) });
+		if (last && last.x + last.w === x && last.guard === isGuard(x)) last.w++;
+		else bars.push({ x, w: 1, guard: isGuard(x) });
 	}
 	return bars;
 }
