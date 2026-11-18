@@ -1,0 +1,68 @@
+{
+  "_comment": "Hand-computed expectations for PlanList (BACKLOG MEAL-003). Shared with Android. Ingredients merge on their GTIN, or on their folded words when typed (case, accents, punctuation and spacing ignored), in the order they first appear. Each counts quantity x planned servings / the meal's servings packs; a line's amounts are added as exact fractions and rounded up once. Meals planned for 0 servings add nothing. A line is in the pantry when any of its ingredients is.",
+  "cases": [
+    {
+      "name": "a week of four meals",
+      "meals": [
+        { "meal": "Pequeno-almoço", "mealServings": 2, "servings": 3, "ingredients": [
+          { "text": "Leite meio gordo", "code": "05601234567892", "quantity": 1, "inPantry": false },
+          { "text": "Pão de forma", "code": "04006381333931", "quantity": 1, "inPantry": false },
+          { "text": "Fruta", "code": null, "quantity": 2, "inPantry": false }
+        ] },
+        { "meal": "Tosta mista", "mealServings": 2, "servings": 2, "ingredients": [
+          { "text": "Pão", "code": "04006381333931", "quantity": 1, "inPantry": false },
+          { "text": "Queijo", "code": null, "quantity": 1, "inPantry": false },
+          { "text": "frúta ", "code": null, "quantity": 1, "inPantry": false }
+        ] },
+        { "meal": "Sopa", "mealServings": 4, "servings": 1, "ingredients": [
+          { "text": "Cenouras", "code": null, "quantity": 2, "inPantry": false },
+          { "text": "Azeite", "code": null, "quantity": 1, "inPantry": true },
+          { "text": "Leite", "code": "05601234567892", "quantity": 1, "inPantry": false }
+        ] },
+        { "meal": "Bacalhau", "mealServings": 2, "servings": 0, "ingredients": [
+          { "text": "Bacalhau", "code": null, "quantity": 1, "inPantry": false }
+        ] }
+      ],
+      "expected": [
+        { "key": "code:05601234567892", "text": "Leite meio gordo", "packs": 2, "meals": ["Pequeno-almoço", "Sopa"], "inPantry": false },
+        { "key": "code:04006381333931", "text": "Pão de forma", "packs": 3, "meals": ["Pequeno-almoço", "Tosta mista"], "inPantry": false },
+        { "key": "text:fruta", "text": "Fruta", "packs": 4, "meals": ["Pequeno-almoço", "Tosta mista"], "inPantry": false },
+        { "key": "text:queijo", "text": "Queijo", "packs": 1, "meals": ["Tosta mista"], "inPantry": false },
+        { "key": "text:cenouras", "text": "Cenouras", "packs": 1, "meals": ["Sopa"], "inPantry": false },
+        { "key": "text:azeite", "text": "Azeite", "packs": 1, "meals": ["Sopa"], "inPantry": true }
+      ]
+    },
+    {
+      "name": "three thirds make one pack",
+      "meals": [
+        { "meal": "Sopa", "mealServings": 3, "servings": 1, "ingredients": [{ "text": "Leite", "code": "05601234567892", "quantity": 1, "inPantry": false }] },
+        { "meal": "Sopa", "mealServings": 3, "servings": 1, "ingredients": [{ "text": "Leite", "code": "05601234567892", "quantity": 1, "inPantry": false }] },
+        { "meal": "Sopa", "mealServings": 3, "servings": 1, "ingredients": [{ "text": "Leite", "code": "05601234567892", "quantity": 1, "inPantry": false }] }
+      ],
+      "expected": [
+        { "key": "code:05601234567892", "text": "Leite", "packs": 1, "meals": ["Sopa"], "inPantry": false }
+      ]
+    },
+    {
+      "name": "the same meal twice",
+      "meals": [
+        { "meal": "Tosta mista", "mealServings": 2, "servings": 2, "ingredients": [{ "text": "Pão de forma", "code": "04006381333931", "quantity": 1, "inPantry": false }] },
+        { "meal": "Tosta mista", "mealServings": 2, "servings": 1, "ingredients": [{ "text": "Pão de forma", "code": "04006381333931", "quantity": 1, "inPantry": false }] }
+      ],
+      "expected": [
+        { "key": "code:04006381333931", "text": "Pão de forma", "packs": 2, "meals": ["Tosta mista"], "inPantry": false }
+      ]
+    },
+    { "name": "an empty week", "meals": [], "expected": [] }
+  ],
+  "_workings": {
+    "milk": "1 x 3/2 + 1 x 1/4 = 7/4, rounded up 2. Words from the first ingredient.",
+    "bread": "1 x 3/2 + 1 x 2/2 = 5/2, rounded up 3.",
+    "fruta": "'frúta ' folds to 'fruta': 2 x 3/2 + 1 x 2/2 = 4.",
+    "cenouras": "2 x 1/4 = 1/2, rounded up 1.",
+    "azeite": "1/4, rounded up 1; marked as at home.",
+    "bacalhau": "0 servings planned: nothing.",
+    "thirds": "1/3 + 1/3 + 1/3 = 1 exactly. Adding as decimals could round up to 2.",
+    "twice": "2/2 + 1/2 = 3/2, rounded up 2; the meal is named once."
+  }
+}

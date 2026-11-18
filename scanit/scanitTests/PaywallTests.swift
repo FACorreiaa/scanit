@@ -53,6 +53,8 @@ struct PurchaseStoreTests {
 
     @Test func buyingUnlocksAndARefundLocksAgain() async throws {
         let session = try session()
+        // Even when an expectation throws: a purchase left on the simulator unlocks later runs.
+        defer { session.clearTransactions() }
         let store = PurchaseStore()
         await store.loadProduct()
         #expect(store.product?.id == PurchaseStore.unlimitedProductID)
@@ -76,6 +78,5 @@ struct PurchaseStoreTests {
             await relaunched.refreshEntitlement()
         }
         #expect(!relaunched.isUnlimited)
-        session.clearTransactions()
     }
 }

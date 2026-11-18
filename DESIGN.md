@@ -153,7 +153,7 @@ Meals → week → list → trip:
 
 1. **Meals:** your own meals, each a name and a list of ingredients. Ingredients come from past purchases (linked to the barcode) or are typed. Built (MEAL-001): a **Meals** sheet, first on the Trip tab, on the Plan tab since MEAL-002. Each meal shows its cost a serving and in total, at the cheapest price seen in 90 days, in whole packs; a meal with unpriced ingredients says "at least". Cost sits above the ingredients because it is why the user plans.
 2. **Week:** put meals into days, with servings. "Copy last week" is one tap. Built (MEAL-002): a **Plan** tab (owner, 2026-11-16) with lunch and dinner for each day, one meal per slot, the week starting on the phone's first weekday. The week's cost sits on top, each meal scaled to its servings; "At least" when an ingredient has no price.
-3. **List:** "Add to list" merges the week into the shopping list. Pantry items are left out.
+3. **List:** "Add to list" merges the week into the shopping list. Pantry items are left out. Built (MEAL-003): **Add to shopping list** on the Plan tab opens a sheet with every line ticked, "2 × Pão de forma" and the meals that need it; untick what is at home, and it starts unticked next week. Packs are rounded up once per line, because the till sells whole packs.
 4. **Cost:** the list shows an estimate per store, "€42 at Lidl · €47 at Continente · 3 unpriced", from your own prices and Open Prices.
 5. **Trip:** **Start trip** opens at the cheapest store with the estimate as a limit chip. The summary shows planned vs spent and the saving (INS-12).
 

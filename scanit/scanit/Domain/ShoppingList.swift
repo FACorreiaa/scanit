@@ -10,16 +10,20 @@ nonisolated final class ListItem: SyncedRecord {
     var text: String
     /// The GTIN of a product bought before, when the line was picked from a suggestion.
     var code: String?
+    /// Packs to get (MEAL-003: a planned week can need 2 of the same). A default, so stores from
+    /// before it open without a migration.
+    var quantity: Int = 1
     var doneAt: Date?
     var createdAt: Date
     var updatedAt: Date
     var deletedAt: Date?
     var syncStateRaw: String
 
-    init(text: String, code: String? = nil, now: Date = .now) {
+    init(text: String, code: String? = nil, quantity: Int = 1, now: Date = .now) {
         self.id = UUID()
         self.text = text
         self.code = code
+        self.quantity = max(quantity, 1)
         self.createdAt = now
         self.updatedAt = now
         self.syncStateRaw = SyncState.dirty.rawValue
@@ -53,6 +57,30 @@ enum ShoppingList {
         if waiting.contains(where: { fold($0.text) == fold(trimmed) || (code != nil && $0.code == code) }) { return nil }
         let line = ListItem(text: trimmed, code: code, now: now)
         context.insert(line)
+        try? context.save()
+        return line
+    }
+
+    /// Puts `quantity` packs on the list. A line already waiting for the same product or words
+    /// is raised to `quantity` if it asks for fewer, never added to, so adding the same week twice
+    /// does not double it. Returns the line, new or raised; `nil` for blank text.
+    @discardableResult
+    static func merge(
+        _ text: String, code: String?, quantity: Int, context: ModelContext, now: Date = .now
+    ) -> ListItem? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let waiting = lines(context: context).filter { !$0.isDone }
+        if let existing = waiting.first(where: { (code != nil && $0.code == code) || fold($0.text) == fold(trimmed) }) {
+            if existing.quantity < quantity {
+                existing.quantity = quantity
+                existing.touch(now)
+                try? context.save()
+            }
+            return existing
+        }
+        guard let line = add(trimmed, code: code, context: context, now: now) else { return nil }
+        line.quantity = max(quantity, 1)
         try? context.save()
         return line
     }

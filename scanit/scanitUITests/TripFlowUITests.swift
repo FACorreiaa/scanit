@@ -377,6 +377,54 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertFalse(copy.exists, "nothing left to copy")
     }
 
+    /// MEAL-003: two planned meals that share bread put one "2 × Pão de forma" line on the list,
+    /// what is at home stays off, and scanning the bread ticks the line.
+    func testPlannedWeekGoesOnTheListAndAScanTicksIt() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-meals"])
+        openTab("Plan")
+        for name in ["Pequeno-almoço", "Tosta mista"] {
+            try XCTUnwrap(firstHittable("planAddSlot"), "an empty slot for \(name)").tap()
+            let pick = app.buttons.matching(identifier: "mealPick")
+                .matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+            XCTAssertTrue(pick.waitForExistence(timeout: 5), name)
+            pick.tap()
+            XCTAssertTrue(pick.waitForNonExistence(timeout: 5))
+        }
+        app.swipeDown()
+        let addToList = app.buttons["planAddToList"]
+        XCTAssertTrue(addToList.waitForExistence(timeout: 5))
+        addToList.tap()
+
+        let lines = app.buttons.matching(identifier: "planListLine")
+        XCTAssertTrue(lines.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(lines.count, 5, "milk, bread, Nutella, cheese, ham")
+        let breadLine = lines.matching(NSPredicate(format: "label CONTAINS %@", "2 × Pão de forma")).firstMatch
+        XCTAssertTrue(breadLine.exists, "one line for both meals")
+        XCTAssertTrue(breadLine.label.contains("Pequeno-almoço") && breadLine.label.contains("Tosta mista"), breadLine.label)
+        lines.matching(NSPredicate(format: "label CONTAINS %@", "Queijo")).firstMatch.tap()
+        snapshot("20-plan-to-list")
+        XCTAssertEqual(app.buttons["planListAdd"].label, "Add 4 items", "the cheese is at home")
+        app.buttons["planListAdd"].tap()
+        let added = app.staticTexts["planAddedToList"]
+        XCTAssertTrue(added.waitForExistence(timeout: 5))
+        XCTAssertTrue(added.label.contains("4 items"), added.label)
+
+        openTab("Trip")
+        XCTAssertTrue(app.buttons["Shopping list · 4 to get"].waitForExistence(timeout: 5))
+        startTrip(newStore: "Lidl", limit: "60")
+        XCTAssertTrue(app.buttons.matching(identifier: "listLine")
+            .matching(NSPredicate(format: "label CONTAINS %@", "2 × Pão de forma")).firstMatch.waitForExistence(timeout: 5))
+        app.buttons["scan"].tap()
+        scan(bread)
+        app.textFields["price"].typeText("1,39")
+        app.buttons["addItem"].tap()
+        app.buttons["closeScanner"].tap()
+        XCTAssertTrue(app.staticTexts["Pão de forma"].waitForExistence(timeout: 5))
+        let waiting = app.buttons.matching(identifier: "listLine")
+        XCTAssertEqual(waiting.count, 3, "the scan ticked the bread")
+        XCTAssertFalse(waiting.matching(NSPredicate(format: "label CONTAINS %@", "Pão de forma")).firstMatch.exists)
+    }
+
     /// The first element with `identifier` that can take a tap, scrolling down to find one.
     private func firstHittable(_ identifier: String, swipes: Int = 6) -> XCUIElement? {
         for _ in 0...swipes {

@@ -38,6 +38,7 @@ fixtures in `scanit-core/Fixtures/`, so both platforms run the same cases:
 - insights calculator: INS-01 … INS-10, and savings INS-11 … INS-14 (`Fixtures/savings.json`)
 - meal cost: `MealCost.estimate` (`Fixtures/meal-cost.json`): cheapest latest price per store over 90 days, whole packs, half-up per serving, most recently seen on a price tie
 - plan cost: `PlanCost.summary` (`Fixtures/plan-cost.json`): meal total × planned servings ÷ meal servings, half up; the week is the sum of the rounded costs; another currency counts as unpriced
+- plan to list: `PlanList.lines` (`Fixtures/plan-list.json`): merge on GTIN or folded words, quantity × servings ÷ meal servings as exact fractions, rounded up once per line
 - chain catalogue: read `scanit-core/Sources/ScanItCore/Resources/chains.json` as an asset (do not copy it), and port `ChainCatalog.match` (whole words after folding case, accents and punctuation; longest match wins)
 
 ## Auth

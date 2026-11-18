@@ -20,12 +20,23 @@ final class PurchaseStore {
     private(set) var isWorking = false
 
     @ObservationIgnored private var updates: Task<Void, Never>?
+    /// UI tests run on a throwaway store, but StoreKit keeps test purchases on the simulator
+    /// between runs: one leftover "Unlimited" turned the paywall off for every later run.
+    @ObservationIgnored private let ignoresDeviceEntitlements: Bool
     @ObservationIgnored private let logger = Logger(subsystem: "com.fernandocorreia.scanit", category: "purchases")
+
+    init(ignoresDeviceEntitlements: Bool = false) {
+        self.ignoresDeviceEntitlements = ignoresDeviceEntitlements
+    }
 
     /// Starts listening for transactions made elsewhere (other device, Ask to Buy, refunds) and
     /// loads the current entitlement. Call once at launch.
     func start() async {
         guard updates == nil else { return }
+        guard !ignoresDeviceEntitlements else {
+            await loadProduct()
+            return
+        }
         updates = Task { [weak self] in
             for await result in Transaction.updates {
                 await self?.handle(result)
@@ -75,6 +86,7 @@ final class PurchaseStore {
     }
 
     func refreshEntitlement() async {
+        guard !ignoresDeviceEntitlements else { return }
         var unlocked = false
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result,

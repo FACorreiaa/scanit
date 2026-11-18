@@ -9,7 +9,7 @@ struct ScanItApp: App {
     @State private var sessions: SessionStore
     @State private var enricher: ProductEnricher
     @State private var connectivity = ConnectivityMonitor()
-    @State private var purchases = PurchaseStore()
+    @State private var purchases: PurchaseStore
     @State private var reviews: ReviewPrompter
     @State private var budgets: BudgetStore
     private let paywallPolicy: PaywallPolicy
@@ -54,6 +54,8 @@ struct ScanItApp: App {
             ? FixedProductLookup(names: ["5601234567892": "Leite meio gordo", "4006381333931": "Pão de forma"])
             : OpenFoodFactsClient()
         _enricher = State(initialValue: ProductEnricher(context: container.mainContext, lookup: lookup))
+        // UI tests start every run locked, whatever StoreKit kept on the simulator.
+        _purchases = State(initialValue: PurchaseStore(ignoresDeviceEntitlements: inMemory))
         // UI tests never ask for a rating (debug builds always show the sheet) and keep the
         // simulator's real defaults untouched.
         if inMemory {

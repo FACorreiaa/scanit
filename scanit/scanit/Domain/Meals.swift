@@ -49,6 +49,9 @@ nonisolated final class MealIngredient: SyncedRecord {
     var code: String?
     /// Packs the meal takes, as bought: the till charges whole packs.
     var quantity: Int
+    /// Kept at home (MEAL-003), so "Add to list" leaves it off. A default, so stores from before
+    /// it open without a migration.
+    var inPantry: Bool = false
     var position: Int
     var createdAt: Date
     var updatedAt: Date

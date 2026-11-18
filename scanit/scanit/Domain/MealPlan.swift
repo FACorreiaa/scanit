@@ -163,6 +163,49 @@ enum MealPlan {
         PlannedMeal(estimate: estimate, mealServings: entry.meal?.servings ?? 1, servings: entry.servings)
     }
 
+    /// The week's ingredients as shopping-list lines: merged, scaled to each day's servings, in
+    /// whole packs (`ScanItCore.PlanList`).
+    static func listLines(in week: PlanWeek, context: ModelContext) -> [PlanListLine] {
+        PlanList.lines(entries(in: week, context: context).compactMap { entry in
+            guard let meal = entry.meal else { return nil }
+            return PlannedIngredients(
+                meal: meal.name, mealServings: meal.servings, servings: entry.servings,
+                ingredients: meal.liveIngredients.map {
+                    PlanIngredient(text: $0.text, code: $0.code, quantity: $0.quantity, inPantry: $0.inPantry)
+                }
+            )
+        })
+    }
+
+    /// "Add to list": every line not kept at home goes on the shopping list. What the user says is
+    /// at home is remembered on the ingredients, in every meal that has them, for next week.
+    /// Returns how many lines went on the list.
+    @discardableResult
+    static func addToList(
+        _ lines: [PlanListLine], atHome: Set<String>, context: ModelContext, now: Date = .now
+    ) -> Int {
+        let keys = Set(lines.map(\.key))
+        for meal in MealBook.meals(context: context) {
+            for ingredient in meal.liveIngredients {
+                let key = PlanList.key(text: ingredient.text, code: ingredient.code)
+                guard keys.contains(key) else { continue }
+                let home = atHome.contains(key)
+                if ingredient.inPantry != home {
+                    ingredient.inPantry = home
+                    ingredient.touch(now)
+                }
+            }
+        }
+        var added = 0
+        for line in lines where !atHome.contains(line.key) {
+            if ShoppingList.merge(line.text, code: line.code, quantity: line.packs, context: context, now: now) != nil {
+                added += 1
+            }
+        }
+        try? context.save()
+        return added
+    }
+
     private static func liveEntries(day: String, slot: PlanSlot, context: ModelContext) -> [PlanEntry] {
         let slotRaw = slot.rawValue
         let descriptor = FetchDescriptor<PlanEntry>(

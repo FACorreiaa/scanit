@@ -141,9 +141,9 @@ sync), and `syncState` (`.dirty` / `.synced`).
 | `CartItem` | `session`, `gtin` (or opaque code), `productName?`, `quantity: Int` (or `weightGrams?`), `unitPriceMinor: Int`, `priceSource` (`ocr` / `manual` / `remembered` / `embedded`), `scannedAt` |
 | `Product` | `gtin` (unique), `name?`, `brand?`, `imageURL?`, `categories: [String]`, `offFetchedAt?` (OFF cache, not synced as user data) |
 | `PriceObservation` | `store`, `gtin`, `priceMinor`, `currency`, `observedAt`, `source` |
-| `ListItem` | `text`, `code?`, `doneAt?` (ADD-005) |
+| `ListItem` | `text`, `code?`, `quantity` (packs, default 1; MEAL-003), `doneAt?` (ADD-005) |
 | `Meal` | `name`, `servings`, `note?`, `ingredients` (MEAL-001) |
-| `MealIngredient` | `meal`, `text`, `code?` (GTIN when picked from past purchases), `quantity` (packs), `position` |
+| `MealIngredient` | `meal`, `text`, `code?` (GTIN when picked from past purchases), `quantity` (packs), `inPantry` (MEAL-003), `position` |
 | `PlanEntry` | `day` (`yyyy-MM-dd`, a calendar day), `slot` (`lunch` / `dinner`), `meal`, `servings` (MEAL-002) |
 
 Derived, never stored: session total, items count, limit progress, all insights.

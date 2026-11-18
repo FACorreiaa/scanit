@@ -84,16 +84,21 @@ struct ListLineRow: View {
                 Image(systemName: line.isDone ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(line.isDone ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                     .font(.title3)
-                Text(line.text)
+                Text(label)
                     .strikethrough(line.isDone)
                     .foregroundStyle(line.isDone ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .accessibilityLabel(line.text)
+        .accessibilityLabel(label)
         .accessibilityValue(line.isDone ? "Ticked" : "To get")
         .accessibilityIdentifier("listLine")
     }
+}
+
+extension ListLineRow {
+    /// "2 × Pão de forma" when the list asks for more than one pack.
+    var label: String { line.quantity > 1 ? "\(line.quantity) × \(line.text)" : line.text }
 }
 
 /// "Shopping list · 3 to get": opens the list from the Trip tab, with or without a trip.

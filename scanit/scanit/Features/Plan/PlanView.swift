@@ -15,6 +15,9 @@ struct PlanView: View {
     @State private var weekOffset = 0
     @State private var picking: SlotRequest?
     @State private var showsMeals = false
+    @State private var listLines: [PlanListLine]?
+    /// "8 items added", shown under the button until the week changes.
+    @State private var added: (week: PlanWeek, count: Int)?
 
     var body: some View {
         let calendar = Calendar.current
@@ -33,6 +36,11 @@ struct PlanView: View {
                 Section {
                     WeekSwitcher(week: week, offset: $weekOffset)
                     WeekCost(summary: summary, hasMeals: !meals.isEmpty)
+                    if !entries.isEmpty {
+                        AddToList(added: added?.week == week ? added?.count : nil) {
+                            listLines = MealPlan.listLines(in: week, context: context)
+                        }
+                    }
                     WeekActions(mealCount: meals.count, copyable: copyable) {
                         showsMeals = true
                     } copy: {
@@ -81,6 +89,16 @@ struct PlanView: View {
                     MealPlan.plan(meal, day: request.day, slot: request.slot, context: context)
                 }
                 .presentationDetents([.medium, .large])
+            }
+            .sheet(item: Binding(
+                get: { listLines.map { PlanListRequest(lines: $0) } },
+                set: { if $0 == nil { listLines = nil } }
+            )) { request in
+                PlanListSheet(lines: request.lines) { atHome in
+                    let count = MealPlan.addToList(request.lines, atHome: atHome, context: context)
+                    added = (week, count)
+                }
+                .presentationDetents([.large])
             }
             .sheet(isPresented: $showsMeals) {
                 MealsSheet()
@@ -201,6 +219,37 @@ private struct WeekCost: View {
         guard missing > 0 else { return "\(meals), at the cheapest prices you've seen." }
         let some = missing == 1 ? "1 has" : "\(missing) have"
         return "\(meals). \(some) ingredients without a price."
+    }
+}
+
+/// The lines of one "Add to list", as a sheet item.
+private struct PlanListRequest: Identifiable {
+    let lines: [PlanListLine]
+    var id: String { lines.map(\.id).joined(separator: "|") }
+}
+
+/// The step from plan to shop: the week's ingredients onto the shopping list.
+private struct AddToList: View {
+    let added: Int?
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: action) {
+                Label("Add to shopping list", systemImage: "checklist")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("planAddToList")
+            if let added {
+                Text(added == 1
+                     ? "1 item is on your shopping list. Open it from the Trip tab."
+                     : "\(added) items are on your shopping list. Open it from the Trip tab.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("planAddedToList")
+            }
+        }
     }
 }
 
