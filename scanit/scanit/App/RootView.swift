@@ -1,11 +1,11 @@
 import SwiftData
 import SwiftUI
 
-/// Three tabs (`DESIGN.md` → Information architecture). Tab roots carry no large title: the tab
-/// bar already names them, so each screen opens on its content.
+/// Four tabs (`DESIGN.md` → Information architecture); Plan came with MEAL-002. Tab roots carry
+/// no large title: the tab bar already names them, so each screen opens on its content.
 struct RootView: View {
     enum TabID: Hashable {
-        case trip, history, insights
+        case trip, plan, history, insights
     }
 
     @State private var selection: TabID = .trip
@@ -14,6 +14,9 @@ struct RootView: View {
         TabView(selection: $selection) {
             Tab("Trip", systemImage: "cart", value: .trip) {
                 TripView()
+            }
+            Tab("Plan", systemImage: "calendar", value: .plan) {
+                PlanView()
             }
             Tab("History", systemImage: "clock.arrow.circlepath", value: .history) {
                 HistoryView()

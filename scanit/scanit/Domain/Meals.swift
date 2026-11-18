@@ -4,7 +4,7 @@ import SwiftData
 
 /// A meal the user cooks (BACKLOG MEAL-001): a name, how many it feeds, and its ingredients. The
 /// point is cost: each meal is priced from what the user has scanned (`MealCost`), so planning a
-/// week (MEAL-002) can show what it will cost and where it is cheapest (MEAL-004).
+/// week (MEAL-002, `MealPlan`) can show what it will cost and where it is cheapest (MEAL-004).
 @Model
 nonisolated final class Meal: SyncedRecord {
     @Attribute(.unique) var id: UUID
@@ -18,6 +18,10 @@ nonisolated final class Meal: SyncedRecord {
 
     @Relationship(deleteRule: .cascade, inverse: \MealIngredient.meal)
     var ingredients: [MealIngredient] = []
+
+    /// Days this meal is planned for (MEAL-002).
+    @Relationship(deleteRule: .nullify, inverse: \PlanEntry.meal)
+    var planEntries: [PlanEntry] = []
 
     init(name: String, servings: Int = 2, now: Date = .now) {
         self.id = UUID()
@@ -127,9 +131,11 @@ enum MealBook {
         try? context.save()
     }
 
-    /// Soft delete, with its ingredients, so sync (P4) can pass the deletion on.
+    /// Soft delete, with its ingredients and the days it was planned for, so sync (P4) can pass
+    /// the deletion on.
     static func delete(_ meal: Meal, context: ModelContext, now: Date = .now) {
         for ingredient in meal.liveIngredients { ingredient.softDelete(now) }
+        for entry in meal.planEntries where entry.deletedAt == nil { entry.softDelete(now) }
         meal.softDelete(now)
         try? context.save()
     }

@@ -29,6 +29,9 @@ struct ScanItApp: App {
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-data") {
             DemoData.seed(container.mainContext)
         }
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-meals") {
+            DemoData.seedMeals(container.mainContext)
+        }
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-demo-usd-trip") {
             DemoData.seedForeignTrip(container.mainContext)
         }

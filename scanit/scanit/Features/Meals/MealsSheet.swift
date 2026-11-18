@@ -3,8 +3,7 @@ import SwiftData
 import SwiftUI
 
 /// The meals the user cooks, each with what it costs at the prices they have seen (BACKLOG
-/// MEAL-001). Opened from the Trip tab next to the shopping list; the week plan (MEAL-002) builds
-/// on these.
+/// MEAL-001). Opened from the Plan tab, whose week (MEAL-002) is made of these.
 struct MealsSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -92,7 +91,8 @@ struct MealsSheet: View {
     }
 }
 
-private struct MealRow: View {
+/// A meal with its cost a serving and in total; also the rows of `MealPicker`.
+struct MealRow: View {
     let meal: Meal
     let estimate: MealCostEstimate
 
@@ -128,27 +128,5 @@ private struct MealRow: View {
         let count = meal.liveIngredients.count
         let ingredients = count == 1 ? "1 ingredient" : "\(count) ingredients"
         return "Serves \(meal.servings) · \(ingredients)"
-    }
-}
-
-/// "Meals · 4": opens the meals from the Trip tab.
-struct MealsButton: View {
-    @Query(filter: #Predicate<Meal> { $0.deletedAt == nil })
-    private var meals: [Meal]
-    @State private var isShowing = false
-
-    var body: some View {
-        Button {
-            isShowing = true
-        } label: {
-            Label(meals.isEmpty ? "Meals" : "Meals · \(meals.count)", systemImage: "fork.knife")
-        }
-        .accessibilityIdentifier("meals")
-        .sheet(isPresented: $isShowing) {
-            MealsSheet()
-                // The Trip tab's empty state centres its text, and a sheet inherits that.
-                .multilineTextAlignment(.leading)
-                .presentationDetents([.large])
-        }
     }
 }

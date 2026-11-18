@@ -1,0 +1,49 @@
+{
+  "_comment": "Hand-computed expectations for PlanCost (BACKLOG MEAL-002). Shared with Android. A planned meal costs its meal total x planned servings / the meal's servings, rounded half up; nothing when it has no price or either count is below 1. The week is the sum of those rounded costs, in one currency: a meal priced in another currency counts as unpriced. Complete means every planned meal has every ingredient priced.",
+  "cases": [
+    {
+      "name": "a week with every kind of meal",
+      "currency": "EUR",
+      "meals": [
+        { "mealTotalMinor": 747, "currency": "EUR", "isComplete": true, "mealServings": 2, "servings": 2 },
+        { "mealTotalMinor": 747, "currency": "EUR", "isComplete": true, "mealServings": 2, "servings": 3 },
+        { "mealTotalMinor": 389, "currency": "EUR", "isComplete": false, "mealServings": 4, "servings": 1 },
+        { "mealTotalMinor": null, "currency": "EUR", "isComplete": false, "mealServings": 2, "servings": 2 },
+        { "mealTotalMinor": 1000, "currency": "EUR", "isComplete": true, "mealServings": 3, "servings": 1 },
+        { "mealTotalMinor": 1248, "currency": "USD", "isComplete": true, "mealServings": 2, "servings": 2 }
+      ],
+      "expected": { "costs": [747, 1121, 97, null, 333, null], "totalMinor": 2298, "meals": 6, "priced": 4, "complete": 3, "isComplete": false }
+    },
+    {
+      "name": "half a cent rounds up",
+      "currency": "EUR",
+      "meals": [
+        { "mealTotalMinor": 5, "currency": "EUR", "isComplete": true, "mealServings": 2, "servings": 1 }
+      ],
+      "expected": { "costs": [3], "totalMinor": 3, "meals": 1, "priced": 1, "complete": 1, "isComplete": true }
+    },
+    {
+      "name": "zero servings planned costs nothing",
+      "currency": "EUR",
+      "meals": [
+        { "mealTotalMinor": 747, "currency": "EUR", "isComplete": true, "mealServings": 2, "servings": 0 }
+      ],
+      "expected": { "costs": [null], "totalMinor": 0, "meals": 1, "priced": 0, "complete": 0, "isComplete": false }
+    },
+    {
+      "name": "an empty week",
+      "currency": "EUR",
+      "meals": [],
+      "expected": { "costs": [], "totalMinor": 0, "meals": 0, "priced": 0, "complete": 0, "isComplete": false }
+    }
+  ],
+  "_workings": {
+    "2 of 2": "747 x 2 / 2 = 747.",
+    "3 of 2": "747 x 3 = 2241; / 2 = 1120.5, half up = 1121.",
+    "1 of 4": "389 / 4 = 97.25 = 97. Priced but not complete.",
+    "no price": "nothing priced: no cost, adds 0.",
+    "1 of 3": "1000 / 3 = 333.33 = 333.",
+    "USD": "1248 USD in a EUR week: never converted, counts as unpriced.",
+    "total": "747 + 1121 + 97 + 333 = 2298. Priced 4 (not the null, not the USD). Complete 3 (747, 1121, 333)."
+  }
+}

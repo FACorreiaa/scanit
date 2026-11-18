@@ -296,7 +296,8 @@ final class TripFlowUITests: XCTestCase {
     /// MEAL-001: a meal made from past purchases shows what it costs, in the editor and the list.
     func testMealFromPastPurchasesShowsItsCost() throws {
         launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data"])
-        let meals = app.buttons["meals"]
+        app.tabBars.buttons["Plan"].tap()
+        let meals = app.buttons["planMeals"]
         XCTAssertTrue(meals.waitForExistence(timeout: 5))
         meals.tap()
         let newMeal = app.buttons["newMeal"]
@@ -333,6 +334,57 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         XCTAssertTrue(row.label.contains("Breakfast") && row.label.contains("a serving"), "list row: \(row.label)")
         snapshot("16-meals-list")
+    }
+
+    /// MEAL-002: a week of 10 meals is planned in under two minutes, costs what its meals cost,
+    /// and copies into the next week in one tap. (Surviving a relaunch: `MealPlanTests`, since UI
+    /// tests run on a throwaway store.)
+    func testWeekPlanWithTenMealsInUnderTwoMinutes() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data", "-ui-testing-demo-meals"])
+        app.tabBars.buttons["Plan"].tap()
+        let total = app.descendants(matching: .any).matching(identifier: "planWeekTotal").firstMatch
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertTrue(total.label.contains("Nothing planned"), "an empty week: \(total.label)")
+        snapshot("17-plan-empty")
+
+        let started = Date()
+        for index in 0..<10 {
+            let add = try XCTUnwrap(firstHittable("planAddSlot"), "an empty slot for meal \(index + 1)")
+            add.tap()
+            let picks = app.buttons.matching(identifier: "mealPick")
+            XCTAssertTrue(picks.firstMatch.waitForExistence(timeout: 5))
+            if index == 0 { snapshot("19-plan-picker") }
+            // Rotate through the four demo meals, each fully, partly or not priced.
+            picks.element(boundBy: index % picks.count).tap()
+            XCTAssertTrue(picks.firstMatch.waitForNonExistence(timeout: 5), "the picker closes on a pick")
+        }
+        let elapsed = Date().timeIntervalSince(started)
+        XCTAssertLessThan(elapsed, 120, "10 meals took \(Int(elapsed)) s")
+
+        app.swipeDown()
+        app.swipeDown()
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertTrue(total.label.contains("At least") && total.label.contains("10 meals"),
+                      "unpriced ingredients make the week a floor: \(total.label)")
+        snapshot("18-plan-week")
+
+        app.buttons["planNextWeek"].tap()
+        let copy = app.buttons["planCopyLastWeek"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 5))
+        XCTAssertTrue(copy.label.contains("10"), copy.label)
+        copy.tap()
+        XCTAssertTrue(total.label.contains("10 meals"), "next week copied: \(total.label)")
+        XCTAssertFalse(copy.exists, "nothing left to copy")
+    }
+
+    /// The first element with `identifier` that can take a tap, scrolling down to find one.
+    private func firstHittable(_ identifier: String, swipes: Int = 6) -> XCUIElement? {
+        for _ in 0...swipes {
+            let candidates = app.buttons.matching(identifier: identifier).allElementsBoundByIndex
+            if let hit = candidates.first(where: { $0.isHittable }) { return hit }
+            app.swipeUp()
+        }
+        return nil
     }
 
     private func openStores() {

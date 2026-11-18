@@ -132,18 +132,8 @@ private struct ReadyToShop: View {
                             .padding(.vertical, 6)
                             .background(Color(.secondarySystemBackground), in: .capsule)
                     }
-                    // Side by side when they fit; stacked at large text sizes.
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) {
-                            ShoppingListButton()
-                            MealsButton()
-                        }
-                        VStack(spacing: 12) {
-                            ShoppingListButton()
-                            MealsButton()
-                        }
-                    }
-                    .buttonStyle(.bordered)
+                    ShoppingListButton()
+                        .buttonStyle(.bordered)
                 }
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
