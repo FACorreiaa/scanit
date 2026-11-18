@@ -36,6 +36,7 @@ fixtures in `scanit-core/Fixtures/`, so both platforms run the same cases:
 - price parser: locale money patterns, largest-glyph ranking, nearness to the barcode box, unit-price rejection, multi-buy flagging (never prefilled), superscript-cents merge, prefill threshold (`Fixtures/prices.json`; items may carry a `box`, vectors a `barcode`)
 - limit maths: `LimitStatus` / `LimitState.feedback` (80 % near, > 100 % over, haptic only on upward crossings)
 - insights calculator: INS-01 … INS-10, and savings INS-11 … INS-14 (`Fixtures/savings.json`)
+- meal cost: `MealCost.estimate` (`Fixtures/meal-cost.json`): cheapest latest price per store over 90 days, whole packs, half-up per serving, most recently seen on a price tie
 - chain catalogue: read `scanit-core/Sources/ScanItCore/Resources/chains.json` as an asset (do not copy it), and port `ChainCatalog.match` (whole words after folding case, accents and punctuation; longest match wins)
 
 ## Auth

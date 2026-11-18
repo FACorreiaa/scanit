@@ -1,0 +1,60 @@
+{
+  "_comment": "Hand-computed expectations for MealCost (BACKLOG MEAL-001). Shared with Android. Each ingredient is priced at the cheapest of the latest price per store over the 90 days up to `now`, in the meal's currency, times its pack quantity. Typed ingredients, in-store codes and products with no price in the window are unpriced. Per serving = total / servings, rounded half up; none when nothing is priced or servings < 1. Two stores at the same price: the one seen most recently.",
+  "now": "2026-11-16T12:00:00Z",
+  "prices": [
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 99, "currency": "EUR", "observedAt": "2026-11-14T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 109, "currency": "EUR", "observedAt": "2026-11-01T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 105, "currency": "EUR", "observedAt": "2026-11-10T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "05601234567892", "priceMinor": 94, "currency": "EUR", "observedAt": "2026-07-01T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "03017620422003", "priceMinor": 399, "currency": "EUR", "observedAt": "2026-11-05T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "03017620422003", "priceMinor": 449, "currency": "EUR", "observedAt": "2026-11-12T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "04006381333931", "priceMinor": 150, "currency": "EUR", "observedAt": "2026-11-14T10:05:00Z" },
+    { "storeId": "W", "storeName": "Walmart", "code": "04006381333931", "priceMinor": 90, "currency": "USD", "observedAt": "2026-11-02T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "05600000000007", "priceMinor": 45, "currency": "EUR", "observedAt": "2026-11-20T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "02040123001506", "priceMinor": 250, "currency": "EUR", "observedAt": "2026-11-14T10:06:00Z" }
+  ],
+  "ingredients": [
+    { "code": "05601234567892", "quantity": 2 },
+    { "code": "03017620422003", "quantity": 1 },
+    { "code": "04006381333931", "quantity": 1 },
+    { "code": "05600000000007", "quantity": 4 },
+    { "code": null, "quantity": 1 },
+    { "code": "02040123001506", "quantity": 1 }
+  ],
+  "_workings": {
+    "milk x2": "latest per store in window: L 99, C 105 (not 109); P 94 is older than 90 days (cutoff 2026-08-18). Cheapest L 99, x2 = 198.",
+    "nutella x1": "C 399, P 449. Cheapest C 399.",
+    "bread x1": "EUR: L 150. USD: W 90.",
+    "yogurt x4": "only price is after now: unpriced.",
+    "typed": "no code: unpriced.",
+    "in-store code": "weighed or deli code, priced per store and per weight: unpriced.",
+    "EUR, 4 servings": "198 + 399 + 150 = 747; 747 / 4 = 186.75 -> 187. 3 priced, 3 unpriced.",
+    "EUR, 0 servings": "total 747, no per-serving figure.",
+    "USD, 4 servings": "bread 90 only; 90 / 4 = 22.5 -> 23. 1 priced, 5 unpriced.",
+    "GBP, 2 servings": "nothing priced: total 0, no per-serving figure."
+  },
+  "cases": [
+    { "name": "EUR, 4 servings", "currency": "EUR", "servings": 4,
+      "expected": { "totalMinor": 747, "perServingMinor": 187, "priced": 3, "unpriced": 3,
+        "lines": [
+          { "priceMinor": 99, "storeId": "L", "lineTotalMinor": 198 },
+          { "priceMinor": 399, "storeId": "C", "lineTotalMinor": 399 },
+          { "priceMinor": 150, "storeId": "L", "lineTotalMinor": 150 },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null } ] } },
+    { "name": "EUR, 0 servings", "currency": "EUR", "servings": 0,
+      "expected": { "totalMinor": 747, "perServingMinor": null, "priced": 3, "unpriced": 3, "lines": null } },
+    { "name": "USD, 4 servings", "currency": "USD", "servings": 4,
+      "expected": { "totalMinor": 90, "perServingMinor": 23, "priced": 1, "unpriced": 5,
+        "lines": [
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null },
+          { "priceMinor": 90, "storeId": "W", "lineTotalMinor": 90 },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null },
+          { "priceMinor": null, "storeId": null, "lineTotalMinor": null } ] } },
+    { "name": "GBP, 2 servings", "currency": "GBP", "servings": 2,
+      "expected": { "totalMinor": 0, "perServingMinor": null, "priced": 0, "unpriced": 6, "lines": null } }
+  ]
+}

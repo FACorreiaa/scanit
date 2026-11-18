@@ -819,3 +819,125 @@ struct PriceTrendTests {
         #expect(PriceTrend.lookup(code: milk.value, store: nil, context: context, now: clock) == nil)
     }
 }
+
+// MARK: - MEAL-001: meals
+
+@MainActor
+struct MealBookTests {
+    /// The backlog's check: 5 ingredients, 3 picked from past scans, still there after a relaunch.
+    @Test func mealWithFiveIngredientsSurvivesARelaunch() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "meals-\(UUID().uuidString).store")
+        defer {
+            for suffix in ["", "-shm", "-wal"] { try? FileManager.default.removeItem(atPath: url.path() + suffix) }
+        }
+        do {
+            let context = ModelContext(try ScanItSchema.container(url: url))
+            DemoData.seed(context)
+            let meal = MealBook.create(context: context)
+            meal.name = "Pequeno-almoço"
+            MealBook.setServings(4, of: meal)
+            for typed in ["leite", "pão", "nutella"] {
+                let suggestion = try #require(ShoppingList.suggestions(for: typed, context: context).first, "\(typed) was scanned before")
+                MealBook.addIngredient(suggestion.name, code: suggestion.code, to: meal, context: context)
+            }
+            MealBook.addIngredient("Fruta da época", to: meal, context: context)
+            MealBook.addIngredient("Mel", to: meal, context: context)
+            MealBook.finishEditing(meal, context: context)
+        }
+
+        let reopened = ModelContext(try ScanItSchema.container(url: url))
+        let meals = MealBook.meals(context: reopened)
+        let meal = try #require(meals.first)
+        #expect(meals.count == 1)
+        #expect(meal.name == "Pequeno-almoço")
+        #expect(meal.servings == 4)
+        let ingredients = meal.liveIngredients
+        #expect(ingredients.count == 5)
+        #expect(ingredients.map(\.code).compactMap { $0 } == ["05601234567892", "04006381333931", "03017620422003"],
+                "the 3 picked from past scans keep their barcode, in order")
+        #expect(ingredients.suffix(2).map(\.text) == ["Fruta da época", "Mel"])
+
+        let estimate = MealBook.estimate(meal, prices: InsightsSource.prices(context: reopened), currency: "EUR")
+        #expect(estimate.pricedLines == 3, "every scanned ingredient has a price")
+        #expect(estimate.unpricedLines == 2, "typed ones do not")
+    }
+
+    @Test func deletedMealIsHiddenButKeptForSync() throws {
+        let context = try makeContext()
+        let meal = MealBook.create(context: context)
+        meal.name = "Sopa"
+        MealBook.addIngredient("Cenouras", to: meal, context: context)
+        MealBook.finishEditing(meal, context: context)
+        #expect(MealBook.meals(context: context).count == 1)
+
+        MealBook.delete(meal, context: context)
+        #expect(MealBook.meals(context: context).isEmpty)
+        let all = try context.fetch(FetchDescriptor<Meal>())
+        #expect(all.count == 1 && all[0].deletedAt != nil, "soft delete keeps the row for sync")
+        #expect(all[0].ingredients.allSatisfy { $0.deletedAt != nil }, "its ingredients go with it")
+        #expect(all[0].syncStateRaw == SyncState.dirty.rawValue)
+    }
+
+    @Test func sameIngredientAddsAPackInsteadOfALine() throws {
+        let context = try makeContext()
+        let meal = MealBook.create(context: context)
+        MealBook.addIngredient("Leite", code: milk.value, to: meal, context: context)
+        MealBook.addIngredient("Leite meio gordo", code: milk.value, to: meal, context: context)
+        MealBook.addIngredient("ovos", to: meal, context: context)
+        MealBook.addIngredient("  Ovos ", to: meal, context: context)
+        MealBook.addIngredient("   ", to: meal, context: context)
+
+        let ingredients = meal.liveIngredients
+        #expect(ingredients.map(\.text) == ["Leite", "ovos"])
+        #expect(ingredients.map(\.quantity) == [2, 2])
+    }
+
+    @Test func emptyDraftIsDiscardedAndUnnamedMealIsNamed() throws {
+        let context = try makeContext()
+        let empty = MealBook.create(context: context)
+        MealBook.finishEditing(empty, context: context)
+        #expect(try context.fetch(FetchDescriptor<Meal>()).isEmpty, "an untouched new meal leaves nothing behind")
+
+        let unnamed = MealBook.create(context: context)
+        MealBook.addIngredient("Arroz", to: unnamed, context: context)
+        MealBook.finishEditing(unnamed, context: context)
+        #expect(unnamed.name == "Untitled meal")
+
+        let spaced = MealBook.create(context: context)
+        spaced.name = "  Bacalhau à Brás  "
+        MealBook.finishEditing(spaced, context: context)
+        #expect(spaced.name == "Bacalhau à Brás")
+    }
+
+    @Test func servingsAndPacksStayInRange() throws {
+        let context = try makeContext()
+        let meal = MealBook.create(context: context)
+        MealBook.setServings(0, of: meal)
+        #expect(meal.servings == 1)
+        MealBook.setServings(99, of: meal)
+        #expect(meal.servings == 12)
+        let ingredient = try #require(MealBook.addIngredient("Massa", to: meal, context: context))
+        MealBook.setQuantity(-3, of: ingredient)
+        #expect(ingredient.quantity == 1)
+        MealBook.setQuantity(50, of: ingredient)
+        #expect(ingredient.quantity == 20)
+    }
+
+    /// The point of meals: they cost what the cheapest recent prices say.
+    @Test func costUsesTheCheapestRecentPrice() throws {
+        let context = try makeContext()
+        let now = Date()
+        DemoData.seed(context, now: now)
+        let meal = MealBook.create(context: context)
+        MealBook.setServings(2, of: meal)
+        let ingredient = try #require(MealBook.addIngredient("Nutella", code: "03017620422003", to: meal, context: context))
+        MealBook.setQuantity(2, of: ingredient)
+
+        // DemoData Nutella: Lidl 4,09 (2 days ago), Continente 4,29 (6 days ago).
+        let estimate = MealBook.estimate(meal, prices: InsightsSource.prices(context: context), currency: "EUR", now: now)
+        #expect(estimate.lines.first?.price?.storeName == "Lidl")
+        #expect(estimate.total == Money(amountMinor: 818, currency: "EUR"))
+        #expect(estimate.perServing == Money(amountMinor: 409, currency: "EUR"))
+        #expect(estimate.isComplete)
+    }
+}

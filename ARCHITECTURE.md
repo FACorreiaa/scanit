@@ -141,6 +141,9 @@ sync), and `syncState` (`.dirty` / `.synced`).
 | `CartItem` | `session`, `gtin` (or opaque code), `productName?`, `quantity: Int` (or `weightGrams?`), `unitPriceMinor: Int`, `priceSource` (`ocr` / `manual` / `remembered` / `embedded`), `scannedAt` |
 | `Product` | `gtin` (unique), `name?`, `brand?`, `imageURL?`, `categories: [String]`, `offFetchedAt?` (OFF cache, not synced as user data) |
 | `PriceObservation` | `store`, `gtin`, `priceMinor`, `currency`, `observedAt`, `source` |
+| `ListItem` | `text`, `code?`, `doneAt?` (ADD-005) |
+| `Meal` | `name`, `servings`, `note?`, `ingredients` (MEAL-001) |
+| `MealIngredient` | `meal`, `text`, `code?` (GTIN when picked from past purchases), `quantity` (packs), `position` |
 
 Derived, never stored: session total, items count, limit progress, all insights.
 

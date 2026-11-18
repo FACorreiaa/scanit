@@ -480,21 +480,11 @@ An optional monthly savings target, with INS-14 measured against it, as a progre
 
 **Done when:** the ring fills from INS-14, and a month that reaches the target says so once.
 
-*Meals.*
-
-### MEAL-001 · Meal model · M
-New `Meal` (name, servings, note) and `MealIngredient` (meal, text, `code?`, quantity). Both
-`nonisolated` and `SyncedRecord`, as `ARCHITECTURE.md` requires, so P4 needs no change of shape.
-
-- Ingredients are picked from past purchases through `ShoppingList.suggestions` (links the barcode) or typed.
-- Screens: list meals, create, edit, delete.
-
-**Done when:** a meal with 5 ingredients, 3 of them from past scans, survives a relaunch, and a
-deleted meal is hidden (soft delete).
+*Meals. MEAL-001 (meals with their cost) is done; see **Done**.*
 
 ### MEAL-002 · Week plan · M
 **Needs:** MEAL-001.
-A `PlanEntry` model (date, slot, meal, servings). A week view puts meals into days; a meal can be
+A `PlanEntry` model (date, slot, meal, servings). A **Plan** tab of its own (owner, 2026-11-16) holds a week view that puts meals into days; a meal can be
 copied from last week.
 
 **Done when:** a UI test builds a 7-day plan with 10 meals in under 2 minutes, and the plan survives a relaunch.
@@ -991,3 +981,32 @@ Comparisons are by chain within a country, not by branch.
   `StoresView` passes a closure instead. `testStartWithLimitThenWithoutAndStoreIsRemembered` failed
   once because its first tap on **Start shopping** came during launch and the sheet never opened; it
   passed 3 of 3 reruns.
+
+### MEAL-001 · Meal model · M
+`Meal` (name, servings, note) and `MealIngredient` (meal, text, `code?`, quantity), both `nonisolated`
+`SyncedRecord`s. Ingredients are picked from past purchases or typed. Screens: list, create, edit, delete.
+
+**Done when:** a meal with 5 ingredients, 3 of them from past scans, survives a relaunch, and a
+deleted meal is hidden (soft delete).
+
+**Closed 2026-11-16:**
+
+- **Models and rules:** `Domain/Meals.swift`: `Meal`, `MealIngredient` and `MealBook`. The same product or
+  the same words add a pack instead of a second line. Servings 1–12, packs 1–20. Deleting soft-deletes
+  the meal and its ingredients. A new meal left with no name and no ingredients is removed outright
+  (it was never synced); one with ingredients but no name becomes "Untitled meal".
+- **Cost, for the mission:** `ScanItCore.MealCost` prices each ingredient at the cheapest of the latest
+  price per store over 90 days, in the home currency, times whole packs, and gives the meal's total and
+  cost a serving (half up). Unpriced ingredients (typed, in-store codes, nothing seen in 90 days) are
+  counted, and the meal then says "at least". On a price tie the most recently seen store wins.
+  Fixture `Fixtures/meal-cost.json`, hand-computed, shared with Android.
+- **Screens:** **Meals** beside **Shopping list** on the Trip tab (no new tab). The list shows cost a
+  serving and in total, and can sort by cost a serving, cheapest first. The editor puts cost above the
+  ingredients; each ingredient says where its price was seen ("at Lidl · 14 Nov"), and suggestions
+  from past purchases show their price so the cheaper product is easy to pick.
+- **Tests:** core 54 (wrong per-serving and line totals both failed when planted). Unit tests: relaunch
+  through an on-disk store (`ScanItSchema.container(url:)`), soft delete, packs instead of duplicates,
+  empty draft discarded, ranges, cheapest recent price. UI test `testMealFromPastPurchasesShowsItsCost`.
+- **Fixed on the way:** sheets opened from the Trip tab's empty state inherited its centred text, so
+  the shopping list's and meals' text fields were centred; both sheets now set leading alignment.
+- **Owner, 2026-11-16:** the week plan (MEAL-002) gets its own tab. The pixels are drafts for the owner's verdict.

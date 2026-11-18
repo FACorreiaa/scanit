@@ -212,11 +212,18 @@ nonisolated final class PriceObservation: SyncedRecord {
 enum ScanItSchema {
     static let models: [any PersistentModel.Type] = [
         Store.self, ShoppingSession.self, CartItem.self, Product.self, PriceObservation.self, ListItem.self,
+        Meal.self, MealIngredient.self,
     ]
 
     static func container(inMemory: Bool = false) throws -> ModelContainer {
         let schema = Schema(models)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
         return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    /// A store in a file of its own, for tests that close and reopen it ("survives a relaunch").
+    static func container(url: URL) throws -> ModelContainer {
+        let schema = Schema(models)
+        return try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, url: url)])
     }
 }
