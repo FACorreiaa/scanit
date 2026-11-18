@@ -212,7 +212,7 @@ nonisolated final class PriceObservation: SyncedRecord {
 enum ScanItSchema {
     static let models: [any PersistentModel.Type] = [
         Store.self, ShoppingSession.self, CartItem.self, Product.self, PriceObservation.self, ListItem.self,
-        Meal.self, MealIngredient.self,
+        Meal.self, MealIngredient.self, PlanEntry.self,
     ]
 
     static func container(inMemory: Bool = false) throws -> ModelContainer {

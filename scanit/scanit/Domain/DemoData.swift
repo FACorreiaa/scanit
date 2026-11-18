@@ -58,6 +58,30 @@ enum DemoData {
         try? context.save()
     }
 
+    /// Four meals (`-ui-testing-demo-meals`), for the meal and plan screens: fully priced, partly
+    /// priced and unpriced. Needs `seed` first for the prices.
+    static func seedMeals(_ context: ModelContext, now: Date = .now) {
+        // (name, servings, [(text, code, packs)])
+        let meals: [(String, Int, [(String, String?, Int)])] = [
+            ("Pequeno-almoço", 2, [("Leite meio gordo", "05601234567892", 1), ("Pão de forma", "04006381333931", 1),
+                                   ("Nutella", "03017620422003", 1)]),
+            ("Tosta mista", 2, [("Pão de forma", "04006381333931", 1), ("Queijo", nil, 1), ("Fiambre", nil, 1)]),
+            ("Iogurte e café", 4, [("Iogurte natural", "05600000000007", 4), ("Café moído", "05601111111116", 1)]),
+            ("Arroz de pato", 4, [("Pato", nil, 1), ("Arroz", nil, 1), ("Chouriço", nil, 1)]),
+        ]
+        for (name, servings, ingredients) in meals {
+            let meal = Meal(name: name, servings: servings, now: now)
+            context.insert(meal)
+            for (position, ingredient) in ingredients.enumerated() {
+                let row = MealIngredient(text: ingredient.0, code: ingredient.1, quantity: ingredient.2,
+                                         position: position, now: now)
+                context.insert(row)
+                row.meal = meal
+            }
+        }
+        try? context.save()
+    }
+
     /// Total of `seedForeignTrip` in cents: 2 × 3,49 + 5,50.
     static let foreignTripTotalMinor = 1_248
 

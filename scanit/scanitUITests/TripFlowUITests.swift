@@ -96,13 +96,13 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5))
 
         // History shows the trip and the month total.
-        app.tabBars.buttons["History"].tap()
+        openTab("History")
         XCTAssertTrue(app.staticTexts["monthTotal"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["monthTotal"].label.contains("3,98"))
         snapshot("7-history")
 
         // Next trip at Lidl: the milk price is remembered, so the scan alone adds it.
-        app.tabBars.buttons["Trip"].tap()
+        openTab("Trip")
         app.buttons["openStartTrip"].tap()
         XCTAssertTrue(app.buttons["Lidl"].waitForExistence(timeout: 5))
         app.buttons["startTrip"].tap()
@@ -192,7 +192,7 @@ final class TripFlowUITests: XCTestCase {
     /// INS-103: with history, the Insights tab shows tiles, bars and lists.
     func testInsightsWithHistory() throws {
         launch(extraArguments: ["-ui-testing-demo-data"])
-        app.tabBars.buttons["Insights"].tap()
+        openTab("Insights")
         XCTAssertTrue(app.staticTexts["This month"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Average trip"].exists)
         XCTAssertTrue(app.staticTexts["5 of 5"].exists, "all demo trips stayed under their limit")
@@ -227,7 +227,7 @@ final class TripFlowUITests: XCTestCase {
     /// BUD-001: a € budget and a $ budget each show against their own month's spending.
     func testBudgetsInTwoCurrencies() throws {
         launch(extraArguments: ["-ui-testing-demo-data", "-ui-testing-demo-usd-trip"])
-        app.tabBars.buttons["Insights"].tap()
+        openTab("Insights")
 
         let euro = app.buttons["monthlyBudget"]
         XCTAssertTrue(euro.waitForExistence(timeout: 5))
@@ -296,7 +296,8 @@ final class TripFlowUITests: XCTestCase {
     /// MEAL-001: a meal made from past purchases shows what it costs, in the editor and the list.
     func testMealFromPastPurchasesShowsItsCost() throws {
         launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data"])
-        let meals = app.buttons["meals"]
+        openTab("Plan")
+        let meals = app.buttons["planMeals"]
         XCTAssertTrue(meals.waitForExistence(timeout: 5))
         meals.tap()
         let newMeal = app.buttons["newMeal"]
@@ -335,8 +336,70 @@ final class TripFlowUITests: XCTestCase {
         snapshot("16-meals-list")
     }
 
+    /// MEAL-002: a week of 10 meals is planned in under two minutes, costs what its meals cost,
+    /// and copies into the next week in one tap. (Surviving a relaunch: `MealPlanTests`, since UI
+    /// tests run on a throwaway store.)
+    func testWeekPlanWithTenMealsInUnderTwoMinutes() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data", "-ui-testing-demo-meals"])
+        openTab("Plan")
+        let total = app.descendants(matching: .any).matching(identifier: "planWeekTotal").firstMatch
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertTrue(total.label.contains("Nothing planned"), "an empty week: \(total.label)")
+        snapshot("17-plan-empty")
+
+        let started = Date()
+        for index in 0..<10 {
+            let add = try XCTUnwrap(firstHittable("planAddSlot"), "an empty slot for meal \(index + 1)")
+            add.tap()
+            let picks = app.buttons.matching(identifier: "mealPick")
+            XCTAssertTrue(picks.firstMatch.waitForExistence(timeout: 5))
+            if index == 0 { snapshot("19-plan-picker") }
+            // Rotate through the four demo meals, each fully, partly or not priced.
+            picks.element(boundBy: index % picks.count).tap()
+            XCTAssertTrue(picks.firstMatch.waitForNonExistence(timeout: 5), "the picker closes on a pick")
+        }
+        let elapsed = Date().timeIntervalSince(started)
+        XCTAssertLessThan(elapsed, 120, "10 meals took \(Int(elapsed)) s")
+
+        app.swipeDown()
+        app.swipeDown()
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertTrue(total.label.contains("At least") && total.label.contains("10 meals"),
+                      "unpriced ingredients make the week a floor: \(total.label)")
+        snapshot("18-plan-week")
+
+        app.buttons["planNextWeek"].tap()
+        let copy = app.buttons["planCopyLastWeek"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 5))
+        XCTAssertTrue(copy.label.contains("10"), copy.label)
+        copy.tap()
+        XCTAssertTrue(total.label.contains("10 meals"), "next week copied: \(total.label)")
+        XCTAssertFalse(copy.exists, "nothing left to copy")
+    }
+
+    /// The first element with `identifier` that can take a tap, scrolling down to find one.
+    private func firstHittable(_ identifier: String, swipes: Int = 6) -> XCUIElement? {
+        for _ in 0...swipes {
+            let candidates = app.buttons.matching(identifier: identifier).allElementsBoundByIndex
+            if let hit = candidates.first(where: { $0.isHittable }) { return hit }
+            app.swipeUp()
+        }
+        return nil
+    }
+
+    /// Taps a tab until it is selected: a tap that lands while the app is still launching is lost.
+    private func openTab(_ name: String) {
+        let tab = app.tabBars.buttons[name]
+        XCTAssertTrue(tab.waitForExistence(timeout: 10), "the \(name) tab")
+        for _ in 0..<3 where !tab.isSelected {
+            tab.tap()
+            _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "isSelected == true"), object: tab)], timeout: 2)
+        }
+        XCTAssertTrue(tab.isSelected, "the \(name) tab opens")
+    }
+
     private func openStores() {
-        app.tabBars.buttons["Insights"].tap()
+        openTab("Insights")
         app.buttons["insightsAbout"].tap()
         let stores = app.buttons["aboutStores"]
         XCTAssertTrue(stores.waitForExistence(timeout: 5))
@@ -426,7 +489,7 @@ final class TripFlowUITests: XCTestCase {
 
     func testInsightsPlaceholderBeforeThreeTrips() throws {
         launch()
-        app.tabBars.buttons["Insights"].tap()
+        openTab("Insights")
         let progress = app.descendants(matching: .any)["insightsProgress"]
         XCTAssertTrue(progress.waitForExistence(timeout: 5))
         XCTAssertEqual(progress.value as? String, "0 of 3 trips done")
@@ -449,7 +512,7 @@ final class TripFlowUITests: XCTestCase {
         snapshot("12b-empty-trip-last-trip")
         XCTAssertFalse(app.textFields["storeName"].exists)
 
-        app.tabBars.buttons["History"].tap()
+        openTab("History")
         let locked = app.buttons["lockedTrips"]
         XCTAssertTrue(locked.waitForExistence(timeout: 5))
         XCTAssertTrue(locked.label.contains("2 older trips"))

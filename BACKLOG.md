@@ -480,14 +480,7 @@ An optional monthly savings target, with INS-14 measured against it, as a progre
 
 **Done when:** the ring fills from INS-14, and a month that reaches the target says so once.
 
-*Meals. MEAL-001 (meals with their cost) is done; see **Done**.*
-
-### MEAL-002 · Week plan · M
-**Needs:** MEAL-001.
-A `PlanEntry` model (date, slot, meal, servings). A **Plan** tab of its own (owner, 2026-11-16) holds a week view that puts meals into days; a meal can be
-copied from last week.
-
-**Done when:** a UI test builds a 7-day plan with 10 meals in under 2 minutes, and the plan survives a relaunch.
+*Meals. MEAL-001 (meals with their cost) and MEAL-002 (the week plan) are done; see **Done**.*
 
 ### MEAL-003 · Plan to shopping list · S
 **Needs:** MEAL-002, ADD-005.
@@ -981,6 +974,38 @@ Comparisons are by chain within a country, not by branch.
   `StoresView` passes a closure instead. `testStartWithLimitThenWithoutAndStoreIsRemembered` failed
   once because its first tap on **Start shopping** came during launch and the sheet never opened; it
   passed 3 of 3 reruns.
+
+### MEAL-002 · Week plan · M
+**Needs:** MEAL-001.
+A `PlanEntry` model (date, slot, meal, servings). A **Plan** tab of its own (owner, 2026-11-16) holds a week view that puts meals into days; a meal can be
+copied from last week.
+
+**Done when:** a UI test builds a 7-day plan with 10 meals in under 2 minutes, and the plan survives a relaunch.
+
+**Closed 2026-11-18:**
+
+- **Model and rules:** `Domain/MealPlan.swift`: `PlanEntry` (`day` as `yyyy-MM-dd`, `slot`, `meal`,
+  `servings`), `PlanWeek` and `MealPlan`. The day is a calendar day, not an instant, so time zones
+  do not move the plan. Two slots, lunch and dinner, stored as raw strings so more can come without a
+  migration. One meal per slot: planning another replaces it. A planned meal starts at the meal's own
+  servings (1–12). The week starts on the phone's first weekday (CLDR gives Portugal Sunday; the iOS
+  setting changes it). Deleting a meal soft-deletes its plan entries.
+- **Copy last week:** fills only this week's empty slots from the same weekday and slot, with the same
+  servings, and leaves last week alone. The button says how many it will copy and hides when there is
+  nothing to copy.
+- **Cost, for the mission:** `ScanItCore.PlanCost` scales each meal's total to the planned servings
+  (half up) and adds up the rounded costs, so the rows add up to the week. A week with an unpriced
+  ingredient says "At least". Never converts: another currency counts as unpriced. Fixture
+  `Fixtures/plan-cost.json`, hand-computed; planted wrong values fail.
+- **Screens:** a **Plan** tab between Trip and History: week switcher, the week's cost on top, then
+  each day's lunch and dinner. An empty slot opens a meal picker that shows each meal's cost a
+  serving and can make a new meal. A planned meal opens to servings, cost, edit, change and remove.
+  **Meals moved from the Trip tab to the Plan tab**, which is where they are used now.
+- **Tests:** `PlanCostTests` (Linux CI); `MealPlanTests`: week start across DST and the new year,
+  10 meals on 7 days surviving a relaunch (a file store), one meal per slot, copy, deleted meals, the
+  week's cost from demo prices. UI test `testWeekPlanWithTenMealsInUnderTwoMinutes` plans 10 meals
+  in under 2 minutes (the whole test takes about 80 s) and copies them into next week. The relaunch
+  half is the unit test, because UI tests run on a throwaway store. `testMealFromPastPurchasesShowsItsCost` now opens Meals from the Plan tab.
 
 ### MEAL-001 · Meal model · M
 `Meal` (name, servings, note) and `MealIngredient` (meal, text, `code?`, quantity), both `nonisolated`

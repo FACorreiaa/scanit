@@ -144,6 +144,7 @@ sync), and `syncState` (`.dirty` / `.synced`).
 | `ListItem` | `text`, `code?`, `doneAt?` (ADD-005) |
 | `Meal` | `name`, `servings`, `note?`, `ingredients` (MEAL-001) |
 | `MealIngredient` | `meal`, `text`, `code?` (GTIN when picked from past purchases), `quantity` (packs), `position` |
+| `PlanEntry` | `day` (`yyyy-MM-dd`, a calendar day), `slot` (`lunch` / `dinner`), `meal`, `servings` (MEAL-002) |
 
 Derived, never stored: session total, items count, limit progress, all insights.
 

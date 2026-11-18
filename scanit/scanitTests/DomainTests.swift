@@ -941,3 +941,166 @@ struct MealBookTests {
         #expect(estimate.isComplete)
     }
 }
+
+// MARK: - MEAL-002: week plan
+
+@MainActor
+struct MealPlanTests {
+    private static func calendar(firstWeekday: Int) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Lisbon")!
+        calendar.firstWeekday = firstWeekday
+        return calendar
+    }
+
+    private static func date(_ key: String, hour: Int = 12) -> Date {
+        PlanWeek.date(for: key, calendar: calendar(firstWeekday: 2))!.addingTimeInterval(Double(hour - 12) * 3600)
+    }
+
+    private static func meal(_ name: String, in context: ModelContext) throws -> Meal {
+        try #require(MealBook.meals(context: context).first { $0.name == name }, "\(name) is a demo meal")
+    }
+
+    @Test func weekStartsOnTheCalendarsFirstWeekday() {
+        let monday = Self.calendar(firstWeekday: 2)
+        let wednesday = Self.date("2026-11-18")
+        #expect(PlanWeek(containing: wednesday, calendar: monday).days ==
+                ["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20", "2026-11-21", "2026-11-22"])
+        #expect(PlanWeek(containing: wednesday, calendar: Self.calendar(firstWeekday: 1)).days.first == "2026-11-15",
+                "a US calendar starts on Sunday")
+        #expect(PlanWeek(containing: wednesday, calendar: monday).shifted(by: -1, calendar: monday).days.first == "2026-11-09")
+        #expect(PlanWeek(containing: Self.date("2026-11-22", hour: 23), calendar: monday).days.first == "2026-11-16",
+                "late on Sunday is still the same week")
+
+        // Clocks go forward in Lisbon on 29 March 2026, and the year turns mid-week.
+        let spring = PlanWeek(containing: Self.date("2026-03-29"), calendar: monday)
+        #expect(spring.days.first == "2026-03-23" && spring.days.last == "2026-03-29")
+        #expect(spring.shifted(by: 1, calendar: monday).days.first == "2026-03-30")
+        #expect(PlanWeek(containing: Self.date("2026-12-31"), calendar: monday).days ==
+                ["2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31", "2027-01-01", "2027-01-02", "2027-01-03"])
+    }
+
+    /// The backlog's check: a 7-day plan with 10 meals is still there after a relaunch.
+    @Test func aWeekOfTenMealsSurvivesARelaunch() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "plan-\(UUID().uuidString).store")
+        defer {
+            for suffix in ["", "-shm", "-wal"] { try? FileManager.default.removeItem(atPath: url.path() + suffix) }
+        }
+        let week = PlanWeek(containing: Self.date("2026-11-18"), calendar: Self.calendar(firstWeekday: 2))
+        // (day index, slot, meal)
+        let plan: [(Int, PlanSlot, String)] = [
+            (0, .lunch, "Tosta mista"), (0, .dinner, "Arroz de pato"), (1, .dinner, "Pequeno-almoço"),
+            (2, .lunch, "Tosta mista"), (2, .dinner, "Iogurte e café"), (3, .dinner, "Arroz de pato"),
+            (4, .lunch, "Pequeno-almoço"), (5, .dinner, "Tosta mista"), (6, .lunch, "Iogurte e café"),
+            (6, .dinner, "Arroz de pato"),
+        ]
+        do {
+            let context = ModelContext(try ScanItSchema.container(url: url))
+            DemoData.seed(context)
+            DemoData.seedMeals(context)
+            for (day, slot, name) in plan {
+                MealPlan.plan(try Self.meal(name, in: context), day: week.days[day], slot: slot, context: context)
+            }
+            let sunday = try #require(MealPlan.entries(in: week, context: context).last)
+            MealPlan.setServings(6, of: sunday)
+            try context.save()
+        }
+
+        let reopened = ModelContext(try ScanItSchema.container(url: url))
+        let entries = MealPlan.entries(in: week, context: reopened)
+        #expect(entries.count == 10)
+        #expect(Set(entries.map(\.day)).count == 7, "every day has a meal")
+        let saved = Set(entries.map { "\($0.day) \($0.slotRaw) \($0.meal?.name ?? "")" })
+        #expect(saved == Set(plan.map { "\(week.days[$0.0]) \($0.1.rawValue) \($0.2)" }))
+        #expect(entries.first { $0.day == week.days[6] && $0.slot == .dinner }?.servings == 6)
+        #expect(entries.first { $0.day == week.days[0] && $0.slot == .lunch }?.servings == 2, "starts at the meal's own servings")
+    }
+
+    @Test func planningAFilledSlotReplacesItsMeal() throws {
+        let context = try makeContext()
+        DemoData.seedMeals(context)
+        let day = "2026-11-18"
+        let first = MealPlan.plan(try Self.meal("Tosta mista", in: context), day: day, slot: .lunch, context: context)
+        MealPlan.setServings(5, of: first)
+        let second = MealPlan.plan(try Self.meal("Arroz de pato", in: context), day: day, slot: .lunch, context: context)
+
+        #expect(first.id == second.id, "one meal per slot")
+        #expect(second.meal?.name == "Arroz de pato")
+        #expect(second.servings == 4, "the new meal's own servings")
+        #expect(try context.fetch(FetchDescriptor<PlanEntry>()).count == 1)
+        MealPlan.plan(try Self.meal("Tosta mista", in: context), day: day, slot: .dinner, context: context)
+        #expect(MealPlan.entries(in: PlanWeek(containing: Self.date(day), calendar: Self.calendar(firstWeekday: 2)),
+                                 context: context).count == 2, "lunch and dinner are separate slots")
+    }
+
+    @Test func copyLastWeekFillsOnlyTheEmptySlots() throws {
+        let context = try makeContext()
+        DemoData.seedMeals(context)
+        let monday = Self.calendar(firstWeekday: 2)
+        let thisWeek = PlanWeek(containing: Self.date("2026-11-18"), calendar: monday)
+        let lastWeek = thisWeek.shifted(by: -1, calendar: monday)
+        let tosta = try Self.meal("Tosta mista", in: context)
+        let arroz = try Self.meal("Arroz de pato", in: context)
+
+        let copied = MealPlan.plan(tosta, day: lastWeek.days[0], slot: .lunch, context: context)
+        MealPlan.setServings(3, of: copied)
+        MealPlan.plan(arroz, day: lastWeek.days[0], slot: .dinner, context: context)
+        MealPlan.plan(tosta, day: lastWeek.days[4], slot: .dinner, context: context)
+        // Already planned this week: Monday dinner stays as it is.
+        MealPlan.plan(tosta, day: thisWeek.days[0], slot: .dinner, context: context)
+
+        #expect(MealPlan.copyable(from: lastWeek, to: thisWeek, context: context).count == 2)
+        #expect(MealPlan.copy(from: lastWeek, to: thisWeek, context: context) == 2)
+        let entries = MealPlan.entries(in: thisWeek, context: context)
+        #expect(entries.count == 3)
+        let mondayLunch = entries.first { $0.day == thisWeek.days[0] && $0.slot == .lunch }
+        #expect(mondayLunch?.meal?.name == "Tosta mista" && mondayLunch?.servings == 3, "same weekday, slot and servings")
+        #expect(entries.first { $0.day == thisWeek.days[0] && $0.slot == .dinner }?.meal?.name == "Tosta mista",
+                "a slot already planned is not overwritten")
+        #expect(entries.first { $0.day == thisWeek.days[4] && $0.slot == .dinner }?.meal?.name == "Tosta mista")
+        #expect(MealPlan.entries(in: lastWeek, context: context).count == 3, "last week is left as it was")
+        #expect(MealPlan.copy(from: lastWeek, to: thisWeek, context: context) == 0, "copying twice adds nothing")
+    }
+
+    @Test func aDeletedMealLeavesThePlan() throws {
+        let context = try makeContext()
+        DemoData.seedMeals(context)
+        let week = PlanWeek(containing: Self.date("2026-11-18"), calendar: Self.calendar(firstWeekday: 2))
+        let arroz = try Self.meal("Arroz de pato", in: context)
+        MealPlan.plan(arroz, day: week.days[1], slot: .dinner, context: context)
+        MealPlan.plan(try Self.meal("Tosta mista", in: context), day: week.days[2], slot: .lunch, context: context)
+
+        MealBook.delete(arroz, context: context)
+        let entries = MealPlan.entries(in: week, context: context)
+        #expect(entries.map { $0.meal?.name } == ["Tosta mista"])
+        let all = try context.fetch(FetchDescriptor<PlanEntry>())
+        #expect(all.count == 2 && all.contains { $0.deletedAt != nil }, "soft deleted, kept for sync")
+        #expect(MealPlan.copy(from: week, to: week.shifted(by: 1), context: context) == 1, "a deleted meal is not copied")
+    }
+
+    /// The week's cost: each planned meal scaled to its servings, at the cheapest recent prices.
+    @Test func weekCostAddsUpThePlannedMeals() throws {
+        let context = try makeContext()
+        let now = Date()
+        DemoData.seed(context, now: now)
+        DemoData.seedMeals(context, now: now)
+        let week = PlanWeek(containing: now)
+        let breakfast = MealPlan.plan(try Self.meal("Pequeno-almoço", in: context), day: week.days[0], slot: .lunch, context: context)
+        MealPlan.setServings(3, of: breakfast)
+        MealPlan.plan(try Self.meal("Tosta mista", in: context), day: week.days[1], slot: .lunch, context: context)
+        MealPlan.plan(try Self.meal("Arroz de pato", in: context), day: week.days[1], slot: .dinner, context: context)
+
+        let prices = InsightsSource.prices(context: context)
+        let planned = MealPlan.entries(in: week, context: context).map { entry in
+            MealPlan.planned(entry, estimate: MealBook.estimate(entry.meal!, prices: prices, currency: "EUR", now: now))
+        }
+        // Pequeno-almoço serves 2: milk 0,99 + bread 1,39 + Nutella 4,09 = 6,47 (all Lidl, 2 days
+        // ago); for 3 that is 6,47 × 3 ÷ 2 = 9,705, so 9,71. Tosta mista: bread 1,39, plus two
+        // typed ingredients. Arroz de pato: all typed, no price.
+        #expect(planned.map { $0.cost?.amountMinor } == [971, 139, nil])
+        let summary = PlanCost.summary(planned, currency: "EUR")
+        #expect(summary.total == Money(amountMinor: 1_110, currency: "EUR"))
+        #expect(summary.meals == 3 && summary.pricedMeals == 2 && summary.completeMeals == 1)
+        #expect(!summary.isComplete, "the week costs at least this")
+    }
+}
