@@ -1202,6 +1202,71 @@ struct PlanToListTests {
     }
 }
 
+// MARK: - SAVE-003: savings on Insights
+
+@MainActor
+struct MonthSavingSummaryTests {
+    /// 2026-09-21 19:33 UTC: demo trips 2, 6, 13 and 20 days ago fall in September, 27 days ago in
+    /// August.
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func euro(_ minor: Int) -> String { Money(amountMinor: minor, currency: "EUR").formatted() }
+
+    /// Worked by hand from `DemoData.seed`, using the trip savings in `TripSavingSummaryTests`:
+    /// +60, −146 and +90, plus 20 days ago at Continente vs Lidl 27 days ago: milk −10 × 4,
+    /// Nutella −30, yogurt −4 × 4, coffee unpriced = −86, all of it cheaper at Lidl.
+    @Test func demoMonthAndTrend() throws {
+        let context = try makeContext()
+        DemoData.seed(context, now: now)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let calculator = InsightsSource.calculator(context: context, now: now, calendar: calendar)
+        let trend = calculator.monthlySavings()
+
+        #expect(trend.count == 6)
+        let september = try #require(trend.last).saving
+        #expect(september.saving.amountMinor == 60 - 146 + 90 - 86)
+        #expect(september.comparedTrips == 4)
+        // INS-13 per store: 146 (6 days ago) + 86 (20 days ago), both at Lidl.
+        #expect(september.missedByStore.map(\.storeName) == ["Lidl"])
+        #expect(september.missedByStore.map(\.missed.amountMinor) == [232])
+
+        // August: only the first trip, with nothing to compare it to. A trip, not a comparison.
+        let august = trend[4].saving
+        #expect(august.trips == 1)
+        #expect(!august.hasComparison)
+        #expect(trend.prefix(4).allSatisfy { $0.saving.trips == 0 })
+
+        let summary = MonthSavingSummary(september, comparedBefore: false)
+        #expect(summary.title == "Paid more this month")
+        #expect(summary.value == euro(82))
+        #expect(summary.detail == "Than other stores · 4 trips")
+    }
+
+    @Test func wording() {
+        func month(_ minor: Int, compared: Int) -> PeriodSaving {
+            PeriodSaving(
+                saving: Money(amountMinor: minor, currency: "EUR"), missed: Money(amountMinor: 0, currency: "EUR"),
+                trips: max(compared, 1), comparedTrips: compared, missedByStore: []
+            )
+        }
+        let saved = MonthSavingSummary(month(60, compared: 1), comparedBefore: false)
+        #expect(saved.title == "Saved this month")
+        #expect(saved.value == euro(60))
+        #expect(saved.detail == "Vs other stores · 1 trip")
+
+        let even = MonthSavingSummary(month(0, compared: 2), comparedBefore: false)
+        #expect(even.value == euro(0))
+        #expect(even.detail == "Same as other stores · 2 trips")
+
+        // A month with trips but nothing to compare is not "saved €0".
+        let nothing = MonthSavingSummary(month(0, compared: 0), comparedBefore: true)
+        #expect(nothing.value == "—")
+        #expect(nothing.detail == "Nothing compared yet this month")
+        #expect(MonthSavingSummary(month(0, compared: 0), comparedBefore: false).detail == "Needs prices from a second store")
+    }
+}
+
 // MARK: - SAVE-002: saving on the finish sheet and in History
 
 @MainActor

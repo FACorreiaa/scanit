@@ -64,10 +64,12 @@ struct InsightsView: View {
         let products = calculator.topProducts(in: interval, limit: 5)
         let risers = calculator.priceChanges().filter { $0.percent > 0 }.prefix(5)
         let cheapest = calculator.cheapestStores().prefix(5)
+        let savings = calculator.monthlySavings()
+        let saveMost = savings.last?.saving.missedByStore.prefix(3) ?? []
 
         return List {
             Section {
-                HeadlineTiles(calculator: calculator)
+                HeadlineTiles(calculator: calculator, savings: savings)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
@@ -78,6 +80,12 @@ struct InsightsView: View {
                     MonthlyBudgetRow(
                         spent: spent, isPrimary: spent.currency == calculator.currency, showsCurrency: rows.count > 1
                     )
+                }
+            }
+
+            if !saveMost.isEmpty {
+                Section("Where you'd save most") {
+                    SaveMostRows(stores: Array(saveMost))
                 }
             }
 
@@ -270,9 +278,11 @@ private struct InsightsProgress: View {
     }
 }
 
-/// INS-01/02/03 as stat tiles: a hero number with one line of context each.
+/// INS-01/02/03 as stat tiles: a hero number with one line of context each, then INS-14 with its
+/// 6-month trend across the full width (SAVE-003).
 private struct HeadlineTiles: View {
     let calculator: InsightsCalculator
+    let savings: [MonthSaving]
 
     var body: some View {
         let month = calculator.spend(.month)
@@ -290,6 +300,10 @@ private struct HeadlineTiles: View {
                     value: adherence.withLimit == 0 ? "—" : "\(adherence.under) of \(adherence.withLimit)",
                     detail: adherence.withLimit == 0 ? "No trips with a limit" : "Trips with a limit"
                 )
+            }
+            GridRow {
+                SavingsTile(months: savings)
+                    .gridCellColumns(2)
             }
         }
     }

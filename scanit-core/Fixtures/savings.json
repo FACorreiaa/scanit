@@ -77,9 +77,9 @@
           "missedByStore": [] }
       ],
       "months": [
-        { "offset": 0, "savingMinor": 134, "missedMinor": 51, "trips": 2,
+        { "offset": 0, "savingMinor": 134, "missedMinor": 51, "trips": 2, "comparedTrips": 2,
           "missedByStore": [ { "storeId": "C", "missedMinor": 30 }, { "storeId": "P", "missedMinor": 21 } ] },
-        { "offset": -1, "savingMinor": 40, "missedMinor": 0, "trips": 1, "missedByStore": [] }
+        { "offset": -1, "savingMinor": 40, "missedMinor": 0, "trips": 1, "comparedTrips": 1, "missedByStore": [] }
       ]
     },
     "USD": {
@@ -90,9 +90,9 @@
           "missedByStore": [ { "storeId": "W", "missedMinor": 49 } ] }
       ],
       "months": [
-        { "offset": 0, "savingMinor": -49, "missedMinor": 49, "trips": 1,
+        { "offset": 0, "savingMinor": -49, "missedMinor": 49, "trips": 1, "comparedTrips": 1,
           "missedByStore": [ { "storeId": "W", "missedMinor": 49 } ] },
-        { "offset": -1, "savingMinor": 0, "missedMinor": 0, "trips": 0, "missedByStore": [] }
+        { "offset": -1, "savingMinor": 0, "missedMinor": 0, "trips": 0, "comparedTrips": 0, "missedByStore": [] }
       ]
     }
   }
