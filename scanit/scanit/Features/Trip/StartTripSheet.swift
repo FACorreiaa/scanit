@@ -71,11 +71,11 @@ struct StartTripSheet: View {
                     HStack(spacing: 8) {
                         ForEach(stores, id: \.id) { store in
                             Chip(title: store.name, isSelected: !isAddingStore && selectedStoreID == store.id) {
-                                let previous = isAddingStore ? nil : selectedStoreID
+                                // Before the currency changes: the limit is read in the old store's currency.
+                                followEstimate(from: isAddingStore ? nil : selectedStoreID, to: store.id)
                                 isAddingStore = false
                                 selectedStoreID = store.id
                                 currency = store.currency
-                                followEstimate(from: previous, to: store.id)
                             }
                         }
                         Chip(title: "New store", systemImage: "plus", isSelected: isAddingStore) {

@@ -459,6 +459,19 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Lidl"].isSelected)
         XCTAssertTrue(app.buttons["List €12,00"].exists, "the estimate chip")
         snapshot("24-start-from-list")
+
+        // A store with no estimate clears the estimate's limit and its chip; back at Lidl the chip
+        // returns and sets it again.
+        app.buttons["New store"].tap()
+        let cleared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "No limit"), object: limit)
+        XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 5), .completed, "limit: \(limit.value ?? "nil")")
+        XCTAssertFalse(app.buttons["List €12,00"].exists)
+        app.buttons["Lidl"].tap()
+        let chip = app.buttons["List €12,00"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 5))
+        chip.tap()
+        let refilled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "12,00"), object: limit)
+        XCTAssertEqual(XCTWaiter.wait(for: [refilled], timeout: 5), .completed, "limit: \(limit.value ?? "nil")")
         app.buttons["startTrip"].tap()
         XCTAssertTrue(text(containing: "left").waitForExistence(timeout: 5), "the trip has the limit")
     }
