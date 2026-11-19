@@ -704,7 +704,11 @@ and the limit chip equals the estimate rounded up.
   checked by eye in both modes.
 - **Found on the way:** the start sheet first opened without the estimate. `sheet(isPresented:)`
   built it from a stale copy of the prefill. The Trip tab now presents it with `sheet(item:)`
-  carrying the request.
+  carrying the request. Switching to a store in another currency could also have kept the euro
+  estimate as a dollar limit. The limit is now read before the currency changes, and the UI test
+  checks that **New store** clears it.
+- **Owner verdict 2026-11-19:** the estimate fills the limit, even with unpriced lines; the list
+  wording stays. Known limits are in `DESIGN.md` §10.
 
 ### SAVE-003 · Savings on Insights · S
 **Needs:** SAVE-001.

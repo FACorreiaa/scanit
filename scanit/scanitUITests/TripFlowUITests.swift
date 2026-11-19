@@ -466,7 +466,9 @@ final class TripFlowUITests: XCTestCase {
         let cleared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "No limit"), object: limit)
         XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 5), .completed, "limit: \(limit.value ?? "nil")")
         XCTAssertFalse(app.buttons["List €12,00"].exists)
-        app.buttons["Lidl"].tap()
+        // The new store's chain chips include one called Lidl too; tap the store, not the chain.
+        app.buttons.matching(NSPredicate(format: "label == 'Lidl' AND NOT (identifier BEGINSWITH 'chain.')"))
+            .firstMatch.tap()
         let chip = app.buttons["List €12,00"]
         XCTAssertTrue(chip.waitForExistence(timeout: 5))
         chip.tap()
