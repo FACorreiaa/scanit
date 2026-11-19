@@ -16,6 +16,7 @@ struct TripSummarySheet: View {
 
     var body: some View {
         let summary = TripSummary(session: session, context: context)
+        let saving = InsightsSource.tripSavings([session], context: context)[session.id]
         NavigationStack {
             List {
                 Section {
@@ -33,6 +34,18 @@ struct TripSummarySheet: View {
                     }
                 }
 
+                if let saving {
+                    Section {
+                        TripSavingRows(saving: saving)
+                    } footer: {
+                        if let coverage = saving.coverageText {
+                            Text("\(coverage). Against your latest prices at your other stores.")
+                        } else {
+                            Text("Against your latest prices at your other stores.")
+                        }
+                    }
+                }
+
                 if !summary.biggestLines.isEmpty {
                     Section("Biggest") {
                         ForEach(summary.biggestLines, id: \.id) { item in
@@ -42,9 +55,9 @@ struct TripSummarySheet: View {
                 }
 
                 Section {
-                    TripShareLink(session: session)
+                    TripShareLink(session: session, saving: saving)
                 } footer: {
-                    Text("A picture of your total and limit. It doesn't show what you bought.")
+                    Text(TripShareContent.footer(includesSaving: saving?.isSaving == true))
                 }
 
                 Section {

@@ -433,15 +433,6 @@ SAVE-002/003 → MEAL-004 → CMP-002 → BUD-002 → OPX-002 → REG-001/002 �
 
 *Savings: the base the rest builds on. SAVE-001 (the INS-11…14 maths) is done; see **Done**.*
 
-### SAVE-002 · Saving on the trip summary and in History · S
-**Needs:** SAVE-001.
-
-- The finish sheet (`TripSummary.swift`) shows "Saved €3,40 vs other stores" and "Could have saved €1,10 at Lidl".
-- History rows show each trip's saving.
-- The share card (ADD-002) can include the saving.
-
-**Done when:** a demo-data trip shows both numbers, and a trip with no reference prices shows neither.
-
 ### SAVE-003 · Savings on Insights · S
 **Needs:** SAVE-001.
 
@@ -565,6 +556,12 @@ price-in-barcode table (INS-105) are chosen by the store's `countryCode`.
   Read `platform/infra/docs/llm-haiku-trial.md` first.
 - **CMP-101 · Chain catalogue prices for Portugal (scraping).** Not chosen (terms-of-service risk).
 - **SAVE-101 · Savings on the web stats page (P9).**
+- **OPX-101 · Claude web search for price gaps (parked by the owner 2026-11-19).** Use the Messages
+  API `web_search` server tool, on the server, to fill prices that Open Prices lacks, mostly in
+  Portugal. Needs the server and P2, like MEAL-101. Before it starts: measure the hit rate on real
+  GTINs and the cost per lookup (searches are billed on top of tokens, and the trial workspace is
+  capped at $20), and check that it is not CMP-101 by another route (chain sites' terms). Read
+  `platform/infra/docs/llm-haiku-trial.md` first.
 
 ---
 
@@ -688,6 +685,24 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 - **AI insights / LLM.** If ever, read `platform/infra/docs/llm-haiku-trial.md` first.
 
 ## Done
+
+### SAVE-002 · Saving on the trip summary and in History · S
+**Needs:** SAVE-001.
+
+- The finish sheet (`TripSummary.swift`) shows "Saved €3,40 vs other stores" and "Could have saved €1,10 at Lidl".
+- History rows show each trip's saving.
+- The share card (ADD-002) can include the saving.
+
+**Done when:** a demo-data trip shows both numbers, and a trip with no reference prices shows neither.
+
+**Closed 2026-11-19:** the finish sheet, a past trip and History rows show INS-12 and INS-13
+(`TripSavingSummary`, `InsightsSource.tripSavings`, one calculator per trip currency). Demo trips,
+worked by hand: 2 days ago +€0,60, 6 days ago −€1,46 with €1,46 missed at Lidl, 13 days ago +€0,90
+on 3 of 4 products, the first trip shows nothing. UI test: a new store saves €0,25 and could have
+saved €0,30 at Lidl; a trip with no other store shows neither. The share card adds the saving only
+when positive. The missed line names the store that missed most with its own amount, never the
+trip's total across stores (three-store test). Wording in `DESIGN.md` §6. Owner verdict pending on wording and the green tint
+(dark-mode small-text contrast is the open DESIGN item).
 
 ### FND-001a · Name · 2026-10-09
 ScanIt / `scanit`, bundle ID `com.fernandocorreia.scanit`. Store availability and domain remain in FND-001.

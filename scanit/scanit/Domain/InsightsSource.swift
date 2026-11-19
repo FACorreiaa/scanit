@@ -37,26 +37,48 @@ enum InsightsSource {
         let products = (try? context.fetch(FetchDescriptor<Product>())) ?? []
         let categoryByCode = Dictionary(products.map { ($0.gtin, $0.categories.first) }, uniquingKeysWith: { a, _ in a })
 
-        let trips = sessions.map { session in
-            TripSnapshot(
-                id: session.id.uuidString,
-                storeId: session.store?.id.uuidString,
-                storeName: session.store?.name,
-                currency: session.currency,
-                startedAt: session.startedAt,
-                endedAt: session.endedAt ?? session.startedAt,
-                limitMinor: session.limitMinor,
-                tillTotalMinor: session.tillTotalMinor,
-                lines: session.liveItems.map { item in
-                    LineSnapshot(
-                        code: item.code, codeKind: item.scannedCode.kind, name: item.productName,
-                        quantity: item.quantity, unitPriceMinor: item.unitPriceMinor,
-                        category: categoryByCode[item.code] ?? nil
-                    )
-                }
-            )
-        }
+        let trips = sessions.map { snapshot($0, categoryByCode: categoryByCode) }
         return (trips, priceSnapshots(observations), sessions.first?.currency)
+    }
+
+    private static func snapshot(_ session: ShoppingSession, categoryByCode: [String: String?] = [:]) -> TripSnapshot {
+        TripSnapshot(
+            id: session.id.uuidString,
+            storeId: session.store?.id.uuidString,
+            storeName: session.store?.name,
+            currency: session.currency,
+            startedAt: session.startedAt,
+            endedAt: session.endedAt ?? session.startedAt,
+            limitMinor: session.limitMinor,
+            tillTotalMinor: session.tillTotalMinor,
+            lines: session.liveItems.map { item in
+                LineSnapshot(
+                    code: item.code, codeKind: item.scannedCode.kind, name: item.productName,
+                    quantity: item.quantity, unitPriceMinor: item.unitPriceMinor,
+                    category: categoryByCode[item.code] ?? nil
+                )
+            }
+        )
+    }
+
+    /// INS-12/13 for each finished trip given (SAVE-002), keyed by trip id. Prices are fetched once,
+    /// and each trip is measured in its own currency, so a dollar trip is never dropped for not
+    /// being in euros. Trips with no product priced at another store are left out.
+    static func tripSavings(_ sessions: [ShoppingSession], context: ModelContext) -> [UUID: TripSavingSummary] {
+        guard !sessions.isEmpty else { return [:] }
+        let prices = prices(context: context)
+        var calculators: [String: InsightsCalculator] = [:]
+        var result: [UUID: TripSavingSummary] = [:]
+        for session in sessions {
+            let currency = session.currency.uppercased()
+            let calculator = calculators[currency]
+                ?? InsightsCalculator(trips: [], prices: prices, currency: currency, now: .now)
+            calculators[currency] = calculator
+            if let saving = calculator.tripSaving(snapshot(session)).flatMap(TripSavingSummary.init) {
+                result[session.id] = saving
+            }
+        }
+        return result
     }
 
     /// Every price the user has seen, for meal costs (MEAL-001) and comparisons.

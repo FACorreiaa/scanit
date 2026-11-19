@@ -14,6 +14,7 @@ struct HistoryView: View {
     @Environment(PurchaseStore.self) private var purchases
     @Environment(\.paywallPolicy) private var paywall
     @Environment(\.showTrip) private var showTrip
+    @Environment(\.modelContext) private var context
     @State private var paywallReason: PaywallReasonItem?
 
     var body: some View {
@@ -31,6 +32,7 @@ struct HistoryView: View {
                 } else {
                     let split = paywall.visibleTrips(trips, isUnlimited: purchases.isUnlimited)
                     let months = MonthGroup.group(split.visible)
+                    let savings = InsightsSource.tripSavings(split.visible, context: context)
                     List {
                         Section {
                             MonthSummary(month: months.first)
@@ -40,7 +42,7 @@ struct HistoryView: View {
                             Section {
                                 ForEach(month.trips, id: \.id) { trip in
                                     NavigationLink(value: TripRoute(id: trip.id)) {
-                                        TripRow(trip: trip)
+                                        TripRow(trip: trip, saving: savings[trip.id])
                                     }
                                 }
                             } header: {
@@ -137,6 +139,7 @@ private struct MonthSummary: View {
 
 private struct TripRow: View {
     let trip: ShoppingSession
+    let saving: TripSavingSummary?
 
     var body: some View {
         HStack {
@@ -146,6 +149,13 @@ private struct TripRow: View {
                 Text(detailText)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                if let saving {
+                    Text(saving.shortText)
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(saving.isSaving ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                        .accessibilityIdentifier("tripRowSaving")
+                }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
@@ -180,16 +190,25 @@ private struct TripRow: View {
 /// One past trip. Prices and quantities can still be fixed afterwards.
 struct TripDetailView: View {
     @Environment(SessionStore.self) private var sessions
+    @Environment(\.modelContext) private var context
     let trip: ShoppingSession
     @State private var editing: CartItemSelection?
 
     var body: some View {
+        let saving = InsightsSource.tripSavings([trip], context: context)[trip.id]
         List {
             Section {
                 TripTotalHeader(total: trip.total, limit: trip.limit, status: trip.limitStatus)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .listRowBackground(Color.clear)
+            }
+            if let saving {
+                Section {
+                    TripSavingRows(saving: saving)
+                } footer: {
+                    if let coverage = saving.coverageText { Text(coverage) }
+                }
             }
             if let till = trip.tillTotalMinor {
                 Section {
@@ -217,7 +236,7 @@ struct TripDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                TripShareLink(session: trip)
+                TripShareLink(session: trip, saving: saving)
             }
         }
         .sheet(item: $editing) { selection in

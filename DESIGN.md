@@ -115,8 +115,24 @@ The **Finish** button shows a summary:
 - number of items
 - difference from the last trip at the same store
 - the three biggest-ticket lines
+- the saving vs other stores (INS-12) and the missed saving (INS-13), when any product has a price
+  from another store (SAVE-002)
 
 From there, **Done** or **Undo finish**.
+
+Saving wording (the same in a past trip, shorter in History rows):
+
+| Case | Finish sheet | History row |
+| --- | --- | --- |
+| Saved | "Saved €0,60 vs other stores" | "Saved €0,60" |
+| Overspent | "€1,46 more than other stores" (never a minus under "Saved") | "€1,46 more than elsewhere" |
+| Even | "Same as other stores" | "Same as elsewhere" |
+| Missed > 0 | "Could have saved €1,46 at Lidl" (the store that missed most, with its own amount, not the trip's total across stores; "elsewhere" without a name) | — |
+| Some products unpriced | footer "Compared on 3 of 4 products" | — |
+| No product priced elsewhere | nothing | nothing |
+
+The share card carries "Saved €… vs other stores" only for a real saving; an overspend is never
+shared.
 
 Optional field: "Actual till total". It lets the user record what they really paid (the gap is an insight: missed items, wrong prices).
 
