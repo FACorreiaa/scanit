@@ -196,7 +196,30 @@ and never converted.
 | INS-11 | Line saving | (reference price − price paid) × quantity. Reference = median of the latest price at each *other* store for the same GTIN, over the 90 days up to the trip's end (so a past trip's saving never moves); with an even count, the mean of the two middle prices rounded half up. Real GTINs only; in-store and opaque codes are skipped. No reference: 0, reported as "unpriced". May be negative |
 | INS-12 | Trip saving | Σ INS-11 over the trip, per currency |
 | INS-13 | Missed saving | per line, (price paid − cheapest latest price at another store, same window as INS-11) × quantity, only when above 0; also summed per store |
-| INS-14 | Month saving | Σ INS-12 over trips with `endedAt` in the month, per currency |
+| INS-14 | Month saving | Σ INS-12 over trips with `endedAt` in the month, per currency. A month counts as *compared* only when at least one of its trips had a product priced at another store; a month with trips but nothing compared is not a saving of 0 |
+
+**Savings on Insights (SAVE-003, owner verdict pending).** A full-width tile under the headline
+tiles, in the Insights currency:
+
+| Case | Title | Value | Detail |
+| --- | --- | --- | --- |
+| Saved | "Saved this month" | "€0,60" | "Vs other stores · 3 trips" |
+| Even | "Saved this month" | "€0,00" | "Same as other stores · 2 trips" |
+| Paid more | "Paid more this month" (never a minus under "Saved") | "€0,82" | "Than other stores · 4 trips" |
+| Nothing compared | "Saved this month" | "—" | "Nothing compared yet this month", or "Needs prices from a second store" when no month in the trend was compared |
+
+The trip count is compared trips only. Under it, a 6-month trend once 2 months are compared: one
+thin bar per month from a shared baseline, up for a saving, down for paying more, no bar for a
+month with nothing compared. This month is in the accent and earlier months in system grey (the
+`dataviz` emphasis form). Validated against the tile surface: the accent (#23843B) passes every
+check in light (#FFFFFF) and dark (#1C1C1E). The grey (#8E8E93) fails only the chroma floor, as a
+de-emphasis grey is meant to; a grey is outside the validator's categorical scope, so it stays an
+owner call. Accent vs grey CVD ΔE 12.4 and normal-vision ΔE 18.1, and both are at
+least 3:1 against the surface in each mode. VoiceOver reads every month's value.
+
+"Where you'd save most" lists INS-13 summed per store over the same month as the tile, the top 3
+stores, each with its own amount ("Lidl · Cheaper for what you bought · €2,32"). It is hidden when
+nothing was cheaper elsewhere.
 
 A chart is shown only when its data is meaningful. The minimum is 3 finished trips. Below that, show progress toward 3 trips and what each unlocks, with **Start shopping**. Charts follow the `dataviz` skill.
 

@@ -199,6 +199,11 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["This month"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Average trip"].exists)
         XCTAssertTrue(app.staticTexts["5 of 5"].exists, "all demo trips stayed under their limit")
+        // SAVE-003: the month's saving under the headline tiles. Demo trips are relative to today,
+        // so the amount is checked in unit tests with a fixed date, not here.
+        let savings = app.descendants(matching: .any)["savingsTile"]
+        XCTAssertTrue(savings.waitForExistence(timeout: 5))
+        XCTAssertTrue(savings.label.contains("this month"), "savings tile label: \(savings.label)")
         snapshot("9-insights-top")
 
         // ADD-003: a monthly budget shows this month's spending against it.
@@ -217,13 +222,15 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["exportTrips"].waitForExistence(timeout: 5))
         app.buttons["Close"].firstMatch.tap()
 
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["Prices that went up"].waitForExistence(timeout: 5)
-                      || app.staticTexts["PRICES THAT WENT UP"].exists)
+        // Scroll until each section shows, not a fixed number of swipes: the savings tile and
+        // "Where you'd save most" (SAVE-003) change the screen's height with the date.
+        let risers = app.staticTexts["Prices that went up"]
+        for _ in 0..<6 where !(risers.exists && risers.isHittable) { app.swipeUp() }
+        XCTAssertTrue(risers.waitForExistence(timeout: 5) || app.staticTexts["PRICES THAT WENT UP"].exists)
         snapshot("10-insights-lists")
-        app.swipeUp()
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["Your regular basket"].waitForExistence(timeout: 5), "INS-10 shown")
+        let basket = app.staticTexts["Your regular basket"]
+        for _ in 0..<6 where !(basket.exists && basket.isHittable) { app.swipeUp() }
+        XCTAssertTrue(basket.waitForExistence(timeout: 5), "INS-10 shown")
         snapshot("11-insights-your-prices")
     }
 

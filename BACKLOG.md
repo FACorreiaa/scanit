@@ -431,16 +431,8 @@ adds up from the trip lines.
 **Start order:** SAVE-001 → BUD-001 → CMP-001 → MEAL-001 → MEAL-002 → MEAL-003 → OPX-001 →
 SAVE-002/003 → MEAL-004 → CMP-002 → BUD-002 → OPX-002 → REG-001/002 → the rest.
 
-*Savings: the base the rest builds on. SAVE-001 (the INS-11…14 maths) is done; see **Done**.*
-
-### SAVE-003 · Savings on Insights · S
-**Needs:** SAVE-001.
-
-- A "Saved this month" tile with a 6-month trend.
-- A "Where you'd save most" list built from INS-13.
-- The 3-trip placeholder rule still applies.
-
-**Done when:** the tile renders in light and dark mode with demo data and passes the `dataviz` validator.
+*Savings: the base the rest builds on. SAVE-001 (the INS-11…14 maths), SAVE-002 (trip saving) and
+SAVE-003 (savings on Insights) are done; see **Done**.*
 
 *Budget: improvements to the trip limit and ADD-003. BUD-001 (a budget per currency) is done; see **Done**.*
 
@@ -685,6 +677,43 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 - **AI insights / LLM.** If ever, read `platform/infra/docs/llm-haiku-trial.md` first.
 
 ## Done
+
+### SAVE-003 · Savings on Insights · S
+**Needs:** SAVE-001.
+
+- A "Saved this month" tile with a 6-month trend.
+- A "Where you'd save most" list built from INS-13.
+- The 3-trip placeholder rule still applies.
+
+**Done when:** the tile renders in light and dark mode with demo data and passes the `dataviz` validator.
+
+**Closed 2026-11-19:**
+
+- **Core:** `PeriodSaving.comparedTrips` counts trips with at least one product priced at another
+  store, so a month with nothing to compare is not shown as saving €0. `monthlySavings()` gives INS-14
+  for the last 6 calendar months, oldest first. `Fixtures/savings.json` carries `comparedTrips` per
+  month. `swift test` runs 60 tests, all passing; with a wrong `comparedTrips` and with the month
+  order reversed, the suite failed on exactly those.
+- **Insights:** a full-width tile under the headline tiles (`SavingsTile`, wording in
+  `MonthSavingSummary`) with a 6-month bar trend, and "Where you'd save most" (INS-13 per store, this
+  month, top 3) below the budget. Both sit inside the 3-trip gate. Wording and validator results in
+  `DESIGN.md` → Insights catalogue, owner verdict pending.
+- **Validator:** accent #23843B passes every check on #FFFFFF and #1C1C1E. The past-month grey
+  #8E8E93 fails only the chroma floor, as a de-emphasis grey should; CVD ΔE 12.4, normal ΔE 18.1,
+  ≥ 3:1 in both modes.
+- **Tests:** unit tests work the demo month by hand at a fixed date (September 2026: −€0,82 over 4
+  compared trips, €2,32 missed at Lidl; August: 1 trip, nothing compared) and cover every wording case.
+  `testInsightsWithHistory` checks the tile and now scrolls until each section shows instead of a fixed
+  number of swipes. Light and dark screenshots of demo data checked by eye.
+- **Found on the way:** the trend's first render centred a short bar against a tall one, putting
+  November's +€0,04 below the baseline; the bar row is now top-aligned. `PurchaseStoreTests` failed
+  once in a full unit run on an overloaded machine and passed alone.
+- **Demo data limit:** demo trips are relative to today, and the compared ones (2, 6, 13 and 20 days
+  ago) only span two calendar months from about the 3rd to the 20th. Outside that the tile shows
+  without its trend (a trend needs 2 compared months), and early in a month it can show "—". An
+  opt-in launch flag with older trips would make the trend reviewable on any date; not added.
+- **App Store screenshot:** `store-2-insights` will include the tile the next time it is captured
+  (`SCANIT_SCREENSHOTS=1`).
 
 ### SAVE-002 · Saving on the trip summary and in History · S
 **Needs:** SAVE-001.

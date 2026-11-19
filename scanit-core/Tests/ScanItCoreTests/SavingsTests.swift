@@ -18,7 +18,7 @@ private struct SavingsFixture: Decodable {
         let missedByStore: [StoreMissed]
     }
     struct Month: Decodable {
-        let offset, savingMinor, missedMinor, trips: Int
+        let offset, savingMinor, missedMinor, trips, comparedTrips: Int
         let missedByStore: [StoreMissed]
     }
     struct Currency: Decodable { let trips: [Trip]; let months: [Month] }
@@ -80,9 +80,49 @@ struct SavingsTests {
             #expect(result.saving == Money(amountMinor: expected.savingMinor, currency: currency), "offset \(expected.offset)")
             #expect(result.missed == Money(amountMinor: expected.missedMinor, currency: currency), "offset \(expected.offset)")
             #expect(result.trips == expected.trips, "offset \(expected.offset)")
+            #expect(result.comparedTrips == expected.comparedTrips, "offset \(expected.offset)")
             #expect(result.missedByStore.map(\.storeId) == expected.missedByStore.map(\.storeId), "offset \(expected.offset)")
             #expect(result.missedByStore.map(\.missed.amountMinor) == expected.missedByStore.map(\.missedMinor))
         }
+    }
+
+    /// SAVE-003: six months oldest first, each equal to INS-14 for that month; months without a trip
+    /// have nothing to compare rather than a saving of 0.
+    @Test(arguments: ["EUR", "USD"])
+    func ins14SixMonthTrend(currency: String) throws {
+        let calculator = calculator(currency)
+        let months = try #require(fixture.expected[currency]).months
+        let trend = calculator.monthlySavings()
+        #expect(trend.count == 6)
+        #expect(trend.last?.month == calculator.interval(.month))
+        #expect(zip(trend, trend.dropFirst()).allSatisfy { $0.month.end == $1.month.start }, "consecutive months")
+        for (index, point) in trend.enumerated() {
+            let offset = index - 5
+            if let want = months.first(where: { $0.offset == offset }) {
+                #expect(point.saving.saving.amountMinor == want.savingMinor, "offset \(offset)")
+                #expect(point.saving.comparedTrips == want.comparedTrips, "offset \(offset)")
+            } else {
+                #expect(point.saving.trips == 0 && !point.saving.hasComparison, "offset \(offset)")
+            }
+        }
+    }
+
+    /// A trip whose products have no price at another store counts as a trip, not as a comparison.
+    @Test func unpricedTripIsNotAComparison() throws {
+        let unpriced = TripSnapshot(
+            id: "T9", storeId: "L", storeName: "Lidl", currency: "EUR",
+            startedAt: fixture.now.addingTimeInterval(-7200), endedAt: fixture.now.addingTimeInterval(-3600),
+            limitMinor: nil, tillTotalMinor: nil,
+            lines: [LineSnapshot(code: "04006381333931", codeKind: .gtin, name: nil, quantity: 1, unitPriceMinor: 129, category: nil)]
+        )
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let alone = InsightsCalculator(trips: [unpriced], prices: fixture.prices, currency: "EUR", now: fixture.now, calendar: calendar)
+        let month = alone.savings(in: alone.interval(.month))
+        #expect(month.trips == 1)
+        #expect(month.comparedTrips == 0)
+        #expect(!month.hasComparison)
+        #expect(month.saving.amountMinor == 0)
     }
 
     @Test func currenciesNeverMix() throws {

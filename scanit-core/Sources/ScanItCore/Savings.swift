@@ -46,8 +46,28 @@ public struct TripSaving: Hashable, Sendable {
 public struct PeriodSaving: Hashable, Sendable {
     public let saving: Money
     public let missed: Money
+    /// Trips in the period, compared or not.
     public let trips: Int
+    /// Trips with at least one product priced at another store. 0 means there was nothing to compare,
+    /// which is not the same as saving 0 against other stores.
+    public let comparedTrips: Int
     public let missedByStore: [StoreMissedSaving]
+
+    public var hasComparison: Bool { comparedTrips > 0 }
+
+    public init(saving: Money, missed: Money, trips: Int, comparedTrips: Int, missedByStore: [StoreMissedSaving]) {
+        self.saving = saving
+        self.missed = missed
+        self.trips = trips
+        self.comparedTrips = comparedTrips
+        self.missedByStore = missedByStore
+    }
+}
+
+/// INS-14 for one calendar month, for the trend on Insights (SAVE-003).
+public struct MonthSaving: Hashable, Sendable {
+    public let month: DateInterval
+    public let saving: PeriodSaving
 }
 
 extension InsightsCalculator {
@@ -82,8 +102,17 @@ extension InsightsCalculator {
             saving: money(results.reduce(0) { $0 + $1.saving.amountMinor }),
             missed: money(results.reduce(0) { $0 + $1.missed.amountMinor }),
             trips: results.count,
+            comparedTrips: results.count { $0.unpricedLines < $0.lines.count },
             missedByStore: missedByStore(results.flatMap(\.lines))
         )
+    }
+
+    /// INS-14 for the last `count` calendar months, oldest first, this month last.
+    public func monthlySavings(months count: Int = 6) -> [MonthSaving] {
+        (0..<count).reversed().map { back in
+            let month = interval(.month, offset: -back)
+            return MonthSaving(month: month, saving: savings(in: month))
+        }
     }
 
     // MARK: - Helpers
