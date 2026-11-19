@@ -213,7 +213,8 @@ thin bar per month from a shared baseline, up for a saving, down for paying more
 month with nothing compared. This month is in the accent and earlier months in system grey (the
 `dataviz` emphasis form). Validated against the tile surface: the accent (#23843B) passes every
 check in light (#FFFFFF) and dark (#1C1C1E). The grey (#8E8E93) fails only the chroma floor, as a
-de-emphasis grey is meant to. Accent vs grey CVD ΔE 12.4 and normal-vision ΔE 18.1, and both are at
+de-emphasis grey is meant to; a grey is outside the validator's categorical scope, so it stays an
+owner call. Accent vs grey CVD ΔE 12.4 and normal-vision ΔE 18.1, and both are at
 least 3:1 against the surface in each mode. VoiceOver reads every month's value.
 
 "Where you'd save most" lists INS-13 summed per store over the same month as the tile, the top 3

@@ -708,6 +708,12 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 - **Found on the way:** the trend's first render centred a short bar against a tall one, putting
   November's +€0,04 below the baseline; the bar row is now top-aligned. `PurchaseStoreTests` failed
   once in a full unit run on an overloaded machine and passed alone.
+- **Demo data limit:** demo trips are relative to today, and the compared ones (2, 6, 13 and 20 days
+  ago) only span two calendar months from about the 3rd to the 20th. Outside that the tile shows
+  without its trend (a trend needs 2 compared months), and early in a month it can show "—". An
+  opt-in launch flag with older trips would make the trend reviewable on any date; not added.
+- **App Store screenshot:** `store-2-insights` will include the tile the next time it is captured
+  (`SCANIT_SCREENSHOTS=1`).
 
 ### SAVE-002 · Saving on the trip summary and in History · S
 **Needs:** SAVE-001.
