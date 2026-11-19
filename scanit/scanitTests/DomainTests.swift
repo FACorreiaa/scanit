@@ -1104,3 +1104,91 @@ struct MealPlanTests {
         #expect(!summary.isComplete, "the week costs at least this")
     }
 }
+
+// MARK: - MEAL-003: plan to shopping list
+
+@MainActor
+struct PlanToListTests {
+    private let week = PlanWeek(containing: Date(timeIntervalSince1970: 1_794_960_000)) // 2026-11-18
+
+    private func plannedContext() throws -> ModelContext {
+        let context = try makeContext()
+        DemoData.seedMeals(context)
+        let meals = MealBook.meals(context: context)
+        let breakfast = try #require(meals.first { $0.name == "Pequeno-almoço" })
+        let tosta = try #require(meals.first { $0.name == "Tosta mista" })
+        // Both take one pack of bread for 2; planned for 2 and for 4: 1 + 2 = 3 packs.
+        MealPlan.plan(breakfast, day: week.days[0], slot: .lunch, context: context)
+        let dinner = MealPlan.plan(tosta, day: week.days[1], slot: .dinner, context: context)
+        MealPlan.setServings(4, of: dinner)
+        try context.save()
+        return context
+    }
+
+    /// The backlog's check: two meals that share an ingredient give one list line with both
+    /// amounts, and scanning the product still ticks it.
+    @Test func sharedIngredientIsOneLineAndAScanTicksIt() throws {
+        let context = try plannedContext()
+        let lines = MealPlan.listLines(in: week, context: context)
+        #expect(lines.map(\.text) == ["Leite meio gordo", "Pão de forma", "Nutella", "Queijo", "Fiambre"])
+        let bread = try #require(lines.first { $0.code == "04006381333931" })
+        #expect(bread.packs == 3)
+        #expect(bread.meals == ["Pequeno-almoço", "Tosta mista"])
+        #expect(lines.first { $0.text == "Queijo" }?.packs == 2, "1 for 2, planned for 4")
+
+        #expect(MealPlan.addToList(lines, atHome: [], context: context) == 5)
+        let list = ShoppingList.lines(context: context)
+        #expect(list.count == 5)
+        let breadLine = try #require(list.first { $0.code == "04006381333931" })
+        #expect(breadLine.quantity == 3, "one line, combined")
+
+        let session = SessionStore(context: context, analytics: RecordingAnalytics())
+        session.startTrip(store: nil, limitMinor: nil, currency: "EUR")
+        session.addItem(code: ScannedCode(kind: .gtin, value: "04006381333931"), productName: "Pão de forma",
+                        unitPriceMinor: 139, priceSource: .manual)
+        #expect(breadLine.isDone, "the scan ticks it")
+        #expect(list.filter(\.isDone).count == 1)
+    }
+
+    @Test func whatIsAtHomeStaysOffAndIsRemembered() throws {
+        let context = try plannedContext()
+        let cheese = PlanList.key(text: "Queijo", code: nil)
+        let lines = MealPlan.listLines(in: week, context: context)
+        #expect(MealPlan.addToList(lines, atHome: [cheese], context: context) == 4)
+        #expect(!ShoppingList.lines(context: context).contains { $0.text == "Queijo" })
+
+        let tosta = try #require(MealBook.meals(context: context).first { $0.name == "Tosta mista" })
+        #expect(tosta.liveIngredients.first { $0.text == "Queijo" }?.inPantry == true, "remembered on the meal")
+        #expect(MealPlan.listLines(in: week, context: context).first { $0.key == cheese }?.inPantry == true,
+                "next time it starts unticked")
+
+        // Out of cheese again: ticking it back puts it on the list and forgets the pantry mark.
+        MealPlan.addToList(MealPlan.listLines(in: week, context: context), atHome: [], context: context)
+        #expect(ShoppingList.lines(context: context).contains { $0.text == "Queijo" })
+        #expect(tosta.liveIngredients.first { $0.text == "Queijo" }?.inPantry == false)
+    }
+
+    @Test func addingTheWeekTwiceDoesNotDoubleIt() throws {
+        let context = try plannedContext()
+        // Already on the list, typed by hand: the plan raises it instead of adding a second line.
+        ShoppingList.add("pão de forma", context: context)
+        let lines = MealPlan.listLines(in: week, context: context)
+        MealPlan.addToList(lines, atHome: [], context: context)
+        MealPlan.addToList(lines, atHome: [], context: context)
+
+        let list = ShoppingList.lines(context: context)
+        #expect(list.count == 5)
+        #expect(list.filter { $0.text.lowercased().hasPrefix("pão") }.map(\.quantity) == [3])
+        let packs: [Int] = list.map(\.quantity)
+        #expect(packs.reduce(0, +) == 9, "milk 1, bread 3, Nutella 1, cheese 2, ham 2")
+    }
+
+    @Test func mergeNeverLowersAQuantity() throws {
+        let context = try makeContext()
+        let line = try #require(ShoppingList.merge("Ovos", code: nil, quantity: 4, context: context))
+        ShoppingList.merge("ovos", code: nil, quantity: 2, context: context)
+        #expect(line.quantity == 4)
+        #expect(ShoppingList.merge("  ", code: nil, quantity: 2, context: context) == nil)
+        #expect(ListItem(text: "Sal").quantity == 1, "lines from before MEAL-003 ask for one")
+    }
+}

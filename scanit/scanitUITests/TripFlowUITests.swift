@@ -349,14 +349,9 @@ final class TripFlowUITests: XCTestCase {
 
         let started = Date()
         for index in 0..<10 {
-            let add = try XCTUnwrap(firstHittable("planAddSlot"), "an empty slot for meal \(index + 1)")
-            add.tap()
-            let picks = app.buttons.matching(identifier: "mealPick")
-            XCTAssertTrue(picks.firstMatch.waitForExistence(timeout: 5))
-            if index == 0 { snapshot("19-plan-picker") }
+            try XCTUnwrap(firstHittable("planAddSlot"), "an empty slot for meal \(index + 1)").tap()
             // Rotate through the four demo meals, each fully, partly or not priced.
-            picks.element(boundBy: index % picks.count).tap()
-            XCTAssertTrue(picks.firstMatch.waitForNonExistence(timeout: 5), "the picker closes on a pick")
+            pickMeal(demoMeals[index % demoMeals.count], snapshotName: index == 0 ? "19-plan-picker" : nil)
         }
         let elapsed = Date().timeIntervalSince(started)
         XCTAssertLessThan(elapsed, 120, "10 meals took \(Int(elapsed)) s")
@@ -375,6 +370,68 @@ final class TripFlowUITests: XCTestCase {
         copy.tap()
         XCTAssertTrue(total.label.contains("10 meals"), "next week copied: \(total.label)")
         XCTAssertFalse(copy.exists, "nothing left to copy")
+    }
+
+    /// MEAL-003: two planned meals that share bread put one "2 × Pão de forma" line on the list,
+    /// what is at home stays off, and scanning the bread ticks the line.
+    func testPlannedWeekGoesOnTheListAndAScanTicksIt() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-meals"])
+        openTab("Plan")
+        for name in ["Pequeno-almoço", "Tosta mista"] {
+            try XCTUnwrap(firstHittable("planAddSlot"), "an empty slot for \(name)").tap()
+            pickMeal(name)
+        }
+        app.swipeDown()
+        let addToList = app.buttons["planAddToList"]
+        XCTAssertTrue(addToList.waitForExistence(timeout: 5))
+        addToList.tap()
+
+        let lines = app.buttons.matching(identifier: "planListLine")
+        XCTAssertTrue(lines.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(lines.count, 5, "milk, bread, Nutella, cheese, ham")
+        let breadLine = lines.matching(NSPredicate(format: "label CONTAINS %@", "2 × Pão de forma")).firstMatch
+        XCTAssertTrue(breadLine.exists, "one line for both meals")
+        XCTAssertTrue(breadLine.label.contains("Pequeno-almoço") && breadLine.label.contains("Tosta mista"), breadLine.label)
+        lines.matching(NSPredicate(format: "label CONTAINS %@", "Queijo")).firstMatch.tap()
+        snapshot("20-plan-to-list")
+        XCTAssertEqual(app.buttons["planListAdd"].label, "Add 4 items", "the cheese is at home")
+        app.buttons["planListAdd"].tap()
+        let added = app.staticTexts["planAddedToList"]
+        XCTAssertTrue(added.waitForExistence(timeout: 5))
+        XCTAssertTrue(added.label.contains("4 items"), added.label)
+
+        openTab("Trip")
+        XCTAssertTrue(app.buttons["Shopping list · 4 to get"].waitForExistence(timeout: 5))
+        startTrip(newStore: "Lidl", limit: "60")
+        XCTAssertTrue(app.buttons.matching(identifier: "listLine")
+            .matching(NSPredicate(format: "label CONTAINS %@", "2 × Pão de forma")).firstMatch.waitForExistence(timeout: 5))
+        app.buttons["scan"].tap()
+        scan(bread)
+        app.textFields["price"].typeText("1,39")
+        app.buttons["addItem"].tap()
+        app.buttons["closeScanner"].tap()
+        XCTAssertTrue(app.staticTexts["Pão de forma"].waitForExistence(timeout: 5))
+        let waiting = app.buttons.matching(identifier: "listLine")
+        XCTAssertEqual(waiting.count, 3, "the scan ticked the bread")
+        XCTAssertFalse(waiting.matching(NSPredicate(format: "label CONTAINS %@", "Pão de forma")).firstMatch.exists)
+    }
+
+    /// `DemoData.seedMeals`, in the picker's order.
+    private let demoMeals = ["Arroz de pato", "Iogurte e café", "Pequeno-almoço", "Tosta mista"]
+
+    /// Picks a meal in the open picker. A tap that lands while the sheet is still sliding up is
+    /// lost, so it taps again until the picker closes.
+    private func pickMeal(_ name: String, snapshotName: String? = nil) {
+        let pick = app.buttons.matching(identifier: "mealPick")
+            .matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+        XCTAssertTrue(pick.waitForExistence(timeout: 5), "\(name) is in the picker")
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: pick)], timeout: 3)
+        if let snapshotName { snapshot(snapshotName) }
+        for _ in 0..<3 where pick.exists {
+            pick.tap()
+            _ = pick.waitForNonExistence(timeout: 3)
+        }
+        XCTAssertFalse(pick.exists, "the picker closes on a pick of \(name)")
     }
 
     /// The first element with `identifier` that can take a tap, scrolling down to find one.

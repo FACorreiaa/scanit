@@ -480,17 +480,7 @@ An optional monthly savings target, with INS-14 measured against it, as a progre
 
 **Done when:** the ring fills from INS-14, and a month that reaches the target says so once.
 
-*Meals. MEAL-001 (meals with their cost) and MEAL-002 (the week plan) are done; see **Done**.*
-
-### MEAL-003 · Plan to shopping list · S
-**Needs:** MEAL-002, ADD-005.
-
-- "Add to list" merges the plan's ingredients into `ListItem`s through `ShoppingList.add(_:code:)`.
-- Duplicates are combined, and quantities are scaled by servings.
-- An ingredient can be marked "in pantry" so it is left out.
-
-**Done when:** two meals that share an ingredient produce one list line with the combined quantity,
-and scanning still ticks it.
+*Meals. MEAL-001 (meals with their cost), MEAL-002 (the week plan) and MEAL-003 (plan to list) are done; see **Done**.*
 
 ### MEAL-004 · Plan cost per store · M
 **Needs:** MEAL-003, SAVE-001. OPX-002 adds data later.
@@ -974,6 +964,43 @@ Comparisons are by chain within a country, not by branch.
   `StoresView` passes a closure instead. `testStartWithLimitThenWithoutAndStoreIsRemembered` failed
   once because its first tap on **Start shopping** came during launch and the sheet never opened; it
   passed 3 of 3 reruns.
+
+### MEAL-003 · Plan to shopping list · S
+**Needs:** MEAL-002, ADD-005.
+
+- "Add to list" merges the plan's ingredients into `ListItem`s through `ShoppingList.add(_:code:)`.
+- Duplicates are combined, and quantities are scaled by servings.
+- An ingredient can be marked "in pantry" so it is left out.
+
+**Done when:** two meals that share an ingredient produce one list line with the combined quantity,
+and scanning still ticks it.
+
+**Closed 2026-11-18:**
+
+- **Merge:** `ScanItCore.PlanList` merges the week's ingredients on their GTIN, or on their folded
+  words when typed ("Fruta" and "frúta " are one line), in the order they first appear. Each counts
+  quantity × planned servings ÷ the meal's servings; a line's amounts are added as exact fractions
+  and rounded up once to whole packs, so three thirds make one pack. Each line names the meals that
+  need it. Fixture `Fixtures/plan-list.json`, hand-computed; planted wrong values fail.
+- **List:** `ListItem.quantity` (default 1, so older stores open as they are), shown as
+  "2 × Pão de forma". `ShoppingList.merge` raises a waiting line to what the week needs and never
+  adds to it, so adding the same week twice does not double it and a line typed by hand is reused.
+  A scan still ticks the whole line, by code or by name.
+- **Pantry:** `MealIngredient.inPantry`. The **Add to shopping list** sheet on the Plan tab lists
+  every line ticked; unticking one marks it at home in every meal that has it, so next week it starts
+  unticked. Ticking it again clears the mark.
+- **Tests:** `PlanListTests` (Linux CI); `PlanToListTests`: two meals sharing bread give one line of
+  3 packs and a scan through `SessionStore` ticks it, at-home is remembered and undone, adding twice
+  does not double, merge never lowers a quantity. UI test
+  `testPlannedWeekGoesOnTheListAndAScanTicksIt` plans two meals, leaves the cheese at home, adds
+  4 lines, and scanning the bread on a trip ticks "2 × Pão de forma".
+- **Found on the way:** the Mac's internal disk filled up (3.6 GB free) and the simulator could not
+  install the app. Builds and result bundles now go to the SSD with `-derivedDataPath`.
+- **Found on the way:** `testPaywallAtStartAndLockedHistory` started failing on `main` too: a
+  StoreKit test purchase of Unlimited was left on the simulator, and UI tests run on a throwaway
+  store but not a throwaway StoreKit. Under `-ui-testing` the app now ignores the simulator's
+  entitlements (`PurchaseStore(ignoresDeviceEntitlements:)`), and `PurchaseStoreTests` clears its
+  transactions in a `defer`. The paywall test passed 3 of 3 after.
 
 ### MEAL-002 · Week plan · M
 **Needs:** MEAL-001.
