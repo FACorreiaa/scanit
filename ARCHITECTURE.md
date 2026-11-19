@@ -235,7 +235,8 @@ a database derived from it is published (OPX-003, or the P9 server). The local c
 - **Proxy hit rate** (Portugal's 20 most-scanned products on Open Food Facts; mostly international
   brands, so not a Portuguese basket): 1 of 20 has a Portuguese price at all, 0 of 20 in the last
   90 days, 17 of 20 somewhere, mostly France.
-- **The owner's 20 most-bought GTINs:** pending. Run the spike script on the app's CSV export.
+- **The owner's 20 most-bought GTINs:** not measured; the owner skipped it (2026-11-19). The
+  Portugal numbers above already put the ceiling at 68 products.
 
 **Stores to chains.** `ChainCatalog.match` maps 92 of the 111 Portuguese stores (373 of 404 prices):
 78 by `osm_brand`, 14 more by store name.
@@ -248,12 +249,14 @@ a database derived from it is published (OPX-003, or the P9 server). The local c
   treat a match on the name as a guess.
 
 **Recommendation: no-go for Portugal for now.** Data this thin cannot name a cheaper chain, and the
-app is Portugal-first. The owner chooses (BACKLOG OPX-001):
-1. Park OPX-002 until the data grows, which the app's own contributions would speed up (OPX-003,
-   after P2).
-2. Ship it for France and the US only. The data is there, but the app has no users there and the
-   strangers count is 0, so this is supply-side work.
-3. Drop it.
+app is Portugal-first. The options were to park OPX-002, ship it for France and the US only, or drop
+it.
+
+**Decision (owner, 2026-11-19): OPX-002 ships for Europe and the US.** The app keeps prices from its
+own country only. Coverage differs a lot by country: France 221,516 prices, Germany 17,865, Norway
+25,240, Spain 1,157, Portugal 404. So in Portugal the feature will mostly be quiet until the data
+grows. Prices are kept per currency (NOK, SEK, PLN, DKK…) and never converted. The strangers count is
+0 and the app has no users outside Portugal yet, so this is supply-side work, flagged and chosen.
 
 ### Insights
 

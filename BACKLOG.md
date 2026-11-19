@@ -517,21 +517,16 @@ compared per kg or per litre. Unknown size: no unit-price comparison.
 
 **Done when:** 500 g and 1 kg packs of the same product show the right price per kg.
 
-*Open Prices.*
-
-### OPX-001 · Spike: Open Prices for Portugal · S
-Check the API (product lookup, place and date filters, paging, rate limits), the licence (ODbL:
-attribution and share-alike), how many prices exist for the owner's 20 most-bought GTINs in Portugal,
-and how places map to chains (OSM `brand` / `brand:wikidata`).
-
-**Done when:** the hit rate on those 20 GTINs and the go/no-go are written in `ARCHITECTURE.md` →
-Open Prices. If Portugal coverage is too thin, the owner decides whether OPX-002 ships for other
-countries only or is dropped.
+*Open Prices. OPX-001 (the spike) is done; see **Done**.*
 
 ### OPX-002 · Read Open Prices (local cache) · M
 **Needs:** OPX-001, CMP-001.
+**Scope (owner, 2026-11-19):** Europe and the US; the app keeps only prices from its own country
+(see `ARCHITECTURE.md` → OPX-001 spike).
 Prices are fetched after the scan and cached in a new `ExternalPrice` model, not synced (like the OFF
-cache). Only the GTIN and the country are sent, never the cart. Batched and queued offline, following
+cache). Only 13-digit GTINs are sent, up to 100 a request, never the cart or the country: each price
+carries its store's country and `osm_brand`, and the app filters on the device. Chains come from
+`osm_brand` first; a match on the store name is a guess. Batched and queued offline, following
 `ProductEnricher`. Results feed CMP-002, MEAL-004 and INS-11 (marked as external). Attribution on the
 About screen.
 
@@ -964,6 +959,21 @@ Comparisons are by chain within a country, not by branch.
   `StoresView` passes a closure instead. `testStartWithLimitThenWithoutAndStoreIsRemembered` failed
   once because its first tap on **Start shopping** came during launch and the sheet never opened; it
   passed 3 of 3 reruns.
+
+### OPX-001 · Spike: Open Prices for Portugal · S
+Check the API (product lookup, place and date filters, paging, rate limits), the licence (ODbL:
+attribution and share-alike), how many prices exist for the owner's 20 most-bought GTINs in Portugal,
+and how places map to chains (OSM `brand` / `brand:wikidata`).
+
+**Done when:** the hit rate on those 20 GTINs and the go/no-go are written in `ARCHITECTURE.md` →
+Open Prices. If Portugal coverage is too thin, the owner decides whether OPX-002 ships for other
+countries only or is dropped.
+
+**Closed 2026-11-19:** findings in `ARCHITECTURE.md` → Open Prices → OPX-001 spike. Portugal: 404
+prices all time, 78 in the last 90 days over 68 products, none at two or more chains; proxy hit rate
+0 of 20 in 90 days. The owner's own 20-GTIN hit rate was skipped by the owner. API: keyless, batches
+of 100 codes, 13-digit codes, country per price, no rate limit found; ODbL. Decision (owner): OPX-002
+ships for Europe and the US.
 
 ### MEAL-003 · Plan to shopping list · S
 **Needs:** MEAL-002, ADD-005.
