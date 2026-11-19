@@ -194,13 +194,69 @@ user has not visited. Planned in BACKLOG OPX-001…003; the API details, Portuga
 go/no-go are written here by the OPX-001 spike.
 
 - **Read-only cache.** Results go into an `ExternalPrice` model that is a cache, not user data, so it
-  is never synced. The request carries only the GTIN and the country, never the cart.
+  is never synced. The request carries only GTINs, never the cart or the country: each price comes
+  with its store's country, so the app keeps the ones for its own country (spike below).
 - **Never blocks a scan.** Lookups run after the item is added, batched, and queued offline exactly
   like `ProductEnricher`.
 - **Same User-Agent as Open Food Facts**, with the contact address once it is set.
 - **Marked as external.** Every number that uses an Open Prices value (INS-11, compare, plan cost)
   shows its source, and the About screen carries the attribution.
 - **Contributing** (OPX-003) is opt-in, needs an Open Food Facts account and waits for P2.
+
+#### OPX-001 spike (2026-11-19)
+
+Measured against the live API on 2026-11-19. Coverage changes, so the numbers carry the date.
+
+**API.** `GET https://prices.openfoodfacts.org/api/v1/prices`, keyless, schema at `/api/schema`.
+- Lookup by `product_code__in` with up to 100 codes per request (tried), paged with `page` and
+  `size` (max 100), and filters `date__gte`, `currency`, `location_id__in`.
+- There is no country filter on prices. Each price embeds its `location`, with
+  `osm_address_country_code`, `osm_brand` and `osm_name`, so the app filters by country itself.
+- Codes are 13 digits. The app stores 14-digit GTINs with a leading zero, which return nothing, so
+  OPX-002 sends the 13-digit form, the one the OFF lookup already uses.
+- No rate-limit headers came back, and none is documented for Open Prices. Plan within the main Open
+  Food Facts limits (15 product reads a minute per IP) with one batched request per trip.
+- A daily dump of the whole database is on Hugging Face (`openfoodfacts/open-prices`), if per-scan
+  lookups are ever not enough.
+
+**Licence.** ODbL (dataset card). Attribution goes on the About screen. Share-alike matters only if
+a database derived from it is published (OPX-003, or the P9 server). The local cache is never synced.
+
+**Portugal coverage** (country list, then every Portuguese store and its prices):
+
+| | Portugal | France | United States |
+| --- | --- | --- | --- |
+| Prices, all time | 404 | 221,516 | 47,822 |
+| Stores | 111 | 2,690 | 399 |
+
+- Only 78 Portuguese prices are from the last 90 days, covering 68 products. No product has prices
+  from the last 90 days at two or more chains. One contributor gave 55 % of all Portuguese prices.
+- 68 products is the ceiling: no basket of 20 can do better than its overlap with them.
+- **Proxy hit rate** (Portugal's 20 most-scanned products on Open Food Facts; mostly international
+  brands, so not a Portuguese basket): 1 of 20 has a Portuguese price at all, 0 of 20 in the last
+  90 days, 17 of 20 somewhere, mostly France.
+- **The owner's 20 most-bought GTINs:** not measured; the owner skipped it (2026-11-19). The
+  Portugal numbers above already put the ceiling at 68 products.
+
+**Stores to chains.** `ChainCatalog.match` maps 92 of the 111 Portuguese stores (373 of 404 prices):
+78 by `osm_brand`, 14 more by store name.
+- "Continente Bom Dia" and "Continente Modelo" land on Continente, "My Auchan" on Auchan, and
+  "ALDI" on Aldi.
+- Unmatched: Froiz and Celeiro (not in the catalogue), Decathlon, El Corte Inglés, and one-off
+  shops.
+- Matching on the name finds false friends: "Continente Plug&Charge" is a car charger, and "Parque
+  de estacionamento - Auchan Maia" is a car park. So OPX-002 should match on `osm_brand` first and
+  treat a match on the name as a guess.
+
+**Recommendation: no-go for Portugal for now.** Data this thin cannot name a cheaper chain, and the
+app is Portugal-first. The options were to park OPX-002, ship it for France and the US only, or drop
+it.
+
+**Decision (owner, 2026-11-19): OPX-002 ships for Europe and the US.** The app keeps prices from its
+own country only. Coverage differs a lot by country: France 221,516 prices, Germany 17,865, Norway
+25,240, Spain 1,157, Portugal 404. So in Portugal the feature will mostly be quiet until the data
+grows. Prices are kept per currency (NOK, SEK, PLN, DKK…) and never converted. The strangers count is
+0 and the app has no users outside Portugal yet, so this is supply-side work, flagged and chosen.
 
 ### Insights
 
