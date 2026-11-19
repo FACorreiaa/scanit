@@ -7,6 +7,7 @@ final class TripFlowUITests: XCTestCase {
     private var app = XCUIApplication()
     private let milk = "5601234567892"
     private let bread = "4006381333931"
+    private let nutella = "3017620422003"
 
     override nonisolated func setUpWithError() throws {
         continueAfterFailure = false
@@ -16,7 +17,7 @@ final class TripFlowUITests: XCTestCase {
     /// setUp crashes on some Xcode 26 runtimes (see LuminaVaultClient's ci.yml).
     private func launch(extraArguments: [String] = []) {
         app.launchArguments = ["-ui-testing"] + extraArguments
-        app.launchEnvironment["UITEST_SCAN_CODES"] = "\(milk),\(bread)"
+        app.launchEnvironment["UITEST_SCAN_CODES"] = "\(milk),\(bread),\(nutella)"
         app.launch()
     }
 
@@ -92,6 +93,8 @@ final class TripFlowUITests: XCTestCase {
         app.textFields["tillTotal"].typeText("4")
         snapshot("6-summary")
         XCTAssertTrue(app.buttons["shareTrip"].exists, "a finished trip can be shared")
+        XCTAssertFalse(app.staticTexts["tripSaving"].exists, "no other store, so no saving")
+        XCTAssertFalse(app.staticTexts["tripMissedSaving"].exists)
         app.buttons["doneSummary"].tap()
         XCTAssertTrue(app.buttons["openStartTrip"].waitForExistence(timeout: 5))
 
@@ -416,6 +419,48 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertFalse(waiting.matching(NSPredicate(format: "label CONTAINS %@", "Pão de forma")).firstMatch.exists)
     }
 
+    /// SAVE-002. A new store against the demo prices: bread €0,99 vs a median of €1,39 and €1,49 (€1,44)
+    /// saves €0,45; Nutella €4,39 vs €4,09 and €4,29 (€4,19) costs €0,20 more and was €0,30 cheaper at
+    /// Lidl. So the trip saved €0,25 and could have saved €0,30 at Lidl.
+    func testFinishedTripShowsItsSavingAndHistoryToo() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data"])
+        app.buttons["openStartTrip"].tap()
+        let newStore = app.buttons["New store"]
+        XCTAssertTrue(newStore.waitForExistence(timeout: 5))
+        newStore.tap()
+        app.buttons["chain.pingo-doce"].tap()
+        app.buttons["startTrip"].tap()
+        app.buttons["scan"].tap()
+        for (code, typed) in [(bread, "0,99"), (nutella, "4,39")] {
+            scan(code)
+            let price = app.textFields["price"]
+            XCTAssertTrue(price.waitForExistence(timeout: 5))
+            price.tap()
+            price.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 8) + typed)
+            app.buttons["addItem"].tap()
+            XCTAssertTrue(price.waitForNonExistence(timeout: 5))
+        }
+        app.buttons["closeScanner"].tap()
+        app.buttons["finishTrip"].tap()
+        XCTAssertTrue(app.navigationBars["Trip finished"].waitForExistence(timeout: 5))
+
+        let saving = app.staticTexts["tripSaving"]
+        XCTAssertTrue(saving.waitForExistence(timeout: 5))
+        XCTAssertTrue(saving.label.contains("Saved") && saving.label.contains("0,25"), saving.label)
+        let missed = app.staticTexts["tripMissedSaving"]
+        XCTAssertTrue(missed.label.contains("0,30") && missed.label.hasSuffix("at Lidl"), missed.label)
+        snapshot("21-summary-saving")
+        app.buttons["doneSummary"].tap()
+
+        openTab("History")
+        let rows = app.staticTexts.matching(identifier: "tripRowSaving")
+        XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 5))
+        let labels = rows.allElementsBoundByIndex.map(\.label)
+        XCTAssertTrue(labels.contains { $0.contains("Saved") && $0.contains("0,25") }, "\(labels)")
+        XCTAssertTrue(labels.contains { $0.contains("1,46") && $0.contains("more than elsewhere") }, "\(labels)")
+        snapshot("22-history-saving")
+    }
+
     /// `DemoData.seedMeals`, in the picker's order.
     private let demoMeals = ["Arroz de pato", "Iogurte e café", "Pequeno-almoço", "Tosta mista"]
 
@@ -560,8 +605,14 @@ final class TripFlowUITests: XCTestCase {
         launch(extraArguments: [
             "-ui-testing-demo-data", "-paywall-enabled", "-paywall-free-trips", "0", "-paywall-visible-history", "3",
         ])
-        app.buttons["openStartTrip"].tap()
-        XCTAssertTrue(app.buttons["unlock"].waitForExistence(timeout: 5), "paywall instead of the start sheet")
+        // A tap that lands while the app is still settling after launch is lost, so tap again.
+        let start = app.buttons["openStartTrip"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        for _ in 0..<3 where !app.buttons["unlock"].exists {
+            start.tap()
+            _ = app.buttons["unlock"].waitForExistence(timeout: 3)
+        }
+        XCTAssertTrue(app.buttons["unlock"].exists, "paywall instead of the start sheet")
         XCTAssertTrue(text(containing: "this month").exists)
         snapshot("12-paywall")
         app.buttons["notNow"].tap()

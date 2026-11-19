@@ -44,6 +44,14 @@ struct TripShareCard: View {
                     .minimumScaleFactor(0.6)
                     .padding(.top, 12)
             }
+            if let savingLine = content.savingLine {
+                Text(savingLine)
+                    .font(.system(size: 17, weight: .medium))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.top, 4)
+            }
             Text(content.items)
                 .font(.system(size: 15))
                 .opacity(0.8)
@@ -113,9 +121,10 @@ nonisolated struct TripShareImage: Transferable, Sendable {
 /// "Share" for a finished trip, as a row or a toolbar button.
 struct TripShareLink: View {
     let session: ShoppingSession
+    var saving: TripSavingSummary?
 
     var body: some View {
-        let content = TripShareContent(session: session)
+        let content = TripShareContent(session: session, saving: saving)
         ShareLink(
             item: TripShareImage(content: content),
             preview: SharePreview(content.caption, image: Image("LogoMark"))
@@ -130,7 +139,8 @@ struct TripShareLink: View {
     VStack(spacing: 16) {
         TripShareCard(content: TripShareContent(
             storeName: "Lidl", date: .now, total: Money(amountMinor: 4280, currency: "EUR"),
-            limit: Money(amountMinor: 6000, currency: "EUR"), itemCount: 23
+            limit: Money(amountMinor: 6000, currency: "EUR"), itemCount: 23,
+            saving: Money(amountMinor: 340, currency: "EUR")
         ))
         TripShareCard(content: TripShareContent(
             storeName: nil, date: .now, total: Money(amountMinor: 6340, currency: "EUR"),

@@ -398,6 +398,15 @@ struct TripShareTests {
                                ("nolimit", content(total: 1999, limit: nil, items: 1, store: nil))] {
             Attachment.record(try #require(TripShareCard.png(sample)), named: "share-\(name).png")
         }
+        // SAVE-002: the tightest card, with a limit result and a saving, and a long store name.
+        for (name, total, store) in [("saving", 4280, "Lidl"), ("saving-long", 123_456, "Continente Modelo Santa Maria da Feira")] {
+            let sample = TripShareContent(
+                storeName: store, date: Date(timeIntervalSince1970: 1_790_000_000),
+                total: Money(amountMinor: total, currency: "EUR"), limit: Money(amountMinor: 6000, currency: "EUR"),
+                itemCount: 23, saving: Money(amountMinor: 1234, currency: "EUR")
+            )
+            Attachment.record(try #require(TripShareCard.png(sample)), named: "share-\(name).png")
+        }
         let data = try #require(TripShareCard.png(content(total: 123_456, limit: 6000)))
         let image = try #require(UIImage(data: data))
         #expect(image.size == CGSize(width: 1080, height: 1350))
@@ -1190,5 +1199,139 @@ struct PlanToListTests {
         #expect(line.quantity == 4)
         #expect(ShoppingList.merge("  ", code: nil, quantity: 2, context: context) == nil)
         #expect(ListItem(text: "Sal").quantity == 1, "lines from before MEAL-003 ask for one")
+    }
+}
+
+// MARK: - SAVE-002: saving on the finish sheet and in History
+
+@MainActor
+struct TripSavingSummaryTests {
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func demoSavings() throws -> (savings: [UUID: TripSavingSummary], trips: [Int: ShoppingSession]) {
+        let context = try makeContext()
+        DemoData.seed(context, now: now)
+        let sessions = try context.fetch(FetchDescriptor<ShoppingSession>())
+        let byDaysAgo = Dictionary(uniqueKeysWithValues: sessions.map {
+            (Int((now.timeIntervalSince($0.startedAt) / 86_400).rounded()), $0)
+        })
+        return (InsightsSource.tripSavings(sessions, context: context), byDaysAgo)
+    }
+
+    /// Worked by hand from `DemoData.seed`: each trip against the other store's latest prices
+    /// before it ended.
+    @Test func demoTripsShowWorkedOutSavings() throws {
+        let (savings, trips) = try demoSavings()
+        let euro = { (minor: Int) in Money(amountMinor: minor, currency: "EUR").formatted() }
+
+        // 2 days ago at Lidl vs Continente 6 days ago (yogurt 20 days ago): bread +10, Nutella +20,
+        // coffee +30, milk and yogurt 0. Nothing was cheaper at Continente.
+        let lidl = try #require(trips[2].flatMap { savings[$0.id] })
+        #expect(lidl.saving.amountMinor == 60)
+        #expect(lidl.text == "Saved \(euro(60)) vs other stores")
+        #expect(lidl.missedText == nil)
+        #expect(lidl.coverageText == nil)
+
+        // 6 days ago at Continente vs Lidl 13 days ago (Nutella 27 days ago): milk −4 × 4, Nutella
+        // −30 × 2, bread −20, coffee −50. All of it was cheaper at Lidl.
+        let continente = try #require(trips[6].flatMap { savings[$0.id] })
+        #expect(continente.saving.amountMinor == -146)
+        #expect(continente.text == "\(euro(146)) more than other stores")
+        #expect(continente.shortText == "\(euro(146)) more than elsewhere")
+        #expect(continente.missedText == "Could have saved \(euro(146)) at Lidl")
+
+        // 13 days ago at Lidl vs Continente 20 days ago: milk +4 × 4, coffee +50, yogurt +4 × 6;
+        // Continente had no bread price yet.
+        let partial = try #require(trips[13].flatMap { savings[$0.id] })
+        #expect(partial.saving.amountMinor == 90)
+        #expect(partial.coverageText == "Compared on 3 of 4 products")
+
+        // 27 days ago: the first trip, so no other store had prices yet.
+        let first = try #require(trips[27])
+        #expect(savings[first.id] == nil)
+    }
+
+    @Test func sameAsElsewhereAndUnnamedStore() {
+        let euro = { (minor: Int) in Money(amountMinor: minor, currency: "EUR") }
+        let summary = TripSavingSummary(saving: euro(0), missed: euro(40), missedAt: nil, compared: 2, products: 2)
+        #expect(summary.text == "Same as other stores")
+        #expect(summary.shortText == "Same as elsewhere")
+        #expect(summary.missedText == "Could have saved \(euro(40).formatted()) elsewhere")
+        #expect(summary.coverageText == nil)
+        #expect(!summary.isSaving)
+    }
+
+    @Test func shareCardCarriesOnlyARealSaving() {
+        func card(_ saving: Int?) -> TripShareContent {
+            TripShareContent(
+                storeName: "Lidl", date: now, total: Money(amountMinor: 4280, currency: "EUR"), limit: nil,
+                itemCount: 3, saving: saving.map { Money(amountMinor: $0, currency: "EUR") }
+            )
+        }
+        #expect(card(60).savingLine == "Saved \(Money(amountMinor: 60, currency: "EUR").formatted()) vs other stores")
+        #expect(card(-146).savingLine == nil, "an overspend is not a saving to share")
+        #expect(card(0).savingLine == nil)
+        #expect(card(nil).savingLine == nil)
+        #expect(TripShareContent.footer(includesSaving: true).contains("saving"))
+        #expect(!TripShareContent.footer(includesSaving: false).contains("saving"))
+    }
+
+    /// Missed savings at two stores: the line names the top store with its own amount, not the
+    /// trip's total. Lidl is 30 cheaper on milk, Continente 10 cheaper on bread.
+    @Test func missedLineNamesTheTopStoreWithItsOwnAmount() throws {
+        let context = try makeContext()
+        let pingo = Store(name: "Pingo Doce", countryCode: "PT", currency: "EUR")
+        let lidl = Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        let continente = Store(name: "Continente", countryCode: "PT", currency: "EUR")
+        [pingo, lidl, continente].forEach(context.insert)
+        let bread = ScannedCode(kind: .gtin, value: "04006381333931")
+        for (store, code, minor) in [(lidl, milk.value, 70), (continente, milk.value, 110), (lidl, bread.value, 120), (continente, bread.value, 90)] {
+            context.insert(PriceObservation(
+                store: store, code: code, price: Money(amountMinor: minor, currency: "EUR"), source: .manual,
+                now: now.addingTimeInterval(-86_400)
+            ))
+        }
+        let sessions = SessionStore(context: context, analytics: RecordingAnalytics(), now: { [now] in now })
+        sessions.startTrip(store: pingo, limitMinor: nil, currency: "EUR")
+        sessions.addItem(code: milk, unitPriceMinor: 100, priceSource: .manual)
+        sessions.addItem(code: bread, unitPriceMinor: 100, priceSource: .manual)
+        let trip = try #require(sessions.finishTrip())
+
+        let saving = try #require(InsightsSource.tripSavings([trip], context: context)[trip.id])
+        #expect(saving.missed.amountMinor == 30, "Lidl's own 30, not the trip's 40")
+        #expect(saving.missedText == "Could have saved \(Money(amountMinor: 30, currency: "EUR").formatted()) at Lidl")
+    }
+
+    /// The newest trip is in euros, so a calculator built from the home currency would drop this one.
+    @Test func dollarTripIsMeasuredInDollars() throws {
+        let context = try makeContext()
+        let market = Store(name: "Market", countryCode: "US", currency: "USD")
+        let other = Store(name: "Other", countryCode: "US", currency: "USD")
+        let lidl = Store(name: "Lidl", countryCode: "PT", currency: "EUR")
+        let continente = Store(name: "Continente", countryCode: "PT", currency: "EUR")
+        [market, other, lidl, continente].forEach(context.insert)
+        let gallon = "00070038000563"
+        context.insert(PriceObservation(
+            store: other, code: gallon, price: Money(amountMinor: 399, currency: "USD"), source: .manual,
+            now: now.addingTimeInterval(-86_400)
+        ))
+        context.insert(PriceObservation(
+            store: continente, code: gallon, price: Money(amountMinor: 999, currency: "EUR"), source: .manual,
+            now: now.addingTimeInterval(-86_400)
+        ))
+        var clock = now
+        let sessions = SessionStore(context: context, analytics: RecordingAnalytics(), now: { clock })
+        sessions.startTrip(store: market, limitMinor: nil, currency: "USD")
+        sessions.addItem(code: ScannedCode(kind: .gtin, value: gallon), productName: nil, quantity: 2, unitPriceMinor: 349, priceSource: .manual)
+        let trip = try #require(sessions.finishTrip())
+        clock = now.addingTimeInterval(3_600)
+        sessions.startTrip(store: lidl, limitMinor: nil, currency: "EUR")
+        sessions.addItem(code: ScannedCode(kind: .gtin, value: gallon), productName: nil, quantity: 1, unitPriceMinor: 899, priceSource: .manual)
+        let euroTrip = try #require(sessions.finishTrip())
+        #expect(InsightsSource.homeCurrency(context: context) == "EUR")
+
+        let savings = InsightsSource.tripSavings([trip, euroTrip], context: context)
+        #expect(savings[trip.id]?.saving == Money(amountMinor: 100, currency: "USD"))
+        #expect(savings[euroTrip.id]?.saving == Money(amountMinor: 100, currency: "EUR"))
     }
 }
