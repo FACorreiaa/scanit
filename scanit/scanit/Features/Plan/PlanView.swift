@@ -346,6 +346,7 @@ private struct EmptySlotRow: View {
     }
 }
 
+#if DEBUG
 #Preview {
     let container = try! ScanItSchema.container(inMemory: true)
     DemoData.seed(container.mainContext)
@@ -353,3 +354,4 @@ private struct EmptySlotRow: View {
     return PlanView()
         .modelContainer(container)
 }
+#endif
