@@ -429,6 +429,40 @@ final class TripFlowUITests: XCTestCase {
     /// SAVE-002. A new store against the demo prices: bread €0,99 vs a median of €1,39 and €1,49 (€1,44)
     /// saves €0,45; Nutella €4,39 vs €4,09 and €4,29 (€4,19) costs €0,20 more and was €0,30 cheaper at
     /// Lidl. So the trip saved €0,25 and could have saved €0,30 at Lidl.
+    func testListCostStartsTheTripAtTheCheapestStore() throws {
+        launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data", "-ui-testing-demo-list"])
+        let list = app.buttons["shoppingList"]
+        XCTAssertTrue(list.waitForExistence(timeout: 5))
+        list.tap()
+
+        // Worked by hand in `DemoData.seedList`: the sum of each store's remembered prices.
+        let lidl = app.descendants(matching: .any)["listCost.Lidl"]
+        for _ in 0..<4 where !(lidl.exists && lidl.isHittable) { app.swipeUp() }
+        XCTAssertTrue(lidl.waitForExistence(timeout: 5))
+        XCTAssertTrue(lidl.label.contains("11,26"), lidl.label)
+        let continente = app.descendants(matching: .any)["listCost.Continente"]
+        XCTAssertTrue(continente.label.contains("11,76"), continente.label)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "1 item has no price yet"))
+            .firstMatch.exists, "Queijo is typed")
+        snapshot("23-list-cost")
+
+        let start = app.buttons["listStartTrip"]
+        XCTAssertTrue(start.label.contains("Lidl"), start.label)
+        start.tap()
+
+        // The start sheet opens at Lidl with the estimate, rounded up, as the limit.
+        let limit = app.textFields["limit"]
+        XCTAssertTrue(limit.waitForExistence(timeout: 5))
+        // The field exists while the sheet is still sliding up, before it is filled in.
+        let filled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "12,00"), object: limit)
+        XCTAssertEqual(XCTWaiter.wait(for: [filled], timeout: 5), .completed, "limit: \(limit.value ?? "nil")")
+        XCTAssertTrue(app.buttons["Lidl"].isSelected)
+        XCTAssertTrue(app.buttons["List €12,00"].exists, "the estimate chip")
+        snapshot("24-start-from-list")
+        app.buttons["startTrip"].tap()
+        XCTAssertTrue(text(containing: "left").waitForExistence(timeout: 5), "the trip has the limit")
+    }
+
     func testFinishedTripShowsItsSavingAndHistoryToo() throws {
         launch(extraArguments: ["-AppleLocale", "en_PT", "-ui-testing-demo-data"])
         app.buttons["openStartTrip"].tap()

@@ -14,10 +14,15 @@ struct TripView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.paywallPolicy) private var paywall
     @Environment(\.modelContext) private var context
-    @State private var isStarting = false
+    /// The start sheet, with what it should open at. An item rather than a flag, so the sheet is
+    /// built from the request itself and never from a stale copy of the prefill.
+    @State private var startRequest: StartRequest?
     @State private var finished: FinishedTrip?
     @State private var paywallReason: PaywallReasonItem?
     @State private var startAfterPaywall = false
+    /// Set when the trip is started from the shopping list's estimate (MEAL-004), and kept while
+    /// the paywall is open.
+    @State private var prefill: TripPrefill?
     @Query(TripView.lastFinished) private var lastTrips: [ShoppingSession]
 
     private static var lastFinished: FetchDescriptor<ShoppingSession> {
@@ -41,8 +46,13 @@ struct TripView: View {
                     .toolbarVisibility(.hidden, for: .navigationBar)
             }
         }
-        .sheet(isPresented: $isStarting) {
-            StartTripSheet()
+        // The list's "Start trip at …" goes through the same paywall check as the big button.
+        .environment(\.startTripFromList) { listPrefill in
+            prefill = listPrefill
+            requestStart()
+        }
+        .sheet(item: $startRequest, onDismiss: { prefill = nil }) { request in
+            StartTripSheet(prefill: request.prefill)
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $finished, onDismiss: summaryClosed) { trip in
@@ -52,7 +62,9 @@ struct TripView: View {
         .sheet(item: $paywallReason, onDismiss: {
             if startAfterPaywall {
                 startAfterPaywall = false
-                isStarting = true
+                startRequest = StartRequest(prefill: prefill)
+            } else {
+                prefill = nil
             }
         }) { item in
             PaywallSheet(reason: item.reason) { startAfterPaywall = true }
@@ -61,7 +73,7 @@ struct TripView: View {
         .task(id: reviews.isPromptDue) { await askForReviewIfDue() }
         // With a trip in progress the active-trip screen takes the request and opens the scanner.
         .onChange(of: ShortcutActions.shared.startShopping, initial: true) { _, request in
-            guard request != nil, sessions.active == nil, !isStarting, paywallReason == nil, finished == nil,
+            guard request != nil, sessions.active == nil, startRequest == nil, paywallReason == nil, finished == nil,
                   ShortcutActions.shared.takeStartShopping()
             else { return }
             requestStart()
@@ -99,7 +111,7 @@ struct TripView: View {
         )))?.map(\.startedAt) ?? []
         let used = PaywallPolicy.tripsCounted(startedAt: started, now: .now)
         if paywall.canStartTrip(tripsThisMonth: used, isUnlimited: purchases.isUnlimited) {
-            isStarting = true
+            startRequest = StartRequest(prefill: prefill)
         } else {
             paywallReason = PaywallReasonItem(reason: .tripQuota(used: used))
         }
@@ -144,6 +156,11 @@ private struct ReadyToShop: View {
     }
 }
 
+struct StartRequest: Identifiable {
+    let id = UUID()
+    let prefill: TripPrefill?
+}
+
 struct PaywallReasonItem: Identifiable {
     let id = UUID()
     let reason: PaywallSheet.Reason
@@ -152,4 +169,9 @@ struct PaywallReasonItem: Identifiable {
 struct FinishedTrip: Identifiable {
     let session: ShoppingSession
     var id: UUID { session.id }
+}
+
+extension EnvironmentValues {
+    /// Opens the start sheet at the shopping list's cheapest store (MEAL-004). Set by the Trip tab.
+    @Entry var startTripFromList: (TripPrefill) -> Void = { _ in }
 }

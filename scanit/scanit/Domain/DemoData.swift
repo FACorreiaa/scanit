@@ -58,6 +58,22 @@ enum DemoData {
         try? context.save()
     }
 
+    /// A shopping list (`-ui-testing-demo-list`) for the cost per store (MEAL-004): three products
+    /// with prices at both demo stores and one typed line. Needs `seed` first for the prices.
+    /// Lidl (2 days ago): milk 2 × 0,99 + Nutella 4,09 + coffee 5,19 = €11,26.
+    /// Continente (6 days ago): milk 2 × 0,99 + Nutella 4,29 + coffee 5,49 = €11,76.
+    static func seedList(_ context: ModelContext, now: Date = .now) {
+        let lines: [(String, String?, Int)] = [
+            ("Leite meio gordo", "05601234567892", 2), ("Nutella", "03017620422003", 1),
+            ("Café moído", "05601111111116", 1), ("Queijo", nil, 1),
+        ]
+        // A second apart, so the list (sorted by when a line was added) keeps this order.
+        for (index, (text, code, quantity)) in lines.enumerated() {
+            context.insert(ListItem(text: text, code: code, quantity: quantity, now: now.addingTimeInterval(Double(index))))
+        }
+        try? context.save()
+    }
+
     /// Four meals (`-ui-testing-demo-meals`), for the meal and plan screens: fully priced, partly
     /// priced and unpriced. Needs `seed` first for the prices.
     static func seedMeals(_ context: ModelContext, now: Date = .now) {

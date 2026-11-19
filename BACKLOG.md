@@ -463,18 +463,8 @@ An optional monthly savings target, with INS-14 measured against it, as a progre
 
 **Done when:** the ring fills from INS-14, and a month that reaches the target says so once.
 
-*Meals. MEAL-001 (meals with their cost), MEAL-002 (the week plan) and MEAL-003 (plan to list) are done; see **Done**.*
-
-### MEAL-004 · Plan cost per store · M
-**Needs:** MEAL-003, SAVE-001. OPX-002 adds data later.
-
-- From `PriceMemory` (and Open Prices once in), estimate the list's cost at each store you know:
-  "€42 at Lidl · €47 at Continente · 3 unpriced".
-- Offer **Start trip** at the cheapest store, with the estimate as a limit chip
-  (`TripStartOptions.limitSuggestions`).
-
-**Done when:** the demo list shows costs for 2 stores that equal the sum of the remembered prices,
-and the limit chip equals the estimate rounded up.
+*Meals. MEAL-001 (meals with their cost), MEAL-002 (the week plan), MEAL-003 (plan to list) and
+MEAL-004 (list cost per store) are done; see **Done**.*
 
 ### MEAL-005 · Planned vs actual · S
 **Needs:** MEAL-004.
@@ -677,6 +667,44 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 - **AI insights / LLM.** If ever, read `platform/infra/docs/llm-haiku-trial.md` first.
 
 ## Done
+
+### MEAL-004 · Plan cost per store · M
+**Needs:** MEAL-003, SAVE-001. OPX-002 adds data later.
+
+- From `PriceMemory` (and Open Prices once in), estimate the list's cost at each store you know:
+  "€42 at Lidl · €47 at Continente · 3 unpriced".
+- Offer **Start trip** at the cheapest store, with the estimate as a limit chip
+  (`TripStartOptions.limitSuggestions`).
+
+**Done when:** the demo list shows costs for 2 stores that equal the sum of the remembered prices,
+and the limit chip equals the estimate rounded up.
+
+**Closed 2026-11-19:**
+
+- **Core:** `ScanItCore/ListCost.swift` prices the lines still to get at every store, with the
+  meal-cost rule (each store's latest price over 90 days, one currency, real GTINs only). A store's
+  total is the plain sum over the lines it has a price for, with its own missing count. Stores rank
+  by most lines priced, then lowest total, so a store never comes first by missing prices.
+  `Fixtures/list-cost.json` covers a partial store that is cheapest but ranks last, a price after
+  `now`, an old price, an in-store code, a typed line and a second currency. `swift test` runs 63
+  tests, all passing; a wrong total and ranking by total alone each failed the suite.
+- **App:** a **Cost by store** section under the shopping list's lines (`ListEstimate`) and
+  **Start trip at Lidl**, hidden during a trip. It goes through the Trip tab's paywall-gated start.
+  The start sheet opens at that store with the estimate rounded up in the limit field and a
+  "List €12,00" chip first. Choosing another store swaps in that store's estimate unless the limit
+  was typed by hand. A cheapest store outside the 8 recent ones is still offered. Removed stores and
+  ticked lines are left out. Open Prices waits for OPX-002; per-chain totals are CMP-002.
+- **Demo:** `-ui-testing-demo-list` adds 2 × milk, Nutella, coffee and a typed "Queijo" on top of
+  the demo trips: €11,26 at Lidl and €11,76 at Continente, 1 unpriced, a €12 limit. The amounts do
+  not depend on today's date.
+- **Tests:** unit tests check those totals at a fixed date, ticked lines, removed stores, the chip
+  order and an old store outside the recent ones. `testListCostStartsTheTripAtTheCheapestStore`
+  checks both rows, the footer, the button, the prefilled limit, the chip and the started trip, in
+  light and dark mode; the list, start-limit, shortcut and Insights UI tests still pass. Screenshots
+  checked by eye in both modes.
+- **Found on the way:** the start sheet first opened without the estimate. `sheet(isPresented:)`
+  built it from a stale copy of the prefill. The Trip tab now presents it with `sheet(item:)`
+  carrying the request.
 
 ### SAVE-003 · Savings on Insights · S
 **Needs:** SAVE-001.

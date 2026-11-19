@@ -1202,6 +1202,84 @@ struct PlanToListTests {
     }
 }
 
+// MARK: - MEAL-004: the list's cost per store
+
+@MainActor
+struct ListEstimateTests {
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func demo() throws -> ModelContext {
+        let context = try makeContext()
+        DemoData.seed(context, now: now)
+        DemoData.seedList(context, now: now)
+        return context
+    }
+
+    private func store(_ name: String, in context: ModelContext) throws -> Store {
+        try #require(try context.fetch(FetchDescriptor<Store>()).first { $0.name == name })
+    }
+
+    /// Worked by hand in `DemoData.seedList`: each store's latest price × packs, summed.
+    @Test func demoListCostsAtBothStores() throws {
+        let context = try demo()
+        let estimate = ListEstimate.estimate(context: context, now: now)
+        #expect(estimate.stores.map(\.storeName) == ["Lidl", "Continente"])
+        #expect(estimate.stores.map(\.total.amountMinor) == [2 * 99 + 409 + 519, 2 * 99 + 429 + 549])
+        #expect(estimate.stores.allSatisfy { $0.missingLines == 0 })
+        #expect(estimate.unpricedLines == 1, "Queijo is typed")
+
+        // The limit is the estimate rounded up to a whole euro, and follows the chosen store.
+        let prefill = try #require(TripPrefill(estimate))
+        let lidl = try store("Lidl", in: context)
+        let continente = try store("Continente", in: context)
+        #expect(prefill.storeID == lidl.id)
+        #expect(prefill.limit(for: lidl.id) == Money(amountMinor: 1200, currency: "EUR"))
+        #expect(prefill.limit(for: continente.id) == Money(amountMinor: 1200, currency: "EUR"))
+        #expect(prefill.limit(for: nil) == nil)
+    }
+
+    @Test func tickedLinesAndRemovedStoresAreLeftOut() throws {
+        let context = try demo()
+        let coffee = try #require(ShoppingList.lines(context: context).first { $0.text == "Café moído" })
+        ShoppingList.toggle(coffee, context: context, now: now)
+        let lidl = try store("Lidl", in: context)
+        lidl.deletedAt = now
+        try context.save()
+
+        let estimate = ListEstimate.estimate(context: context, now: now)
+        #expect(estimate.stores.map(\.storeName) == ["Continente"])
+        #expect(estimate.stores.first?.total.amountMinor == 2 * 99 + 429)
+    }
+
+    @Test func estimateChipComesFirstAndReplacesTheSameAmount() throws {
+        let context = try demo()
+        let options = TripStartOptions(context: context, now: now)
+        let history = options.limitSuggestions(currency: "EUR")
+        let estimate = Money(amountMinor: 1200, currency: "EUR")
+        let chips = options.limitSuggestions(currency: "EUR", estimate: estimate)
+        #expect(chips.first == .init(kind: .estimate, amount: estimate))
+        #expect(chips.dropFirst() == history.filter { $0.amount != estimate }[...])
+        #expect(options.limitSuggestions(currency: "USD", estimate: estimate).allSatisfy { $0.kind != .estimate })
+        #expect(TripStartOptions.roundedUp(Money(amountMinor: 1126, currency: "EUR")).amountMinor == 1200)
+        #expect(TripStartOptions.roundedUp(Money(amountMinor: 1200, currency: "EUR")).amountMinor == 1200)
+    }
+
+    /// The cheapest store is offered even when it is not among the 8 most recent.
+    @Test func cheapestStoreOutsideTheRecentOnesIsStillOffered() throws {
+        let context = try makeContext()
+        let old = Store(name: "Old shop", countryCode: "PT", currency: "EUR", now: now.addingTimeInterval(-86_400 * 30))
+        context.insert(old)
+        for index in 0..<TripStartOptions.maxRecentStores {
+            context.insert(Store(name: "Shop \(index)", countryCode: "PT", currency: "EUR", now: now.addingTimeInterval(Double(index))))
+        }
+        try context.save()
+
+        #expect(!TripStartOptions(context: context, now: now).recentStores.contains { $0.id == old.id })
+        let including = TripStartOptions(context: context, now: now, including: old.id)
+        #expect(including.recentStores.first?.id == old.id)
+    }
+}
+
 // MARK: - SAVE-003: savings on Insights
 
 @MainActor

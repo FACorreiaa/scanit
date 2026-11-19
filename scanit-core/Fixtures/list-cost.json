@@ -1,0 +1,51 @@
+{
+  "_comment": "Hand-computed expectations for ListCost (BACKLOG MEAL-004). Shared with Android. Each line is priced at every store's latest price over the 90 days up to `now`, in one currency, times its packs; a store's total is the plain sum over the lines it has a price for. Typed lines, in-store codes and products with no price in the window are unpriced at every store. Stores rank by most lines priced, then lowest total, then id, so a store missing prices never ranks first by being cheaper.",
+  "now": "2026-11-16T12:00:00Z",
+  "lines": [
+    { "code": "05601234567892", "quantity": 2 },
+    { "code": "03017620422003", "quantity": 1 },
+    { "code": "05601111111116", "quantity": 1 },
+    { "code": null, "quantity": 1 },
+    { "code": "02040123001506", "quantity": 1 },
+    { "code": "04006381333931", "quantity": 1 }
+  ],
+  "prices": [
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 99, "currency": "EUR", "observedAt": "2026-11-14T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "05601234567892", "priceMinor": 95, "currency": "EUR", "observedAt": "2026-11-17T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 109, "currency": "EUR", "observedAt": "2026-11-01T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601234567892", "priceMinor": 105, "currency": "EUR", "observedAt": "2026-11-10T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "05601234567892", "priceMinor": 90, "currency": "EUR", "observedAt": "2026-11-12T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "03017620422003", "priceMinor": 409, "currency": "EUR", "observedAt": "2026-11-14T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "03017620422003", "priceMinor": 429, "currency": "EUR", "observedAt": "2026-11-10T10:00:00Z" },
+    { "storeId": "P", "storeName": "Pingo Doce", "code": "03017620422003", "priceMinor": 399, "currency": "EUR", "observedAt": "2026-11-12T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "05601111111116", "priceMinor": 519, "currency": "EUR", "observedAt": "2026-11-14T10:00:00Z" },
+    { "storeId": "C", "storeName": "Continente", "code": "05601111111116", "priceMinor": 549, "currency": "EUR", "observedAt": "2026-11-10T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "02040123001506", "priceMinor": 300, "currency": "EUR", "observedAt": "2026-11-14T10:00:00Z" },
+    { "storeId": "L", "storeName": "Lidl", "code": "04006381333931", "priceMinor": 129, "currency": "EUR", "observedAt": "2026-07-01T10:00:00Z" },
+    { "storeId": "K", "storeName": "Kroger", "code": "05601234567892", "priceMinor": 150, "currency": "USD", "observedAt": "2026-11-12T10:00:00Z" }
+  ],
+  "_workings": {
+    "milk x2": "L latest in the window is 99 (the 95 is after `now`); C latest 105 (11-10, not 109); P 90. USD K 150 is another currency.",
+    "nutella x1": "L 409, C 429, P 399.",
+    "coffee x1": "L 519, C 549; P has no price, so P is missing 1.",
+    "unpriced": "Queijo is typed; 02040123001506 is an in-store code (L's 300 is ignored); bread's only price, L 129 on 07-01, is older than 90 days. 3 unpriced at every store.",
+    "EUR": "L 2x99 + 409 + 519 = 1126, 3 priced. C 2x105 + 429 + 549 = 1188, 3 priced. P 2x90 + 399 = 579, 2 priced, 1 missing. P is cheapest but partial, so it ranks last: L, C, P.",
+    "USD": "K 2x150 = 300, 1 priced, 0 missing. 5 unpriced."
+  },
+  "expected": {
+    "EUR": {
+      "unpricedLines": 3,
+      "stores": [
+        { "storeId": "L", "totalMinor": 1126, "pricedLines": 3, "missingLines": 0 },
+        { "storeId": "C", "totalMinor": 1188, "pricedLines": 3, "missingLines": 0 },
+        { "storeId": "P", "totalMinor": 579, "pricedLines": 2, "missingLines": 1 }
+      ]
+    },
+    "USD": {
+      "unpricedLines": 5,
+      "stores": [
+        { "storeId": "K", "totalMinor": 300, "pricedLines": 1, "missingLines": 0 }
+      ]
+    }
+  }
+}

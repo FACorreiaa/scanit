@@ -7,7 +7,7 @@ import SwiftData
 /// preselected, and limit chips taken from the user's own history.
 struct TripStartOptions {
     struct LimitSuggestion: Hashable, Identifiable {
-        enum Kind: Hashable { case lastLimit, averageTrip }
+        enum Kind: Hashable { case estimate, lastLimit, averageTrip }
         let kind: Kind
         let amount: Money
         var id: Kind { kind }
@@ -22,7 +22,9 @@ struct TripStartOptions {
     private let sessions: [ShoppingSession]
     private let now: Date
 
-    init(context: ModelContext, now: Date = .now) {
+    /// - Parameter including: a store that must be offered even if it is not among the recent ones
+    ///   (MEAL-004: the list's cheapest store). It goes first when it would otherwise be left out.
+    init(context: ModelContext, now: Date = .now, including storeID: UUID? = nil) {
         let sessionDescriptor = FetchDescriptor<ShoppingSession>(
             predicate: #Predicate { $0.deletedAt == nil },
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
@@ -35,13 +37,18 @@ struct TripStartOptions {
         let stores = (try? context.fetch(storeDescriptor)) ?? []
 
         // Most recently visited first, then stores never visited, newest first.
-        let ordered = (sessions.compactMap(\.store) + stores)
+        let ordered = Array((sessions.compactMap(\.store) + stores)
             .filter { !$0.isSoftDeleted }
-            .uniqued(on: \.id)
+            .uniqued(on: \.id))
+        var recent = Array(ordered.prefix(Self.maxRecentStores))
+        if let storeID, !recent.contains(where: { $0.id == storeID }),
+           let store = ordered.first(where: { $0.id == storeID }) {
+            recent.insert(store, at: 0)
+        }
 
         self.sessions = sessions
         self.now = now
-        self.recentStores = Array(ordered.prefix(Self.maxRecentStores))
+        self.recentStores = recent
         self.lastUsedStore = sessions.lazy.compactMap(\.store).first { !$0.isSoftDeleted }
     }
 
@@ -59,12 +66,25 @@ struct TripStartOptions {
         let finished = sameCurrency.filter { $0.status == .finished && ($0.endedAt ?? $0.startedAt) >= windowStart }
         if !finished.isEmpty {
             let average = finished.map(\.totalMinor).reduce(0, +) / finished.count
-            let unit = (0..<Money.minorUnitDigits(for: currency)).reduce(1) { value, _ in value * 10 }
-            let roundedUp = (average + unit - 1) / unit * unit
-            if roundedUp > 0, roundedUp != suggestions.first?.amount.amountMinor {
-                suggestions.append(LimitSuggestion(kind: .averageTrip, amount: Money(amountMinor: roundedUp, currency: currency)))
+            let roundedUp = Self.roundedUp(Money(amountMinor: average, currency: currency))
+            if roundedUp.amountMinor > 0, roundedUp != suggestions.first?.amount {
+                suggestions.append(LimitSuggestion(kind: .averageTrip, amount: roundedUp))
             }
         }
         return suggestions
+    }
+
+    /// The chips with the list's estimate first (MEAL-004), when it is in this currency. A chip
+    /// with the same amount as the estimate is dropped.
+    func limitSuggestions(currency: String, estimate: Money?) -> [LimitSuggestion] {
+        let history = limitSuggestions(currency: currency)
+        guard let estimate, estimate.currency.uppercased() == currency.uppercased() else { return history }
+        return [LimitSuggestion(kind: .estimate, amount: estimate)] + history.filter { $0.amount != estimate }
+    }
+
+    /// Up to the next whole unit (€41,20 → €42), so a limit reads as a round number.
+    static func roundedUp(_ money: Money) -> Money {
+        let unit = (0..<Money.minorUnitDigits(for: money.currency)).reduce(1) { value, _ in value * 10 }
+        return Money(amountMinor: (money.amountMinor + unit - 1) / unit * unit, currency: money.currency)
     }
 }
