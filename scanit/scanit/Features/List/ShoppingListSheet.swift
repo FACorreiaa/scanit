@@ -1,8 +1,13 @@
+import ScanItCore
 import SwiftData
 import SwiftUI
 
 /// The shopping list (BACKLOG ADD-005): written before the trip, ticked by scanning or by hand.
+/// Under the lines, what they cost at each store you know (MEAL-004).
 struct ShoppingListSheet: View {
+    /// Starts a trip at the cheapest store. `nil` during a trip, which hides the button.
+    var onStart: ((TripPrefill) -> Void)?
+
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(filter: #Predicate<ListItem> { $0.deletedAt == nil }, sort: \ListItem.createdAt)
@@ -13,6 +18,8 @@ struct ShoppingListSheet: View {
 
     var body: some View {
         let suggestions = ShoppingList.suggestions(for: text, context: context)
+        // Recomputed whenever the lines change (the query drives the redraw).
+        let estimate = ListEstimate.estimate(context: context)
         NavigationStack {
             List {
                 Section {
@@ -44,6 +51,10 @@ struct ShoppingListSheet: View {
                                 }
                         }
                     }
+                }
+
+                if !estimate.stores.isEmpty {
+                    ListCostSection(estimate: estimate, onStart: onStart)
                 }
             }
             .navigationTitle("Shopping list")
@@ -103,9 +114,13 @@ extension ListLineRow {
 
 /// "Shopping list · 3 to get": opens the list from the Trip tab, with or without a trip.
 struct ShoppingListButton: View {
+    @Environment(SessionStore.self) private var sessions
+    @Environment(\.startTripFromList) private var startTripFromList
     @Query(filter: #Predicate<ListItem> { $0.deletedAt == nil && $0.doneAt == nil })
     private var waiting: [ListItem]
     @State private var isShowing = false
+    /// The start sheet opens only after the list has fully closed.
+    @State private var pendingStart: TripPrefill?
 
     var body: some View {
         Button {
@@ -114,8 +129,16 @@ struct ShoppingListButton: View {
             Label(title, systemImage: "checklist")
         }
         .accessibilityIdentifier("shoppingList")
-        .sheet(isPresented: $isShowing) {
-            ShoppingListSheet()
+        .sheet(isPresented: $isShowing, onDismiss: {
+            if let pendingStart {
+                self.pendingStart = nil
+                startTripFromList(pendingStart)
+            }
+        }) {
+            ShoppingListSheet(onStart: sessions.active == nil ? { prefill in
+                pendingStart = prefill
+                isShowing = false
+            } : nil)
                 // The Trip tab's empty state centres its text, and a sheet inherits that.
                 .multilineTextAlignment(.leading)
                 .presentationDetents([.medium, .large])
@@ -124,5 +147,47 @@ struct ShoppingListButton: View {
 
     private var title: String {
         waiting.isEmpty ? "Shopping list" : "Shopping list · \(waiting.count) to get"
+    }
+}
+
+/// "Lidl · €11,26", one row per store, best first, then **Start trip at Lidl**. A store missing some
+/// prices says how many, and is never the one offered for being cheaper (`ListCost`).
+private struct ListCostSection: View {
+    let estimate: ListCostEstimate
+    let onStart: ((TripPrefill) -> Void)?
+
+    var body: some View {
+        Section {
+            ForEach(estimate.stores.prefix(3), id: \.storeId) { store in
+                LabeledContent {
+                    Text(store.total.formatted()).monospacedDigit()
+                } label: {
+                    Text(store.storeName ?? "A store")
+                    if store.missingLines > 0 {
+                        Text(store.missingLines == 1 ? "1 item not priced here" : "\(store.missingLines) items not priced here")
+                    }
+                }
+                .accessibilityIdentifier("listCost.\(store.storeName ?? store.storeId)")
+            }
+            if let onStart, let cheapest = estimate.cheapest, let prefill = TripPrefill(estimate) {
+                Button("Start trip at \(cheapest.storeName ?? "this store")", systemImage: "cart") {
+                    onStart(prefill)
+                }
+                .accessibilityIdentifier("listStartTrip")
+            }
+        } header: {
+            Text("Cost by store")
+        } footer: {
+            Text(footer)
+        }
+    }
+
+    private var footer: String {
+        let base = "From the prices you've seen in the last 90 days."
+        switch estimate.unpricedLines {
+        case 0: return base
+        case 1: return "1 item has no price yet. " + base
+        default: return "\(estimate.unpricedLines) items have no price yet. " + base
+        }
     }
 }
