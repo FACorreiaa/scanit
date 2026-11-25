@@ -42,7 +42,7 @@ bottom third.
 ### 1. First launch (no account)
 
 1. One welcome screen: "See what your trolley costs before the till". Single **Start** button.
-2. **Camera primer** screen explaining why, shown before the system prompt (we get one chance at the system prompt).
+2. **Camera primer** screen explaining why, shown before the system prompt (we get one chance at the system prompt). Its button says **Continue**, never "Allow camera": App Review rejected that wording under guideline 5.1.1(iv) (2026-11-20). If the camera is denied, the scanner says so and links to Settings.
 3. Land on the Trip tab, empty state with a large **Start shopping** button.
 
 There is no sign-in on first launch. Sign-in is offered later, in Settings and once on the first trip summary ("Back up your trips").
