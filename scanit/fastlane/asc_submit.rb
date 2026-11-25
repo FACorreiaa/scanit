@@ -7,8 +7,8 @@
 #
 # Run after the `release` lane has uploaded a build (CI: the `submit_status` and `submit` lanes).
 # Apple reports anything still missing (for example App Privacy, which its API cannot answer) when
-# the submission is created. A submission Apple sent back (UNRESOLVED_ISSUES) is never cancelled
-# here: the script stops and says so.
+# the submission is created. A submission Apple sent back (UNRESOLVED_ISSUES) is resubmitted, never
+# cancelled.
 require_relative "asc_api"
 
 dry_run = ARGV.include?("--dry-run")
@@ -37,8 +37,9 @@ version = api(:get, "/v1/apps/#{app_id}/appStoreVersions?filter[appStoreState]=P
 version_id = version["id"]
 version_string = version["attributes"]["versionString"]
 
-unresolved = api(:get, "/v1/reviewSubmissions?filter[app]=#{app_id}&filter[platform]=IOS&filter[state]=UNRESOLVED_ISSUES")["data"]
-abort("A submission Apple sent back is still open (#{unresolved.map { |r| r['id'] }.join(', ')}): answer it in App Store Connect first; this script never cancels it.") if unresolved.any? && !dry_run
+# A submission Apple sent back (rejected) is resubmitted, like App Store Connect's "Resubmit to App
+# Review": its items are marked resolved and it is submitted again. It is never cancelled.
+unresolved = api(:get, "/v1/reviewSubmissions?filter[app]=#{app_id}&filter[platform]=IOS&filter[state]=UNRESOLVED_ISSUES")["data"].first
 
 # The build to send: the one asked for, or the newest upload. Never an older build that happens to
 # be processed while the new one is still processing.
@@ -59,6 +60,20 @@ puts "Build #{build['attributes']['version']} (#{build['id']}) → version #{ver
 api(:patch, "/v1/appStoreVersions/#{version_id}/relationships/build", { data: { type: "builds", id: build["id"] } })
 
 exit 0 if dry_run
+
+if unresolved
+  items = api(:get, "/v1/reviewSubmissions/#{unresolved['id']}/items?include=appStoreVersion")["data"]
+  items.each do |item|
+    puts "item #{item['id']}: #{item['attributes']['state']}"
+    next if item["attributes"]["resolved"]
+    api(:patch, "/v1/reviewSubmissionItems/#{item['id']}", { data: { type: "reviewSubmissionItems", id: item["id"],
+      attributes: { resolved: true } } })
+  end
+  api(:patch, "/v1/reviewSubmissions/#{unresolved['id']}", { data: { type: "reviewSubmissions", id: unresolved["id"],
+    attributes: { submitted: true } } })
+  puts "Resubmitted #{version_string} (build #{build['attributes']['version']}) for App Review, submission #{unresolved['id']}."
+  exit 0
+end
 
 # Apple allows one open submission per platform: reuse it (a failed earlier run leaves one behind).
 submission = api(:get, "/v1/reviewSubmissions?filter[app]=#{app_id}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW")["data"].first
