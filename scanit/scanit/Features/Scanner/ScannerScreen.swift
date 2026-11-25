@@ -344,7 +344,9 @@ struct ScannerScreen: View {
     }
 }
 
-/// Shown before the system prompt: we get one chance at it (`DESIGN.md` → First launch).
+/// Shown before the system prompt: we get one chance at it (`DESIGN.md` → First launch). The
+/// button says "Continue", never "Allow": App Review rejects a primer that steers the answer
+/// (guideline 5.1.1(iv), 2026-11-20).
 private struct CameraPrimer: View {
     let onAllow: () -> Void
 
@@ -362,7 +364,7 @@ private struct CameraPrimer: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
-            Button("Allow camera", action: onAllow)
+            Button("Continue", action: onAllow)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
         }

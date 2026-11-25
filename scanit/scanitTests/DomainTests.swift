@@ -1344,6 +1344,49 @@ struct TripPlanTests {
         #expect(prefill.plan(for: nil, currency: "EUR").cost == nil, "a new store")
     }
 
+    /// The plan is read back from disk for a past trip in History. A list of typed lines only
+    /// stores no codes: an empty list, which must come back as one, not as "no plan".
+    @Test func planSurvivesARelaunch() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "plan-\(UUID().uuidString).store")
+        defer {
+            for suffix in ["", "-shm", "-wal"] { try? FileManager.default.removeItem(atPath: url.path() + suffix) }
+        }
+        var tripIDs: [UUID] = []
+        do {
+            let context = ModelContext(try ScanItSchema.container(url: url))
+            DemoData.seed(context, now: now)
+            DemoData.seedList(context, now: now)
+            let estimate = ListEstimate.estimate(context: context, now: now)
+            let prefill = try #require(TripPrefill(estimate, lines: ShoppingList.lines(context: context)))
+            let lidl = try #require(try context.fetch(FetchDescriptor<Store>()).first { $0.name == "Lidl" })
+            let sessions = SessionStore(context: context, analytics: RecordingAnalytics())
+            let planned = sessions.startTrip(store: lidl, limitMinor: nil, currency: "EUR", plan: prefill.plan(for: lidl.id, currency: "EUR"))
+            sessions.addItem(code: bread, productName: "Pão de forma", unitPriceMinor: 149, priceSource: .manual)
+            tripIDs.append(planned.id)
+
+            let typedOnly = TripPlan(lines: [PlannedLine(text: "Queijo", code: nil)], cost: nil, unpricedLines: 1)
+            let typed = sessions.startTrip(store: lidl, limitMinor: nil, currency: "EUR", plan: typedOnly)
+            sessions.addItem(code: bread, productName: "Pão de forma", unitPriceMinor: 149, priceSource: .manual)
+            tripIDs.append(typed.id)
+            try context.save()
+        }
+
+        let reopened = ModelContext(try ScanItSchema.container(url: url))
+        let trips = try reopened.fetch(FetchDescriptor<ShoppingSession>())
+        let planned = try #require(trips.first { $0.id == tripIDs[0] })
+        let summary = try #require(TripPlanSummary(session: planned))
+        #expect(summary.planned == Money(amountMinor: 1126, currency: "EUR"))
+        #expect(summary.unpricedLines == 1)
+        #expect(summary.extras.map(\.code) == [bread.value])
+        #expect(planned.plannedCodes?.count == 3)
+
+        let typed = try #require(trips.first { $0.id == tripIDs[1] })
+        #expect(typed.plannedCodes == [], "no codes is still a plan")
+        let typedSummary = try #require(TripPlanSummary(session: typed))
+        #expect(typedSummary.planned == nil)
+        #expect(typedSummary.extras.map(\.code) == [bread.value])
+    }
+
     /// Trips started any other way, and trips from before MEAL-005, have no plan.
     @Test func tripWithoutAPlanHasNoSummary() throws {
         let (context, _, lidl) = try demo()
