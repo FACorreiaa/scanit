@@ -4,6 +4,7 @@
 #   ruby scanit/fastlane/asc_submit.rb --build 7       # attach build 7 (waits for it) + submit
 #   ruby scanit/fastlane/asc_submit.rb                 # attach the newest upload (waits) + submit
 #   ruby scanit/fastlane/asc_submit.rb --dry-run       # attach only, no submit
+#   ruby scanit/fastlane/asc_submit.rb --cancel <id>   # remove a WAITING_FOR_REVIEW submission
 #
 # Run after the `release` lane has uploaded a build (CI: the `submit_status` and `submit` lanes).
 # Apple reports anything still missing (for example App Privacy, which its API cannot answer) when
@@ -16,6 +17,19 @@ status_only = ARGV.include?("--status")
 wanted_build = ARGV.index("--build")&.then { |i| ARGV.fetch(i + 1) }
 app = app_for(BUNDLE_ID) or abort("no app for #{BUNDLE_ID}")
 app_id = app["id"]
+
+# Remove one waiting submission from review, by its ID only (owner decision each time: it loses the
+# queue place). Used to swap in a fixed build.
+cancel_id = ARGV.index("--cancel")&.then { |i| ARGV.fetch(i + 1) }
+if cancel_id
+  submission = api(:get, "/v1/reviewSubmissions/#{cancel_id}")["data"]
+  state = submission["attributes"]["state"]
+  abort("submission #{cancel_id} is #{state}; only WAITING_FOR_REVIEW is cancelled") unless state == "WAITING_FOR_REVIEW"
+  api(:patch, "/v1/reviewSubmissions/#{cancel_id}", { data: { type: "reviewSubmissions", id: cancel_id,
+    attributes: { canceled: true } } })
+  puts "Cancelled submission #{cancel_id} (was #{state})."
+  exit 0
+end
 
 if status_only
   puts "Versions:"

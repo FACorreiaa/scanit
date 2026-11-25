@@ -38,7 +38,7 @@ versions.
 | D | Claude ✅ | `fastlane release` plus the workflow option **release**: Actions → iOS beta → Run workflow → lane `release` uploads a Release build to the production **ScanItNow** app. | done |
 | E | Claude ✅ | Listing text, App Privacy answers and review notes: `docs/app-store-listing.md`. Screenshots: `brand/store/framed/01–04.png` (6.9", 1320×2868). | done |
 | F | Claude ✅ + You ✅ | Done 2026-10-10…14: listing set through the API (`asc_setup.rb`), 5 screenshots uploaded, App Privacy published by the owner. App Store Connect → ScanItNow: paste `docs/app-store-listing.md` (URLs, category, age rating, price Free, App Privacy "Data Not Collected", description, keywords, screenshots, review notes). | open |
-| G | Claude ✅ | **Submitted 2026-10-14** (build 1, manual release) with `asc_submit.rb`; state Waiting for Review. Run the `release` lane. When the build is processed, select it under **1.0**, click **Add for Review**, then **Submit**. Choose manual release. | open |
+| G | Claude ✅ | **Build 6 submitted 2026-11-25**, manual release, state Waiting for Review. History: build 1 submitted 2026-10-14; rejected under 2.1 (info and a device recording; reply sent 2026-11-05) and 5.1.1(iv) (primer button said "Allow camera", now "Continue"). From GitHub: Actions → iOS beta → Run workflow → `release` (uploads the next build), then `submit_status` (read only), then `submit` with that build number. `submit` resubmits a rejected submission, never cancels it. `cancel_review` (a submission ID; owner OK each time) removes a waiting submission to swap the build. | open |
 | H | Apple | Review, usually 24–48 h. Then release when you choose. | |
 
 ## Stage 1: TestFlight, internal (automatic from `main`)

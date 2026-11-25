@@ -182,6 +182,7 @@ Meals → week → list → trip:
    - A store with no estimate (a new store, or another currency) has no planned cost: "You hadn't seen prices at this store yet, so there's nothing to compare with." Only the extra items show.
    - Unpriced lines are left out of the planned cost, as in the list: "1 thing on your list had no price here yet, so it isn't counted."
    - The plan is on this phone only. It is not in the sync shape yet (P4).
+   - A scanned product with no name (unknown to Open Food Facts, or a weighed in-store code) can never match a typed line, and a line ticked by hand never matches anything. Such items show under **Not on your list** even when they were on it. Hiding them instead risks a false "You stuck to your list". **Owner decision pending.**
 
 No recipe catalogue, no AI. Savings are shown in each trip's currency and never converted. The owner gives the verdict on the screens.
 

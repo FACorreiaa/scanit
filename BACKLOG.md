@@ -20,7 +20,7 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 - Agents draft pixels, the owner keeps verdicts.
 - Infra changes go in `~/Work/production/platform/infra` only.
 
-## Status snapshot (2026-10-09)
+## Status snapshot (2026-11-25)
 
 | Area | State |
 | --- | --- |
@@ -28,9 +28,9 @@ Owner rules that bound every item (`~/.claude/CLAUDE.md`):
 | Code | Repo `FACorreiaa/scanit` (private). `scanit-core` done (Money, barcodes, price parser, sync DTOs, fixtures). iOS shell: 3 tabs, iPhone-only, iOS 18, Swift 6. CI: core on Linux, iOS unit tests on macOS. |
 | Name | Home-screen name **ScanIt**, slug `scanit`. **App Store name: ScanItNow** ("ScanIt" was taken). App Store Connect apps: ScanItNow (`com.fernandocorreia.scanit`, id 6821292069) and ScanItNow Beta (`.beta`, id 6821292246), created 2026-10-10. Domain **OPEN** (`{{domain}}`). |
 | Monetisation | Free plus a one-time "ScanIt Unlimited" unlock (2026-10-09). See REL-003. |
-| TestFlight | Build 1 uploaded by CI (2026-10-10), state VALID. Internal group has auto-distribute on and 1 tester. Every green `main` uploads a new build. |
+| TestFlight | Every green `main` uploads a ScanItNow Beta build (internal group, auto-distribute, 1 tester). Latest: the camera-primer fix, 2026-11-25. |
 | Release plan | **Fast path (2026-10-10):** App Store v1.0 free, no IAP, no analytics SDKs, legal pages on facorreia.com. `scanit-web` is parked (built, not deployed). REL-003 and FND-004 move to v1.1. See `docs/release.md`. |
-| App Store | **1.0 (build 1) submitted for review 2026-10-14**, manual release. Free, Data Not Collected, 175 territories. |
+| App Store | **1.0 (build 6) waiting for review since 2026-11-25**, manual release. Free, Data Not Collected, 175 territories. Earlier rejections: 2.1 (information needed; 25 s recording sent 2026-11-05, no completed scan shown) and 5.1.1(iv) ("Allow camera" primer button, fixed in build 6 as "Continue"). Build 6 also carries MEAL-005. |
 | Strangers count | 0 |
 | P10 Plan and save | Opened 2026-11-16 by owner decision while the strangers count was 0. Local-only items may start; items marked **(after P2)** wait for GATE-002. |
 
