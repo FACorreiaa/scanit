@@ -71,6 +71,17 @@ nonisolated final class ShoppingSession: SyncedRecord {
     var endedAt: Date?
     var statusRaw: String
     var tillTotalMinor: Int?
+    /// The plan the trip was started from (MEAL-005), frozen at the start: the list changes while
+    /// you shop, and is cleared after. All optional, so stores from before it open without a
+    /// migration. Local only: not in `SessionDTO` yet (P4).
+    /// Codes of the list lines that named a product.
+    var plannedCodes: [String]?
+    /// Words of the typed list lines.
+    var plannedTexts: [String]?
+    /// The list's estimate at this trip's store, in the trip's currency. `nil` when that store had none.
+    var plannedMinor: Int?
+    /// List lines the estimate had no price for at this store.
+    var plannedUnpricedLines: Int?
     var createdAt: Date
     var updatedAt: Date
     var deletedAt: Date?

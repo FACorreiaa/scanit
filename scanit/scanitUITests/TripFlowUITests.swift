@@ -476,6 +476,27 @@ final class TripFlowUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [refilled], timeout: 5), .completed, "limit: \(limit.value ?? "nil")")
         app.buttons["startTrip"].tap()
         XCTAssertTrue(text(containing: "left").waitForExistence(timeout: 5), "the trip has the limit")
+
+        // MEAL-005: Nutella was on the list, bread was not. Both have a price at Lidl, so each scan
+        // adds at once (ADD-001): 4,09 + 1,39 = 5,48 spent against the €11,26 planned there.
+        app.buttons["scan"].tap()
+        // The cart total, not the banner: the banner hides itself after a moment.
+        for code in [nutella, bread] { scan(code) }
+        app.buttons["closeScanner"].tap()
+        XCTAssertTrue(text(containing: "5,48").waitForExistence(timeout: 10), "both items added")
+        app.buttons["finishTrip"].tap()
+        XCTAssertTrue(app.navigationBars["Trip finished"].waitForExistence(timeout: 5))
+
+        let planned = app.descendants(matching: .any)["tripPlanned"]
+        XCTAssertTrue(planned.waitForExistence(timeout: 5))
+        XCTAssertTrue(planned.label.contains("11,26"), planned.label)
+        let vsPlan = app.descendants(matching: .any)["tripVsPlan"]
+        XCTAssertEqual(vsPlan.label, "You spent €5,78 less than planned")
+        let extra = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'offPlan.'"))
+        for _ in 0..<4 where !(extra.firstMatch.exists && extra.firstMatch.isHittable) { app.swipeUp() }
+        XCTAssertEqual(extra.count, 1, "only the bread was off the plan")
+        XCTAssertTrue(extra.firstMatch.label.contains("1,39"), extra.firstMatch.label)
+        snapshot("25-summary-plan")
     }
 
     func testFinishedTripShowsItsSavingAndHistoryToo() throws {

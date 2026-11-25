@@ -1280,6 +1280,80 @@ struct ListEstimateTests {
     }
 }
 
+// MARK: - MEAL-005: planned vs actual
+
+@MainActor
+struct TripPlanTests {
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func demo() throws -> (ModelContext, TripPrefill, Store) {
+        let context = try makeContext()
+        DemoData.seed(context, now: now)
+        DemoData.seedList(context, now: now)
+        let estimate = ListEstimate.estimate(context: context, now: now)
+        let prefill = try #require(TripPrefill(estimate, lines: ShoppingList.lines(context: context)))
+        let lidl = try #require(try context.fetch(FetchDescriptor<Store>()).first { $0.name == "Lidl" })
+        return (context, prefill, lidl)
+    }
+
+    /// The Done-when: a planned trip with one extra item. Lidl's estimate is €11,26 (MEAL-004) and
+    /// leaves out the typed "Queijo". Bought: milk 2 × 0,99, Nutella 4,09, coffee 5,19, a cheese
+    /// that answers "Queijo" at 2,50, and bread at 1,49 that was not on the list.
+    /// Spent 1,98 + 4,09 + 5,19 + 2,50 + 1,49 = €15,25, so €3,99 over the plan.
+    @Test func plannedTripShowsTheExtraItemAndTheDifference() throws {
+        let (context, prefill, lidl) = try demo()
+        let sessions = SessionStore(context: context, analytics: RecordingAnalytics())
+        let trip = sessions.startTrip(
+            store: lidl, limitMinor: 1200, currency: "EUR", plan: prefill.plan(for: lidl.id, currency: "EUR")
+        )
+        sessions.addItem(code: milk, productName: "Leite meio gordo", quantity: 2, unitPriceMinor: 99, priceSource: .manual)
+        sessions.addItem(code: ScannedCode(kind: .gtin, value: "03017620422003"), productName: "Nutella", unitPriceMinor: 409, priceSource: .manual)
+        sessions.addItem(code: ScannedCode(kind: .gtin, value: "05601111111116"), unitPriceMinor: 519, priceSource: .manual)
+        sessions.addItem(code: ScannedCode(kind: .gtin, value: "05609999999990"), productName: "Queijo flamengo fatias", unitPriceMinor: 250, priceSource: .manual)
+        sessions.addItem(code: bread, productName: "Pão de forma", unitPriceMinor: 149, priceSource: .manual)
+        // The list is ticked and cleared while you shop; the plan is not.
+        ShoppingList.clearDone(context: context)
+
+        let summary = try #require(TripPlanSummary(session: trip))
+        #expect(summary.planned == Money(amountMinor: 1126, currency: "EUR"), "the plain estimate, not the €12 limit")
+        #expect(summary.spent.amountMinor == 1525)
+        #expect(summary.difference == Money(amountMinor: 399, currency: "EUR"))
+        #expect(summary.differenceText == "You spent \(Money(amountMinor: 399, currency: "EUR").formatted()) more than planned")
+        #expect(summary.extras.map(\.code) == [bread.value])
+        #expect(summary.extrasTotal.amountMinor == 149)
+        #expect(summary.unpricedLines == 1, "Queijo")
+    }
+
+    /// A store with no estimate, or another currency, has no planned cost; the extras still show.
+    @Test func noPlannedCostWithoutAnEstimateAtThatStore() throws {
+        let (context, prefill, lidl) = try demo()
+        let corner = Store(name: "Corner shop", countryCode: "PT", currency: "EUR")
+        context.insert(corner)
+        let sessions = SessionStore(context: context, analytics: RecordingAnalytics())
+
+        let trip = sessions.startTrip(store: corner, limitMinor: nil, currency: "EUR", plan: prefill.plan(for: corner.id, currency: "EUR"))
+        sessions.addItem(code: bread, productName: "Pão de forma", unitPriceMinor: 149, priceSource: .manual)
+        let summary = try #require(TripPlanSummary(session: trip))
+        #expect(summary.planned == nil)
+        #expect(summary.difference == nil)
+        #expect(summary.differenceText == nil)
+        #expect(summary.unpricedLines == 4)
+        #expect(summary.extras.map(\.code) == [bread.value])
+
+        #expect(prefill.plan(for: lidl.id, currency: "USD").cost == nil)
+        #expect(prefill.plan(for: nil, currency: "EUR").cost == nil, "a new store")
+    }
+
+    /// Trips started any other way, and trips from before MEAL-005, have no plan.
+    @Test func tripWithoutAPlanHasNoSummary() throws {
+        let (context, _, lidl) = try demo()
+        let sessions = SessionStore(context: context, analytics: RecordingAnalytics())
+        let trip = sessions.startTrip(store: lidl, limitMinor: nil, currency: "EUR")
+        sessions.addItem(code: bread, productName: "Pão de forma", unitPriceMinor: 149, priceSource: .manual)
+        #expect(TripPlanSummary(session: trip) == nil)
+    }
+}
+
 // MARK: - SAVE-003: savings on Insights
 
 @MainActor

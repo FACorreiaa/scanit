@@ -463,15 +463,8 @@ An optional monthly savings target, with INS-14 measured against it, as a progre
 
 **Done when:** the ring fills from INS-14, and a month that reaches the target says so once.
 
-*Meals. MEAL-001 (meals with their cost), MEAL-002 (the week plan), MEAL-003 (plan to list) and
-MEAL-004 (list cost per store) are done; see **Done**.*
-
-### MEAL-005 · Planned vs actual · S
-**Needs:** MEAL-004.
-A trip started from a plan keeps a link to it. The summary shows the planned cost against the amount
-spent, and the items that were not on the plan.
-
-**Done when:** a planned trip with one extra item shows that item and the right difference.
+*Meals. MEAL-001 (meals with their cost), MEAL-002 (the week plan), MEAL-003 (plan to list),
+MEAL-004 (list cost per store) and MEAL-005 (planned vs actual) are done; see **Done**.*
 
 *Compare stores. CMP-001 (a chain on each store) is done; see **Done**.*
 
@@ -667,6 +660,34 @@ Validate the references in `DESIGN.md` against recorded screens of budgeting and
 - **AI insights / LLM.** If ever, read `platform/infra/docs/llm-haiku-trial.md` first.
 
 ## Done
+
+### MEAL-005 · Planned vs actual · S
+**Needs:** MEAL-004.
+A trip started from a plan keeps a link to it. The summary shows the planned cost against the amount
+spent, and the items that were not on the plan.
+
+**Done when:** a planned trip with one extra item shows that item and the right difference.
+
+**Closed 2026-11-25:**
+
+- **App:** a trip started with **Start trip at …** freezes its plan on `ShoppingSession`: the codes
+  and typed words of the lines still to get, the chosen store's plain estimate and how many lines it
+  had no price for (`TripPrefill.plan(for:currency:)`, `ShoppingSession.keep`). These are four
+  optional fields, so older stores open without a migration. They are local only and not in
+  `SessionDTO` yet (P4). `TripPlanSummary` gives planned, spent, the difference and the items no
+  plan line answers, using the list's own matching rule. `TripPlanSections` shows them on the finish
+  sheet and in the past trip. A new store, a store with no estimate or another currency has no
+  planned cost; its extra items still show.
+- **Tests:** `TripPlanTests` covers the Done-when on the demo list. At Lidl, €11,26 is planned and
+  "Queijo" is left out as unpriced. The cart holds milk ×2, Nutella, coffee, a cheese that answers
+  "Queijo" and bread. That is €15,25 spent, €3,99 over the plan, and bread is the one extra item.
+  The tests also cover a store without an estimate, another currency and a trip without a plan.
+  `testListCostStartsTheTripAtTheCheapestStore` now finishes the trip it started: Nutella and bread
+  are added at Lidl's remembered prices, then it checks "You planned €11,26", "You spent €5,78 less than planned" and bread
+  as the only extra item. The 114 unit tests and this UI test pass; the finish screen was checked by
+  eye in light mode.
+- **Owner verdict 2026-11-25:** wording "the most human possible": "You planned €11,26", "You
+  spent €5,78 less than planned", "Not on your list", "You stuck to your list" (`DESIGN.md` §10).
 
 ### MEAL-004 · Plan cost per store · M
 **Needs:** MEAL-003, SAVE-001. OPX-002 adds data later.

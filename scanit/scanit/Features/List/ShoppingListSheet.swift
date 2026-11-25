@@ -54,7 +54,7 @@ struct ShoppingListSheet: View {
                 }
 
                 if !estimate.stores.isEmpty {
-                    ListCostSection(estimate: estimate, onStart: onStart)
+                    ListCostSection(estimate: estimate, lines: lines, onStart: onStart)
                 }
             }
             .navigationTitle("Shopping list")
@@ -154,6 +154,7 @@ struct ShoppingListButton: View {
 /// prices says how many, and is never the one offered for being cheaper (`ListCost`).
 private struct ListCostSection: View {
     let estimate: ListCostEstimate
+    let lines: [ListItem]
     let onStart: ((TripPrefill) -> Void)?
 
     var body: some View {
@@ -169,7 +170,7 @@ private struct ListCostSection: View {
                 }
                 .accessibilityIdentifier("listCost.\(store.storeName ?? store.storeId)")
             }
-            if let onStart, let cheapest = estimate.cheapest, let prefill = TripPrefill(estimate) {
+            if let onStart, let cheapest = estimate.cheapest, let prefill = TripPrefill(estimate, lines: lines) {
                 Button("Start trip at \(cheapest.storeName ?? "this store")", systemImage: "cart") {
                     onStart(prefill)
                 }
