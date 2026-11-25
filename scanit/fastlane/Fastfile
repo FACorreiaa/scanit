@@ -85,6 +85,11 @@ platform :ios do
     run_asc_submit(*(build.empty? ? [] : ["--build", build]))
   end
 
+  desc "Remove one waiting submission from App Review (CANCEL_SUBMISSION = its ID), to swap the build"
+  lane :cancel_review do
+    run_asc_submit("--cancel", ENV.fetch("CANCEL_SUBMISSION"))
+  end
+
   desc "One-time (re-runnable): create ScanIt's App IDs, then its App Store profiles in the shared match repo"
   desc "Reuses the team's existing Apple Distribution certificate; needs write access to the repo."
   lane :seed_signing do

@@ -29,10 +29,14 @@ on:
         description: Lane to run
         required: true
         type: choice
-        options: [beta, release, submit_status, submit, seed_signing]
+        options: [beta, release, submit_status, submit, cancel_review, seed_signing]
         default: beta
       build:
         description: "submit: build number to send (empty = the newest upload)"
+        required: false
+        type: string
+      submission:
+        description: "cancel_review: the review submission ID to remove from review"
         required: false
         type: string
 
@@ -90,6 +94,7 @@ jobs:
         run: bundle exec fastlane ${{ inputs.lane || 'beta' }}
         env:
           SUBMIT_BUILD: ${{ inputs.build }}
+          CANCEL_SUBMISSION: ${{ inputs.submission }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
