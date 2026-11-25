@@ -2,9 +2,14 @@
 #
 #   beta          CI on every green main → "ScanIt Beta" (com.fernandocorreia.scanit.beta) on TestFlight
 #   seed_signing  one-time: add ScanIt's App Store profiles to the shared match repo
-#   release       manual: Release build → production ScanItNow app; submit from App Store Connect
+#   release       manual: Release build → production ScanItNow app (its TestFlight)
+#   submit_status manual, read only: App Store versions, review submissions, newest builds
+#   submit        manual: attach SUBMIT_BUILD (or the newest upload) to the editable version, submit
 #
 # Env: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (base64 .p8), MATCH_PASSWORD, MATCH_GIT_BASIC_AUTHORIZATION.
+
+require "base64"
+require "tmpdir"
 
 default_platform(:ios)
 
@@ -68,6 +73,18 @@ platform :ios do
     )
   end
 
+  desc "Read only: the ScanItNow versions, review submissions and newest builds"
+  lane :submit_status do
+    run_asc_submit("--status")
+  end
+
+  desc "Attach a processed build to the editable version and submit it for App Review"
+  desc "SUBMIT_BUILD picks the build number; without it, the newest upload (waits for processing)."
+  lane :submit do
+    build = ENV["SUBMIT_BUILD"].to_s.strip
+    run_asc_submit(*(build.empty? ? [] : ["--build", build]))
+  end
+
   desc "One-time (re-runnable): create ScanIt's App IDs, then its App Store profiles in the shared match repo"
   desc "Reuses the team's existing Apple Distribution certificate; needs write access to the repo."
   lane :seed_signing do
@@ -97,6 +114,19 @@ platform :ios do
         identifier: identifier
       )
       UI.success("Created App ID #{identifier}")
+    end
+  end
+
+  # asc_submit.rb reads the .p8 from a file: write it from the secret, and delete it afterwards.
+  def run_asc_submit(*args)
+    Dir.mktmpdir do |dir|
+      key_path = File.join(dir, "AuthKey.p8")
+      File.write(key_path, Base64.decode64(ENV.fetch("ASC_KEY_P8")))
+      File.chmod(0o600, key_path)
+      ENV["ASC_KEY_PATH"] = key_path
+      sh("ruby", File.join(__dir__, "asc_submit.rb"), *args)
+    ensure
+      ENV.delete("ASC_KEY_PATH")
     end
   end
 

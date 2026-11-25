@@ -203,6 +203,9 @@ struct TripDetailView: View {
                     .padding(.vertical, 16)
                     .listRowBackground(Color.clear)
             }
+            if let plan = TripPlanSummary(session: trip) {
+                TripPlanSections(summary: plan, currency: trip.currency)
+            }
             if let saving {
                 Section {
                     TripSavingRows(saving: saving)

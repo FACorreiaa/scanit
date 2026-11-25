@@ -3,7 +3,8 @@ import SwiftData
 import SwiftUI
 
 /// Shown after Finish (`DESIGN.md` §6, BACKLOG IOS-010): total, limit result, items, change vs
-/// the last trip at this store, the biggest lines, and an optional actual till total.
+/// the last trip at this store, planned vs spent for a trip from the list (MEAL-005), the biggest
+/// lines, and an optional actual till total.
 struct TripSummarySheet: View {
     @Environment(SessionStore.self) private var sessions
     @Environment(\.modelContext) private var context
@@ -32,6 +33,10 @@ struct TripSummarySheet: View {
                         LabeledContent("Vs last time at \(store.name)", value: deltaText(delta))
                             .monospacedDigit()
                     }
+                }
+
+                if let plan = TripPlanSummary(session: session) {
+                    TripPlanSections(summary: plan, currency: session.currency)
                 }
 
                 if let saving {

@@ -42,11 +42,12 @@ final class SessionStore {
     // MARK: - Trip lifecycle
 
     /// Starts a trip. Any trip still marked active (there should be none) is abandoned first,
-    /// so there is never more than one.
+    /// so there is never more than one. A trip started from the list keeps its plan (MEAL-005).
     @discardableResult
-    func startTrip(store: Store?, limitMinor: Int?, currency: String) -> ShoppingSession {
+    func startTrip(store: Store?, limitMinor: Int?, currency: String, plan: TripPlan? = nil) -> ShoppingSession {
         if let active { close(active, as: .abandoned) }
         let session = ShoppingSession(store: store, limitMinor: limitMinor, currency: currency, now: now())
+        if let plan { session.keep(plan) }
         context.insert(session)
         store?.touch(now())
         save()

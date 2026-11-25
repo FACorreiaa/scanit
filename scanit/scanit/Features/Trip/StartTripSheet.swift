@@ -232,7 +232,8 @@ struct StartTripSheet: View {
         } else {
             store = options?.recentStores.first { $0.id == selectedStoreID }
         }
-        sessions.startTrip(store: store, limitMinor: parsedLimit?.amountMinor, currency: currency)
+        let plan = prefill?.plan(for: isAddingStore ? nil : store?.id, currency: currency)
+        sessions.startTrip(store: store, limitMinor: parsedLimit?.amountMinor, currency: currency, plan: plan)
         dismiss()
     }
 }
